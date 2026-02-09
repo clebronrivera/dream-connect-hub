@@ -2,11 +2,19 @@
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  command = "bun run build"
+  command = "npm run build"
   publish = "dist"
 
 # Supabase anon key and URL are designed to be public (client-side). Vite inlines
 # VITE_* env vars into the bundle, so the secrets scanner would otherwise fail
 # the deploy. Tell Netlify not to treat these keys as secrets in build output.
 [build.environment]
+  NODE_VERSION = "20"
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+
+# SPA fallback: serve index.html for all routes so client-side React Router works
+# (backup for public/_redirects; both ensure deep links and refreshes work)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
