@@ -68,12 +68,12 @@ const faqs = [
 ];
 
 const products = [
-  { name: "Premium Puppy Food", price: 49.99, status: "Available" },
-  { name: "Cozy Cloud Bed", price: 79.99, status: "Available" },
-  { name: "Interactive Puzzle Toy", price: 24.99, status: "Available" },
-  { name: "Training Treat Bundle", price: 19.99, status: "Coming Soon" },
-  { name: "Grooming Starter Set", price: 34.99, status: "Available" },
-  { name: "Adjustable Puppy Collar", price: 15.99, status: "Available" },
+  { name: "Premium Puppy Food", price: 49.99, status: "Sold Out" },
+  { name: "Cozy Cloud Bed", price: 79.99, status: "Sold Out" },
+  { name: "Interactive Puzzle Toy", price: 24.99, status: "Sold Out" },
+  { name: "Training Treat Bundle", price: 19.99, status: "Sold Out" },
+  { name: "Grooming Starter Set", price: 34.99, status: "Sold Out" },
+  { name: "Adjustable Puppy Collar", price: 15.99, status: "Sold Out" },
 ];
 
 export default function Essentials() {
