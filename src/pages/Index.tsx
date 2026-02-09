@@ -49,10 +49,12 @@ const trustPoints = [
 export default function Index() {
   return (
     <Layout>
-      {/* Hero Section — banner from Supabase (VITE_BANNER_IMAGE_URL) or fallback to red; no local image file */}
+      {/* Hero Section — banner from env or hardcoded Supabase URL (Lovable has no env); fallback to red */}
       {(() => {
-        const bannerUrl = import.meta.env.VITE_BANNER_IMAGE_URL as string | undefined;
-        const useImage = Boolean(bannerUrl?.trim());
+        const bannerUrl =
+          (import.meta.env.VITE_BANNER_IMAGE_URL as string | undefined)?.trim() ||
+          'https://xwudsqswlfpoljuhbphr.supabase.co/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg';
+        const useImage = Boolean(bannerUrl);
         return (
           <section
             className={`relative py-20 lg:py-32 min-h-[28rem] ${useImage ? "bg-cover bg-center bg-no-repeat" : "bg-primary"}`}
