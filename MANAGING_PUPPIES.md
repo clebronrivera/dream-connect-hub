@@ -1,52 +1,19 @@
 # Managing Puppies with Supabase
 
-This guide shows you how to manage your puppies using Supabase instead of Airtable.
+This guide shows you how to manage your puppies using Supabase.
 
-## ✅ What's Changed
+## ✅ Benefits
 
-- **Before**: Puppies were stored in Airtable (external service)
-- **After**: Puppies are now stored in Supabase (your own database)
-
-### Benefits
 - ✅ All data in one place (Supabase)
-- ✅ No need for Airtable API keys
 - ✅ Direct database access for management
 - ✅ Better control and security
 - ✅ Easier to add admin features later
 
 ---
 
-## 🚀 Setup Instructions
+## 🚀 Schema and database
 
-### Step 1: Run the SQL to Create the Puppies Table
-
-You have two options:
-
-#### Option A: Automatic Setup (Recommended)
-```bash
-npm run setup:puppies
-```
-
-This will attempt to create the table automatically. If it doesn't work, use Option B.
-
-#### Option B: Manual Setup
-1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/xwudsqswlfpoljuhbphr/sql/new
-2. Open the file `supabase-puppies-table.sql` in this project
-3. Copy all the SQL code
-4. Paste it into the Supabase SQL Editor
-5. Click **"Run"** to execute
-
-### Step 2: Verify the Table Was Created
-
-1. Go to **Table Editor** in Supabase
-2. You should see a new table called `puppies`
-3. It should have 3 sample puppies (Bella, Max, Luna)
-
-### Step 3: Test the Website
-
-1. Make sure your dev server is running: `npm run dev`
-2. Go to http://localhost:8080/puppies
-3. You should see the 3 sample puppies
+The `puppies` table and related schema are created by Supabase migrations. See **`supabase/migrations/README_MIGRATION.md`** for the migration runbook. For a new environment, run migrations from the Supabase dashboard (SQL Editor) or via your deployment pipeline.
 
 ---
 
@@ -123,27 +90,78 @@ The puppy will still appear on the website but won't show as "Available"
 
 ## 📷 Adding Puppy Photos
 
-### Option 1: Use External Image URLs
+The site uses whatever URL you put in `primary_photo` or `photos`. You can host images in **Supabase Storage**.
 
-If you have images hosted elsewhere (like Unsplash, Imgur, or your own server):
+### Step 1: Create the storage bucket (one-time)
 
-1. Get the direct image URL
-2. Add it to the `primary_photo` field
-3. For multiple photos, use the `photos` array field
+Run the puppy photos storage migration so the bucket and permissions exist:
 
-### Option 2: Supabase Storage (Recommended)
+1. Open **Supabase Dashboard** → **SQL Editor**
+2. Open the file `supabase/migrations/20250208100000_puppy_photos_storage.sql` in this project
+3. Copy the SQL and run it in the SQL Editor
 
-1. Go to Supabase Dashboard → **Storage**
-2. Create a bucket called `puppy-photos`
-3. Make it public (Settings → Public bucket: ON)
-4. Upload your puppy photos
-5. Get the public URL for each photo
-6. Add the URL to the puppy's `primary_photo` field
+This creates a public bucket `puppy-photos` and allows only admins to upload/delete.
+
+### Option A: Upload via Supabase Dashboard
+
+1. Go to **Storage** in the Supabase Dashboard
+2. Open the **puppy-photos** bucket (create it manually with name `puppy-photos` and set to **Public** if you didn’t run the migration)
+3. Upload your image(s)
+4. Click the file → **Get URL** (or copy the public URL)
+5. In **Table Editor** → `puppies`, set the puppy’s `primary_photo` to that URL (and optionally add more URLs to `photos`)
 
 Example URL format:
 ```
-https://xwudsqswlfpoljuhbphr.supabase.co/storage/v1/object/public/puppy-photos/bella-1.jpg
+https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/puppy-photos/your-file.jpg
 ```
+
+### Option B: Upload from your app (admin UI)
+
+Use the helper in code so admins can upload from the site:
+
+```ts
+import { uploadPuppyPhoto } from '@/lib/puppy-photos';
+
+// After user selects a file (must be logged in as admin)
+const { url } = await uploadPuppyPhoto(file);
+// Then update the puppy row: primary_photo = url
+await supabase.from('puppies').update({ primary_photo: url }).eq('id', puppyId);
+```
+
+The website already uses `primary_photo` (or the first `photos` entry) for the main image—no code changes needed once the URL is in the database.
+
+### Option C: External image URLs
+
+You can still use URLs from elsewhere (Unsplash, Imgur, your own server): put the URL in `primary_photo` or in the `photos` array.
+
+### Option D: Upload local images to Supabase
+
+If you have images in a local folder (e.g. `puppy-images/` with one folder per puppy and a `manifest.json`):
+
+1. **List puppies** (from Supabase):
+   ```bash
+   npm run list:puppies
+   ```
+   Shows a table of name, breed, price, photo count, and first photo URL.
+
+2. **Upload images to Supabase and update DB**:
+   ```bash
+   npm run upload:puppy-images
+   ```
+   Uploads each photo to the `puppy-photos` bucket and sets `primary_photo` and `photos` on the matching Supabase puppy row (matched by `puppy_id` in the manifest).
+
+### How pictures stay connected to the right puppy
+
+Everything is tied together by **`puppy_id`**:
+
+| Step | What happens |
+|------|----------------|
+| **Supabase** | Each puppy row has a `puppy_id` (optional stable identifier). |
+| **Upload** | Files go to Storage as `puppy-photos/{puppy_id}/photo_1.jpg`, and we update the row **where `puppy_id` = that value**. |
+
+Keep `puppy_id` stable so uploads and Storage paths stay correct.
+
+**Verify links:** Run `npm run verify:puppy-photos` to list each puppy, its `puppy_id`, and whether its `primary_photo` URL points to the correct Storage path for that `puppy_id`.
 
 ---
 
@@ -215,11 +233,7 @@ This is enforced by Row Level Security (RLS) policies in Supabase.
 
 ## 🎯 Next Steps
 
-1. **Remove Airtable integration** (if you want):
-   - You can remove the Airtable API key from `.env.local`
-   - The site now uses Supabase exclusively
-
-2. **Add your real puppies**:
+1. **Add your real puppies**:
    - Replace the sample puppies with your actual inventory
    - Add real photos and descriptions
 

@@ -155,59 +155,7 @@ async function verifyDatabase() {
   console.log('='.repeat(50) + '\n');
 }
 
-// Test Airtable connection
-async function testAirtable() {
-  console.log('🔍 Testing Airtable connection...\n');
-
-  const apiKey = process.env.VITE_AIRTABLE_API_KEY;
-  const baseId = process.env.VITE_AIRTABLE_BASE_ID;
-  const tableName = process.env.VITE_AIRTABLE_TABLE_PUPPIES || 'Available Puppies';
-
-  if (!apiKey || !baseId) {
-    console.log('❌ Missing Airtable credentials in .env.local');
-    return;
-  }
-
-  try {
-    const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.log(`❌ Airtable API Error: ${response.status} ${response.statusText}`);
-      console.log(`   ${errorData.error?.message || 'Unknown error'}`);
-      return;
-    }
-
-    const data = await response.json();
-    const recordCount = data.records?.length || 0;
-    
-    console.log(`✅ Airtable connection successful!`);
-    console.log(`   Base ID: ${baseId}`);
-    console.log(`   Table: ${tableName}`);
-    console.log(`   Records found: ${recordCount}`);
-    
-    if (recordCount > 0) {
-      const firstRecord = data.records[0];
-      console.log(`\n   Sample record fields:`);
-      Object.keys(firstRecord.fields || {}).slice(0, 5).forEach(key => {
-        console.log(`     - ${key}`);
-      });
-    }
-  } catch (error: any) {
-    console.log(`❌ Airtable connection failed: ${error.message}`);
-  }
-  
-  console.log('');
-}
-
 // Run verification
 (async () => {
   await verifyDatabase();
-  await testAirtable();
 })();

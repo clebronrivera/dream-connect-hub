@@ -42,15 +42,15 @@ Transform the current Puppy Heaven puppy-only website into a comprehensive pet s
 
 ## Phase 3: Available Puppies Page
 
-**Keep existing Airtable integration**
+**Puppy data from Supabase**
 
-- Dynamic puppy cards fetched from Airtable API
+- Dynamic puppy cards fetched from Supabase `puppies` table
 - Each card displays: name, breed, gender, photo, price, availability status
 - Optional breed filter for easy browsing
 - "Inquire" button on each card opens inquiry form
 - Inquiry submissions stored in Supabase for admin review
 
-**Technical:** Edge function to securely fetch from Airtable (requires Airtable API key)
+**Technical:** Supabase client fetches from `puppies` table (public read for Available status)
 
 ---
 
@@ -160,7 +160,7 @@ All tables with Row Level Security (RLS) — admins only for read access.
 |-----------|------------|
 | Frontend | React + TypeScript + Tailwind CSS |
 | Routing | React Router |
-| Puppy Data | Airtable API via Edge Function |
+| Puppy Data | Supabase `puppies` table |
 | Forms & Inquiries | Supabase Database |
 | Authentication | Supabase Auth |
 | Admin Panel | Protected routes + role-based access |
@@ -170,7 +170,7 @@ All tables with Row Level Security (RLS) — admins only for read access.
 ## Deliverables
 
 ✅ Modern, responsive multi-service homepage  
-✅ Preserved puppy listing with Airtable integration  
+✅ Puppy listing from Supabase  
 ✅ New Pet Consultation page with intake survey  
 ✅ New Pet Essentials catalog page  
 ✅ Contact page with form  

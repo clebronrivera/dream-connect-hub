@@ -1,6 +1,6 @@
 /**
  * Simple Integration Test Script
- * Tests Supabase and Airtable connections
+ * Tests Supabase connection and tables
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,10 +18,6 @@ dotenv.config({ path: join(__dirname, '..', '.env.local') });
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const airtableApiKey = process.env.VITE_AIRTABLE_API_KEY;
-const airtableBaseId = process.env.VITE_AIRTABLE_BASE_ID;
-const airtableTablePuppies = process.env.VITE_AIRTABLE_TABLE_PUPPIES || 'Available Puppies';
 
 console.log('🧪 Testing Integrations...\n');
 console.log('='.repeat(60));
@@ -124,57 +120,6 @@ async function verifySupabaseTables() {
   return allExist;
 }
 
-// Test Airtable Connection
-async function testAirtable() {
-  console.log('\n🟢 Testing Airtable Connection...\n');
-  
-  if (!airtableApiKey || !airtableBaseId) {
-    console.log('❌ Missing Airtable credentials');
-    return false;
-  }
-
-  try {
-    const url = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTablePuppies)}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${airtableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.log(`❌ Airtable API Error: ${response.status} ${response.statusText}`);
-      if (errorData.error) {
-        console.log(`   Message: ${errorData.error.message || JSON.stringify(errorData.error)}`);
-      }
-      return false;
-    }
-
-    const data = await response.json();
-    const recordCount = data.records?.length || 0;
-    
-    console.log('✅ Airtable connection successful');
-    console.log(`   Base ID: ${airtableBaseId}`);
-    console.log(`   Table: ${airtableTablePuppies}`);
-    console.log(`   Records found: ${recordCount}`);
-    
-    if (recordCount > 0) {
-      const firstRecord = data.records[0];
-      const fields = Object.keys(firstRecord.fields || {});
-      console.log(`   Fields in table: ${fields.length}`);
-      console.log(`   Sample fields: ${fields.slice(0, 5).join(', ')}${fields.length > 5 ? '...' : ''}`);
-    } else {
-      console.log('   ⚠️  No records found in table (this is okay if table is empty)');
-    }
-    
-    return true;
-  } catch (error) {
-    console.log(`❌ Airtable connection failed: ${error.message}`);
-    return false;
-  }
-}
-
 // Test form submission (dry run)
 async function testFormSubmission() {
   console.log('\n📝 Testing Form Submission Capability...\n');
@@ -223,24 +168,22 @@ async function testFormSubmission() {
 async function runTests() {
   const supabaseOk = await testSupabase();
   const tablesOk = await verifySupabaseTables();
-  const airtableOk = await testAirtable();
   const formsOk = tablesOk ? await testFormSubmission() : false;
 
   console.log('\n' + '='.repeat(60));
   console.log('\n📊 Test Summary:\n');
   console.log(`   Supabase Connection: ${supabaseOk ? '✅' : '❌'}`);
   console.log(`   Database Tables: ${tablesOk ? '✅' : '❌'}`);
-  console.log(`   Airtable Connection: ${airtableOk ? '✅' : '❌'}`);
   console.log(`   Form Submissions: ${formsOk ? '✅' : '❌'}`);
   
   console.log('\n' + '='.repeat(60));
   
-  if (supabaseOk && tablesOk && airtableOk && formsOk) {
+  if (supabaseOk && tablesOk && formsOk) {
     console.log('\n🎉 All integrations are working correctly!');
     console.log('\n✅ Your website is ready to use:');
     console.log('   • Contact forms will save to Supabase');
     console.log('   • Consultation surveys will save to Supabase');
-    console.log('   • Puppy listings will load from Airtable');
+    console.log('   • Puppy listings will load from Supabase');
     console.log('   • Product inquiries will save to Supabase');
   } else {
     console.log('\n⚠️  Some integrations need attention');
@@ -248,10 +191,7 @@ async function runTests() {
     if (!tablesOk) {
       console.log('   1. Run supabase-schema.sql in Supabase SQL Editor');
     }
-    if (!airtableOk) {
-      console.log('   2. Verify Airtable API key and Base ID');
-    }
-    console.log('   3. Run this test again: npm run test:integrations');
+    console.log('   2. Run this test again: npm run test:integrations');
   }
   console.log('\n');
 }

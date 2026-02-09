@@ -8,13 +8,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS puppy_inquiries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
-  -- Airtable record id (if you want to store it)
+  -- Optional external id (e.g. from an import)
   puppy_id TEXT,
 
   -- Human-friendly label shown on site (keep for backwards compatibility)
   puppy_name TEXT,
 
-  -- Normalized, stable identifier used across Airtable + site + Supabase
+  -- Normalized, stable identifier used across site and Supabase
   puppy_code TEXT,
 
   -- Snapshot of the display name at time of submission (optional)

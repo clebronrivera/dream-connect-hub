@@ -138,3 +138,72 @@ export interface Puppy {
   created_at?: string;
   updated_at?: string;
 }
+
+// Products & Kits inventory
+export type ProductCategory =
+  | 'food_nutrition'
+  | 'bedding_comfort'
+  | 'toys_play'
+  | 'training_supplies'
+  | 'grooming_care'
+  | 'feeding_accessories';
+
+export type ProductStatus = 'available' | 'sold_out' | 'inactive';
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  category: ProductCategory;
+  price: number;
+  status: ProductStatus;
+  photo: string | null;
+  featured: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface Kit {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  status: ProductStatus;
+  photo: string | null;
+  badge: string | null;
+  featured: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface KitItem {
+  id: string;
+  kit_id: string;
+  item_text: string;
+  product_id: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+export interface KitWithItems extends Kit {
+  kit_items: KitItem[];
+}
+
+export const PRODUCT_CATEGORIES: Record<ProductCategory, string> = {
+  food_nutrition: 'Food & Nutrition',
+  bedding_comfort: 'Bedding & Comfort',
+  toys_play: 'Toys & Play',
+  training_supplies: 'Training Supplies',
+  grooming_care: 'Grooming & Care',
+  feeding_accessories: 'Feeding Accessories',
+};
+
+export const PRODUCT_STATUS: Record<ProductStatus, string> = {
+  available: 'Available',
+  sold_out: 'Sold Out',
+  inactive: 'Inactive',
+};

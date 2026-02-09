@@ -84,7 +84,7 @@ async function setupPuppiesTable() {
     console.log('\n🎉 Setup complete!');
     console.log('\n📝 Next steps:');
     console.log('   1. Visit http://localhost:8080/puppies to see the puppies');
-    console.log('   2. Puppies are now managed in Supabase instead of Airtable');
+    console.log('   2. Puppies are now managed in Supabase');
     console.log('   3. You can add/edit puppies directly in Supabase Table Editor');
 
   } catch (error) {

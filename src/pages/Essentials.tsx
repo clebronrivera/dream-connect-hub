@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,8 @@ import {
   Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase, PRODUCT_STATUS } from "@/lib/supabase";
+import type { Product, KitWithItems } from "@/lib/supabase";
 
 const categories = [
   { icon: Utensils, name: "Food & Nutrition", description: "Premium food and supplements" },
@@ -28,28 +30,6 @@ const categories = [
   { icon: GraduationCap, name: "Training Supplies", description: "Leashes, treats, and aids" },
   { icon: Sparkles, name: "Grooming & Care", description: "Brushes, shampoos, and more" },
   { icon: Utensils, name: "Feeding Accessories", description: "Bowls, feeders, and mats" },
-];
-
-const starterKits = [
-  {
-    name: "Essential Kit",
-    price: 79.99,
-    description: "Everything a new puppy needs to get started",
-    items: ["Food bowl & water bowl", "Puppy bed", "Collar & leash", "Starter toy set"],
-  },
-  {
-    name: "Complete Kit",
-    price: 149.99,
-    description: "Comprehensive starter set for your new companion",
-    items: ["Everything in Essential", "Premium food supply", "Grooming basics", "Training treats", "Crate pad"],
-    popular: true,
-  },
-  {
-    name: "Premium Deluxe Kit",
-    price: 229.99,
-    description: "The ultimate new puppy experience",
-    items: ["Everything in Complete", "Orthopedic bed", "Interactive toy bundle", "Full grooming set", "Training guide"],
-  },
 ];
 
 const faqs = [
@@ -73,15 +53,6 @@ const faqs = [
     question: "What is your return policy?",
     answer: "We offer a 30-day return policy on unused items in original packaging. Contact us to initiate a return.",
   },
-];
-
-const products = [
-  { name: "Premium Puppy Food", price: 49.99, status: "Sold Out" },
-  { name: "Cozy Cloud Bed", price: 79.99, status: "Sold Out" },
-  { name: "Interactive Puzzle Toy", price: 24.99, status: "Sold Out" },
-  { name: "Training Treat Bundle", price: 19.99, status: "Sold Out" },
-  { name: "Grooming Starter Set", price: 34.99, status: "Sold Out" },
-  { name: "Adjustable Puppy Collar", price: 15.99, status: "Sold Out" },
 ];
 
 function ProductInquiryDialog({ productName }: { productName: string }) {
@@ -289,6 +260,39 @@ function KitInquiryDialog({ kitName }: { kitName: string }) {
 }
 
 export default function Essentials() {
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["essentials-products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .in("status", ["available", "sold_out"])
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Product[];
+    },
+  });
+
+  const { data: kits = [], isLoading: kitsLoading } = useQuery({
+    queryKey: ["essentials-kits"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kits")
+        .select(`
+          *,
+          kit_items (
+            id,
+            item_text,
+            display_order
+          )
+        `)
+        .in("status", ["available", "sold_out"])
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as KitWithItems[];
+    },
+  });
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -323,35 +327,49 @@ export default function Essentials() {
       <section className="bg-muted/30 py-12">
         <div className="container">
           <h2 className="text-3xl font-bold text-center text-foreground mb-10">Featured Products</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product, index) => (
-              <Card key={index} className="overflow-hidden">
-                <div className="aspect-video bg-muted flex items-center justify-center">
-                  <Package className="h-16 w-16 text-muted-foreground/50" />
-                </div>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <span 
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        product.status === "Available" 
-                          ? "bg-primary/10 text-primary" 
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {product.status}
-                    </span>
+          {productsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <Card key={product.id} className="overflow-hidden">
+                  <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                    {product.photo ? (
+                      <img
+                        src={product.photo}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-16 w-16 text-muted-foreground/50" />
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-foreground">${product.price}</span>
-                    <ProductInquiryDialog productName={product.name} />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{product.name}</CardTitle>
+                      <span 
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          product.status === "available" 
+                            ? "bg-primary/10 text-primary" 
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {PRODUCT_STATUS[product.status]}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-foreground">${Number(product.price).toFixed(2)}</span>
+                      <ProductInquiryDialog productName={product.name} />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -361,33 +379,54 @@ export default function Essentials() {
         <p className="text-center text-muted-foreground mb-10 max-w-xl mx-auto">
           Save with our curated bundles designed to give your new puppy the perfect start.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {starterKits.map((kit, index) => (
-            <Card key={index} className={kit.popular ? "border-2 border-primary relative" : ""}>
-              {kit.popular && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
-                  Most Popular
-                </div>
-              )}
-              <CardHeader className="text-center">
-                <CardTitle className="text-xl">{kit.name}</CardTitle>
-                <CardDescription>{kit.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <div className="text-4xl font-bold text-foreground mb-4">${kit.price}</div>
-                <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left">
-                  {kit.items.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-primary">•</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <KitInquiryDialog kitName={kit.name} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {kitsLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {kits.map((kit) => {
+              const items = (kit.kit_items ?? [])
+                .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+              return (
+                <Card key={kit.id} className={kit.badge ? "border-2 border-primary relative" : ""}>
+                  {kit.badge && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
+                      {kit.badge}
+                    </div>
+                  )}
+                  <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                    {kit.photo ? (
+                      <img
+                        src={kit.photo}
+                        alt={kit.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-16 w-16 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-xl">{kit.name}</CardTitle>
+                    <CardDescription>{kit.description ?? ""}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <div className="text-4xl font-bold text-foreground mb-4">${Number(kit.price).toFixed(2)}</div>
+                    <ul className="text-sm text-muted-foreground space-y-2 mb-6 text-left">
+                      {items.map((item) => (
+                        <li key={item.id} className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          {item.item_text}
+                        </li>
+                      ))}
+                    </ul>
+                    <KitInquiryDialog kitName={kit.name} />
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* FAQ */}

@@ -1,0 +1,78 @@
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import {
+  LayoutDashboard,
+  Dog,
+  MessageSquare,
+  Calendar,
+  ShoppingCart,
+  Mail,
+  LogOut,
+  Package,
+  Box,
+} from 'lucide-react';
+
+export function AdminLayout() {
+  const { signOut, user } = useAuth();
+  const location = useLocation();
+
+  const navigation = [
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Puppies', href: '/admin/puppies', icon: Dog },
+    { name: 'Products', href: '/admin/inventory/products', icon: Package },
+    { name: 'Kits', href: '/admin/inventory/kits', icon: Box },
+    { name: 'Puppy Inquiries', href: '/admin/leads/puppy-inquiries', icon: MessageSquare },
+    { name: 'Consultations', href: '/admin/leads/consultations', icon: Calendar },
+    { name: 'Product Inquiries', href: '/admin/leads/product-inquiries', icon: ShoppingCart },
+    { name: 'Contact Messages', href: '/admin/leads/contact-messages', icon: Mail },
+  ];
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-lg flex flex-col">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">{user?.email}</p>
+        </div>
+        <nav className="mt-6 flex-1">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <item.icon className="mr-3 h-5 w-5" />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-6 border-t">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => signOut()}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8">
+          <Outlet />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
 -- Create puppies table in Supabase
--- This replaces the Airtable integration for managing puppies
+-- Puppies table for managing available puppies
 
 -- Drop table if exists (for clean reinstall)
 DROP TABLE IF EXISTS puppies CASCADE;
