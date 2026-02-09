@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
   ShoppingBag, 
@@ -10,8 +15,11 @@ import {
   GraduationCap, 
   Sparkles, 
   Package,
-  Phone
+  Phone,
+  Loader2
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const categories = [
   { icon: Utensils, name: "Food & Nutrition", description: "Premium food and supplements" },
@@ -76,6 +84,210 @@ const products = [
   { name: "Adjustable Puppy Collar", price: 15.99, status: "Sold Out" },
 ];
 
+function ProductInquiryDialog({ productName }: { productName: string }) {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      product_name: productName,
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      phone: formData.get("phone") as string || undefined,
+      message: formData.get("message") as string || undefined,
+    };
+
+    try {
+      const { error } = await supabase
+        .from("product_inquiries")
+        .insert([data]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Inquiry Submitted!",
+        description: "We'll contact you soon about this product.",
+      });
+
+      setOpen(false);
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error("Error submitting product inquiry:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit inquiry. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Phone className="h-4 w-4 mr-2" />
+          Contact to Order
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Inquire About {productName}</DialogTitle>
+          <DialogDescription>
+            Fill out the form below and we'll contact you about this product.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="prod-name">Name *</Label>
+            <Input id="prod-name" name="name" placeholder="Your name" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="prod-email">Email *</Label>
+            <Input id="prod-email" name="email" type="email" placeholder="your@email.com" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="prod-phone">Phone</Label>
+            <Input id="prod-phone" name="phone" type="tel" placeholder="(123) 456-7890" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="prod-message">Message</Label>
+            <Textarea 
+              id="prod-message" 
+              name="message" 
+              placeholder="Any questions or special requests?"
+              rows={4}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Inquiry"
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function KitInquiryDialog({ kitName }: { kitName: string }) {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      product_name: kitName,
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      phone: formData.get("phone") as string || undefined,
+      message: formData.get("message") as string || undefined,
+    };
+
+    try {
+      const { error } = await supabase
+        .from("product_inquiries")
+        .insert([data]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Inquiry Submitted!",
+        description: "We'll contact you soon about this starter kit.",
+      });
+
+      setOpen(false);
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      console.error("Error submitting kit inquiry:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit inquiry. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Phone className="h-4 w-4 mr-2" />
+          Contact to Order
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Inquire About {kitName}</DialogTitle>
+          <DialogDescription>
+            Fill out the form below and we'll contact you about this starter kit.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="kit-name">Name *</Label>
+            <Input id="kit-name" name="name" placeholder="Your name" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="kit-email">Email *</Label>
+            <Input id="kit-email" name="email" type="email" placeholder="your@email.com" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="kit-phone">Phone</Label>
+            <Input id="kit-phone" name="phone" type="tel" placeholder="(123) 456-7890" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="kit-message">Message</Label>
+            <Textarea 
+              id="kit-message" 
+              name="message" 
+              placeholder="Any customization requests or questions?"
+              rows={4}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Inquiry"
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Essentials() {
   return (
     <Layout>
@@ -134,10 +346,7 @@ export default function Essentials() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-foreground">${product.price}</span>
-                    <Button variant="outline" size="sm" disabled={product.status !== "Available"}>
-                      <Phone className="h-4 w-4 mr-2" />
-                      Contact to Order
-                    </Button>
+                    <ProductInquiryDialog productName={product.name} />
                   </div>
                 </CardContent>
               </Card>
@@ -174,10 +383,7 @@ export default function Essentials() {
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full" variant={kit.popular ? "default" : "outline"}>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Contact to Order
-                </Button>
+                <KitInquiryDialog kitName={kit.name} />
               </CardContent>
             </Card>
           ))}

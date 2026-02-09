@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,25 +9,58 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+
+const SUBJECT_OTHER_CONSULTATION = "other-consultation";
 
 export default function Contact() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subject, setSubject] = useState("");
+
+  useEffect(() => {
+    const subjectFromUrl = searchParams.get("subject");
+    if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission (will be replaced with Supabase)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you as soon as possible.",
-    });
-    
-    setIsSubmitting(false);
-    (e.target as HTMLFormElement).reset();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      phone: formData.get("phone") as string || undefined,
+      subject: subject || (formData.get("subject") as string),
+      message: formData.get("message") as string,
+    };
+
+    try {
+      const { error } = await supabase
+        .from("contact_messages")
+        .insert([data]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Sent!",
+        description: "We'll get back to you as soon as possible.",
+      });
+      
+      (e.target as HTMLFormElement).reset();
+      setSubject("");
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -128,13 +162,14 @@ export default function Contact() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject *</Label>
-                    <Select name="subject" required>
+                    <Select value={subject} onValueChange={setSubject} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a subject" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="puppies">Puppy Inquiry</SelectItem>
                         <SelectItem value="consultation">Pet Consultation</SelectItem>
+                        <SelectItem value={SUBJECT_OTHER_CONSULTATION}>Other Consultation Request</SelectItem>
                         <SelectItem value="essentials">Pet Essentials</SelectItem>
                         <SelectItem value="general">General Question</SelectItem>
                         <SelectItem value="other">Other</SelectItem>

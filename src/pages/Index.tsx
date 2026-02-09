@@ -62,19 +62,19 @@ export default function Index() {
               and everything your furry friend needs to thrive.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" asChild>
+              <Button size="lg" variant="secondary" className="text-black" asChild>
                 <Link to="/puppies">
                   <Dog className="h-5 w-5 mr-2" />
                   Browse Puppies
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary" asChild>
+              <Button size="lg" variant="outline" className="border-primary-foreground bg-background text-black hover:bg-primary-foreground hover:text-primary" asChild>
                 <Link to="/consultation">
                   <Video className="h-5 w-5 mr-2" />
                   Pet Consultation
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary" asChild>
+              <Button size="lg" variant="outline" className="border-primary-foreground bg-background text-black hover:bg-primary-foreground hover:text-primary" asChild>
                 <Link to="/essentials">
                   <ShoppingBag className="h-5 w-5 mr-2" />
                   Shop Essentials
