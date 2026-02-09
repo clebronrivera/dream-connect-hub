@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Dog, Phone, Mail, MapPin } from "lucide-react";
+import { Dog, Phone, Mail, MapPin, Lock } from "lucide-react";
 
 export function Footer() {
   return (
@@ -74,10 +74,17 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-8 pt-8 border-t">
+        <div className="mt-8 pt-8 border-t flex flex-col items-center gap-2">
           <p className="text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} Dream Enterprises LLC. All rights reserved.
           </p>
+          <Link
+            to="/admin/login"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Admin Login
+          </Link>
         </div>
       </div>
     </footer>
