@@ -161,7 +161,8 @@ async function setupDatabase() {
   // We need to use the SQL Editor in the dashboard
   console.log('⚠️  Supabase requires SQL to be executed via the SQL Editor');
   console.log('\n📋 Please follow these steps:\n');
-  console.log('1. Go to: https://supabase.com/dashboard/project/xwudsqswlfpoljuhbphr/sql/new');
+  const projectRef = supabaseUrl ? supabaseUrl.replace(/^https:\/\//, '').split('.')[0] : 'YOUR_PROJECT_REF';
+  console.log(`1. Go to: https://supabase.com/dashboard/project/${projectRef}/sql/new`);
   console.log('2. Copy the SQL from: supabase-schema.sql');
   console.log('3. Paste it into the SQL Editor');
   console.log('4. Click "Run" to execute');
