@@ -111,7 +111,8 @@ async function verifySupabaseTables() {
 
   if (!allExist) {
     console.log('\n📝 Action Required:');
-    console.log('   1. Go to: https://supabase.com/dashboard/project/xwudsqswlfpoljuhbphr/sql/new');
+    const projectRef = supabaseUrl ? supabaseUrl.replace(/^https:\/\//, '').split('.')[0] : 'YOUR_PROJECT_REF';
+    console.log(`   1. Go to: https://supabase.com/dashboard/project/${projectRef}/sql/new`);
     console.log('   2. Open supabase-schema.sql from your project');
     console.log('   3. Copy and paste the SQL into the editor');
     console.log('   4. Click "Run" to create all tables');

@@ -5,7 +5,7 @@
 ## Project Overview
 Transform the current Puppy Heaven puppy-only website into a comprehensive pet services platform with three core sections: **Available Puppies**, **Pet Consultation**, and **Pet Essentials Shop** — all under the Puppy Heaven brand (legally owned by Dream Enterprises LLC).
 
-**Backend:** Supabase (your existing project: `xwudsqswlfpoljuhbphr`)
+**Backend:** Supabase (your existing project — set `VITE_SUPABASE_URL` in .env.local)
 
 ---
 
