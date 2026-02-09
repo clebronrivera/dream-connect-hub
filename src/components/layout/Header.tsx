@@ -17,12 +17,12 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-primary shadow-md">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <Dog className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold text-foreground">Puppy Heaven</span>
+          <Dog className="h-8 w-8 text-primary-foreground" />
+          <span className="text-xl font-bold text-primary-foreground">Puppy Heaven</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -31,8 +31,8 @@ export function Header() {
             <NavLink
               key={link.to}
               to={link.to}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              activeClassName="text-foreground"
+              className="text-sm font-medium text-primary-foreground/80 transition-colors hover:text-primary-foreground"
+              activeClassName="text-primary-foreground"
             >
               {link.label}
             </NavLink>
@@ -42,7 +42,7 @@ export function Header() {
         {/* Mobile Navigation */}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10">
               <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle menu</span>
             </Button>

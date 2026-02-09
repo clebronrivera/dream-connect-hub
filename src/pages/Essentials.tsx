@@ -80,11 +80,11 @@ export default function Essentials() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="bg-muted/30 py-16">
+      <section className="bg-primary py-16">
         <div className="container text-center">
-          <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-primary" />
-          <h1 className="text-4xl font-bold text-foreground mb-4">Pet Essentials</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Pet Essentials</h1>
+          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Everything your new puppy needs to thrive. Quality products handpicked for happy, healthy pets.
           </p>
         </div>

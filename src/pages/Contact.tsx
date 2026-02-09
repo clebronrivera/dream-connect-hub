@@ -32,11 +32,11 @@ export default function Contact() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="bg-muted/30 py-16">
+      <section className="bg-primary py-16">
         <div className="container text-center">
-          <Mail className="h-12 w-12 mx-auto mb-4 text-primary" />
-          <h1 className="text-4xl font-bold text-foreground mb-4">Contact Us</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <Mail className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Contact Us</h1>
+          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Have questions? We'd love to hear from you. Reach out and we'll respond as soon as we can.
           </p>
         </div>
