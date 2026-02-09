@@ -1,18 +1,9 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const supabaseUrl = 'https://xwudsqswlfpoljuhbphr.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3dWRzcXN3bGZwb2xqdWhicGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1ODg4MDAsImV4cCI6MjA4NjE2NDgwMH0.2buIbr5YHMw1dAJREDJYw8le0ww8P2KKWNPtOGVW_og';
 
-const hasValidEnv = Boolean(supabaseUrl && supabaseAnonKey);
-
-// Avoid throwing when env is missing (e.g. build without env → blank page on deploy).
-// Use placeholder so the app mounts; Supabase calls will fail until env is set.
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-anon-key'
-);
-
-export const hasSupabaseEnv = hasValidEnv;
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 // Submission status (v1): active | inactive only
 export type SubmissionStatus = 'active' | 'inactive';
