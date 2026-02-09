@@ -49,41 +49,63 @@ const trustPoints = [
 export default function Index() {
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="relative bg-primary py-20 lg:py-32">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <Dog className="h-16 w-16 mx-auto mb-6 text-primary-foreground" />
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
-              Welcome to Puppy Heaven
-            </h1>
-            <p className="text-lg md:text-xl text-primary-foreground/80 mb-8">
-              Your trusted partner for finding the perfect puppy, expert pet consultation, 
-              and everything your furry friend needs to thrive.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" className="text-black" asChild>
-                <Link to="/puppies">
-                  <Dog className="h-5 w-5 mr-2" />
-                  Browse Puppies
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground bg-background text-black hover:bg-primary-foreground hover:text-primary" asChild>
-                <Link to="/consultation">
-                  <Video className="h-5 w-5 mr-2" />
-                  Pet Consultation
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground bg-background text-black hover:bg-primary-foreground hover:text-primary" asChild>
-                <Link to="/essentials">
-                  <ShoppingBag className="h-5 w-5 mr-2" />
-                  Shop Essentials
-                </Link>
-              </Button>
+      {/* Hero Section — banner from Supabase (VITE_BANNER_IMAGE_URL) or fallback to red; no local image file */}
+      {(() => {
+        const bannerUrl = import.meta.env.VITE_BANNER_IMAGE_URL as string | undefined;
+        const useImage = Boolean(bannerUrl?.trim());
+        return (
+          <section
+            className={`relative py-20 lg:py-32 min-h-[28rem] ${useImage ? "bg-cover bg-center bg-no-repeat" : "bg-primary"}`}
+            style={useImage ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+          >
+            {useImage && (
+              <div className="absolute inset-0 bg-black/50" aria-hidden />
+            )}
+            <div className="container relative z-10">
+              <div className="max-w-3xl mx-auto text-center">
+                <Dog className={`h-16 w-16 mx-auto mb-6 ${useImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`} />
+                <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 ${useImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`}>
+                  Welcome to Puppy Heaven
+                </h1>
+                <p className={`text-lg md:text-xl mb-8 ${useImage ? "text-white/90 drop-shadow-sm" : "text-primary-foreground/80"}`}>
+                  Your trusted partner for finding the perfect puppy, expert pet consultation, 
+                  and everything your furry friend needs to thrive.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button size="lg" variant="secondary" className="text-black" asChild>
+                    <Link to="/puppies">
+                      <Dog className="h-5 w-5 mr-2" />
+                      Browse Puppies
+                    </Link>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className={useImage ? "border-white bg-transparent text-white hover:bg-white hover:text-primary" : "border-primary-foreground bg-background text-black hover:bg-primary-foreground hover:text-primary"}
+                    asChild
+                  >
+                    <Link to="/consultation">
+                      <Video className="h-5 w-5 mr-2" />
+                      Pet Consultation
+                    </Link>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className={useImage ? "border-white bg-transparent text-white hover:bg-white hover:text-primary" : "border-primary-foreground bg-background text-black hover:bg-primary-foreground hover:text-primary"}
+                    asChild
+                  >
+                    <Link to="/essentials">
+                      <ShoppingBag className="h-5 w-5 mr-2" />
+                      Shop Essentials
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* Services Section */}
       <section className="container py-16">

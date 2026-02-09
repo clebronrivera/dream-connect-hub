@@ -16,6 +16,10 @@ dist-ssr
 *.local
 puppy-images
 
+# Local banner image — use Supabase site-assets bucket + VITE_BANNER_IMAGE_URL instead
+public/banner-puppies.png
+public/banner*.png
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
