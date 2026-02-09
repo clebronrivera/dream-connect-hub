@@ -25,11 +25,11 @@ export default function Consultation() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="bg-muted/30 py-16">
+      <section className="bg-primary py-16">
         <div className="container text-center">
-          <Video className="h-12 w-12 mx-auto mb-4 text-primary" />
-          <h1 className="text-4xl font-bold text-foreground mb-4">Virtual Pet Behavior Consultation</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <Video className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Virtual Pet Behavior Consultation</h1>
+          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Get expert guidance on pet behavior, training, and care from the comfort of your home. 
             Our specialists are here to help your furry friend thrive.
           </p>

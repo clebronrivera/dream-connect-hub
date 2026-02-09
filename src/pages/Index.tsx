@@ -50,31 +50,31 @@ export default function Index() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative bg-muted/30 py-20 lg:py-32">
+      <section className="relative bg-primary py-20 lg:py-32">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
-            <Dog className="h-16 w-16 mx-auto mb-6 text-primary" />
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
+            <Dog className="h-16 w-16 mx-auto mb-6 text-primary-foreground" />
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
               Welcome to Puppy Heaven
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8">
+            <p className="text-lg md:text-xl text-primary-foreground/80 mb-8">
               Your trusted partner for finding the perfect puppy, expert pet consultation, 
               and everything your furry friend needs to thrive.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild>
+              <Button size="lg" variant="secondary" asChild>
                 <Link to="/puppies">
                   <Dog className="h-5 w-5 mr-2" />
                   Browse Puppies
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary" asChild>
                 <Link to="/consultation">
                   <Video className="h-5 w-5 mr-2" />
                   Pet Consultation
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary" asChild>
                 <Link to="/essentials">
                   <ShoppingBag className="h-5 w-5 mr-2" />
                   Shop Essentials

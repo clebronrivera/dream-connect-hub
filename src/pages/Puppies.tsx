@@ -17,11 +17,11 @@ export default function Puppies() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="bg-muted/30 py-16">
+      <section className="bg-primary py-16">
         <div className="container text-center">
-          <Dog className="h-12 w-12 mx-auto mb-4 text-primary" />
-          <h1 className="text-4xl font-bold text-foreground mb-4">Available Puppies</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <Dog className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Available Puppies</h1>
+          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Find your perfect furry companion. All our puppies are health-checked, vaccinated, and raised with love.
           </p>
         </div>
