@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,24 +7,25 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import Index from "./pages/Index";
-import Puppies from "./pages/Puppies";
-import Consultation from "./pages/Consultation";
-import Essentials from "./pages/Essentials";
-import Contact from "./pages/Contact";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/admin/Login";
-import Dashboard from "./pages/admin/Dashboard";
-import PuppiesList from "./pages/admin/puppies/PuppiesList";
-import PuppyForm from "./pages/admin/puppies/PuppyForm";
-import ProductsList from "./pages/admin/inventory/ProductsList";
-import ProductForm from "./pages/admin/inventory/ProductForm";
-import KitsList from "./pages/admin/inventory/KitsList";
-import KitForm from "./pages/admin/inventory/KitForm";
-import PuppyInquiries from "./pages/admin/leads/PuppyInquiries";
-import Consultations from "./pages/admin/leads/Consultations";
-import ProductInquiries from "./pages/admin/leads/ProductInquiries";
-import ContactMessages from "./pages/admin/leads/ContactMessages";
+
+const Index = lazy(() => import("./pages/Index"));
+const Puppies = lazy(() => import("./pages/Puppies"));
+const Consultation = lazy(() => import("./pages/Consultation"));
+const Essentials = lazy(() => import("./pages/Essentials"));
+const Contact = lazy(() => import("./pages/Contact"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Login = lazy(() => import("./pages/admin/Login"));
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const PuppiesList = lazy(() => import("./pages/admin/puppies/PuppiesList"));
+const PuppyForm = lazy(() => import("./pages/admin/puppies/PuppyForm"));
+const ProductsList = lazy(() => import("./pages/admin/inventory/ProductsList"));
+const ProductForm = lazy(() => import("./pages/admin/inventory/ProductForm"));
+const KitsList = lazy(() => import("./pages/admin/inventory/KitsList"));
+const KitForm = lazy(() => import("./pages/admin/inventory/KitForm"));
+const PuppyInquiries = lazy(() => import("./pages/admin/leads/PuppyInquiries"));
+const Consultations = lazy(() => import("./pages/admin/leads/Consultations"));
+const ProductInquiries = lazy(() => import("./pages/admin/leads/ProductInquiries"));
+const ContactMessages = lazy(() => import("./pages/admin/leads/ContactMessages"));
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading…</div>}>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -68,6 +71,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
