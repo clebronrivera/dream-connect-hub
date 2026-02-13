@@ -50,7 +50,7 @@ export default function PuppiesList() {
         description: 'The puppy has been removed successfully.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete puppy.',
@@ -83,6 +83,7 @@ export default function PuppiesList() {
     { header: 'Status', accessorKey: 'status' as keyof Puppy },
     { 
       header: 'Price', 
+      accessorKey: 'final_price' as keyof Puppy,
       cell: (puppy: Puppy) => `$${puppy.final_price || puppy.base_price || 0}`
     },
     {
@@ -140,7 +141,7 @@ export default function PuppiesList() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
         </div>
       ) : (
-        <DataTable columns={columns} data={puppies || []} />
+        <DataTable columns={columns} data={puppies || []} sortable />
       )}
     </div>
   );

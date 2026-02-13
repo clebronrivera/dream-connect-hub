@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { DataTable } from '@/components/admin/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import type { LeadRow } from '@/types/leads';
 
 interface LeadsListProps {
   table: 'puppy_inquiries' | 'consultation_requests' | 'product_inquiries' | 'contact_messages';
@@ -11,11 +12,13 @@ interface LeadsListProps {
   extraColumns?: Array<{
     header: string;
     accessorKey?: string;
-    cell?: (row: any) => React.ReactNode;
+    cell?: (row: LeadRow) => React.ReactNode;
   }>;
+  /** Optional actions column (e.g. View button). Receives row and returns cell content. */
+  renderActions?: (row: LeadRow) => React.ReactNode;
 }
 
-export default function LeadsList({ table, title, statusOptions, extraColumns = [] }: LeadsListProps) {
+export default function LeadsList({ table, title, statusOptions, extraColumns = [], renderActions }: LeadsListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -45,7 +48,7 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
       queryClient.invalidateQueries({ queryKey: ['admin-leads', table] });
       toast({ title: 'Status updated' });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to update status.',
@@ -57,8 +60,9 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
   const baseColumns = [
     {
       header: 'Date',
-      cell: (row: any) => {
-        const date = row.created_at ? new Date(row.created_at) : null;
+      accessorKey: 'created_at',
+      cell: (row: LeadRow) => {
+        const date = row.created_at ? new Date(row.created_at as string) : null;
         return date ? date.toLocaleDateString() : '-';
       },
     },
@@ -66,13 +70,15 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
     { header: 'Email', accessorKey: 'email' },
     {
       header: 'Phone',
-      cell: (row: any) => row.phone || '-',
+      accessorKey: 'phone',
+      cell: (row: LeadRow) => (row.phone as string) || '-',
     },
     {
       header: 'Status',
-      cell: (row: any) => (
+      accessorKey: 'status',
+      cell: (row: LeadRow) => (
         <Select
-          value={row.status || statusOptions[0]}
+          value={(row.status as string) || statusOptions[0]}
           onValueChange={(status) => updateStatus.mutate({ id: row.id, status })}
         >
           <SelectTrigger className="w-[140px]">
@@ -91,6 +97,9 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
   ];
 
   const columns = [...baseColumns, ...extraColumns];
+  if (renderActions) {
+    columns.push({ header: 'Actions', cell: (row) => renderActions(row) });
+  }
 
   if (isLoading) {
     return (
@@ -103,7 +112,7 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">{title}</h1>
-      <DataTable columns={columns} data={leads || []} />
+      <DataTable columns={columns} data={leads || []} sortable />
     </div>
   );
 }

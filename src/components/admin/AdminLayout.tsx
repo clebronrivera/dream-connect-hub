@@ -11,6 +11,7 @@ import {
   LogOut,
   Package,
   Box,
+  ExternalLink,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -55,7 +56,14 @@ export function AdminLayout() {
             );
           })}
         </nav>
-        <div className="p-6 border-t">
+        <div className="p-6 border-t space-y-2">
+          <Link
+            to="/"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View Main Website
+          </Link>
           <Button
             variant="outline"
             className="w-full"

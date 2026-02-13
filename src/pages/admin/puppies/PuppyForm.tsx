@@ -144,7 +144,7 @@ export default function PuppyForm() {
       });
       navigate('/admin/puppies');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ 
         title: 'Error', 
         description: error.message || `Failed to ${isEdit ? 'update' : 'create'} puppy.`,
@@ -171,10 +171,11 @@ export default function PuppyForm() {
         title: 'Photo uploaded',
         description: 'The photo has been uploaded successfully.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload photo.';
       toast({
         title: 'Upload failed',
-        description: error.message || 'Failed to upload photo.',
+        description: message,
         variant: 'destructive',
       });
     } finally {

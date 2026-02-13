@@ -71,8 +71,9 @@ async function verifyDatabase() {
       } else {
         console.log(`✅ Table "${table}" exists`);
       }
-    } catch (err: any) {
-      console.log(`❌ Error checking table "${table}":`, err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`❌ Error checking table "${table}":`, message);
       missingTables.push(table);
       allTablesExist = false;
     }
@@ -129,8 +130,9 @@ async function verifyDatabase() {
         } else {
           console.log(`✅ Table "${table}" structure verified`);
         }
-      } catch (err: any) {
-        console.log(`⚠️  Error verifying "${table}": ${err.message}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.log(`⚠️  Error verifying "${table}": ${message}`);
       }
     }
   }

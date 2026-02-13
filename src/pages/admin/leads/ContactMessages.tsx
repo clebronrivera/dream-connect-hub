@@ -1,3 +1,4 @@
+import type { LeadRow } from '@/types/leads';
 import LeadsList from './LeadsList';
 
 export default function ContactMessages() {
@@ -9,11 +10,14 @@ export default function ContactMessages() {
       extraColumns={[
         {
           header: 'Subject',
-          cell: (row: any) => row.subject || '-',
+          cell: (row: LeadRow) => (row.subject as string) || '-',
         },
         {
           header: 'Message',
-          cell: (row: any) => row.message ? (row.message.length > 50 ? row.message.substring(0, 50) + '...' : row.message) : '-',
+          cell: (row: LeadRow) => {
+            const msg = row.message as string | undefined;
+            return msg ? (msg.length > 50 ? msg.substring(0, 50) + '...' : msg) : '-';
+          },
         },
       ]}
     />

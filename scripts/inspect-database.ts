@@ -69,8 +69,9 @@ async function inspectDatabase() {
         
         console.log(`  Count: ${count || 0} rows`);
       }
-    } catch (error: any) {
-      console.log(`  ❌ Error inspecting ${table}:`, error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`  ❌ Error inspecting ${table}:`, message);
     }
     
     console.log('');
