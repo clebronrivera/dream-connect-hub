@@ -1,3 +1,4 @@
+import type { LeadRow } from '@/types/leads';
 import LeadsList from './LeadsList';
 
 export default function ProductInquiries() {
@@ -9,11 +10,14 @@ export default function ProductInquiries() {
       extraColumns={[
         {
           header: 'Product',
-          cell: (row: any) => row.product_name || '-',
+          cell: (row: LeadRow) => (row.product_name as string) || '-',
         },
         {
           header: 'Message',
-          cell: (row: any) => row.message ? (row.message.length > 50 ? row.message.substring(0, 50) + '...' : row.message) : '-',
+          cell: (row: LeadRow) => {
+            const msg = row.message as string | undefined;
+            return msg ? (msg.length > 50 ? msg.substring(0, 50) + '...' : msg) : '-';
+          },
         },
       ]}
     />

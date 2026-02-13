@@ -1,3 +1,4 @@
+import type { LeadRow } from '@/types/leads';
 import LeadsList from './LeadsList';
 
 export default function PuppyInquiries() {
@@ -9,19 +10,19 @@ export default function PuppyInquiries() {
       extraColumns={[
         {
           header: 'Puppy',
-          cell: (row: any) => row.puppy_name || row.puppy_code || '-',
+          cell: (row: LeadRow) => (row.puppy_name as string) || (row.puppy_code as string) || '-',
         },
         {
           header: 'City',
-          cell: (row: any) => row.city || '-',
+          cell: (row: LeadRow) => (row.city as string) || '-',
         },
         {
           header: 'State',
-          cell: (row: any) => row.state || '-',
+          cell: (row: LeadRow) => (row.state as string) || '-',
         },
         {
           header: 'Timeline',
-          cell: (row: any) => row.timeline || '-',
+          cell: (row: LeadRow) => (row.timeline as string) || '-',
         },
       ]}
     />

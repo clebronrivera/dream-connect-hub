@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog, Heart, Loader2 } from "lucide-react";
+import { Dog, Heart, Loader2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, Puppy } from "@/lib/supabase";
 
@@ -325,6 +325,18 @@ export default function Puppies() {
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Find your perfect furry companion. All our puppies are health-checked, vaccinated, and raised with love.
           </p>
+        </div>
+      </section>
+
+      {/* Puppy names disclaimer */}
+      <section className="container py-6">
+        <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 rounded-r-lg p-4">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <span className="font-semibold">Please Note:</span> The names displayed for each puppy are for communication and identification purposes only. Puppies are not trained to respond to these names, allowing you the joy of naming your new family member yourself.
+            </p>
+          </div>
         </div>
       </section>
 

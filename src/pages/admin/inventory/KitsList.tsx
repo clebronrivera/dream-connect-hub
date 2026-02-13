@@ -80,7 +80,12 @@ export default function KitsList() {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+        <div
+          className="relative overflow-x-auto"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-gray-200/60 to-transparent rounded-r-lg z-0" aria-hidden />
+          <table className="min-w-full divide-y divide-gray-200 relative z-10">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -173,7 +178,8 @@ export default function KitsList() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
 
         {kits?.length === 0 && (
           <div className="text-center py-12">

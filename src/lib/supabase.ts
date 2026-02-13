@@ -3,7 +3,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = 'https://xwudsqswlfpoljuhbphr.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3dWRzcXN3bGZwb2xqdWhicGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1ODg4MDAsImV4cCI6MjA4NjE2NDgwMH0.2buIbr5YHMw1dAJREDJYw8le0ww8P2KKWNPtOGVW_og';
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 // Submission status (v1): active | inactive only
 export type SubmissionStatus = 'active' | 'inactive';
@@ -147,7 +153,7 @@ export type ProductCategory =
 export type ProductStatus = 'available' | 'sold_out' | 'inactive';
 
 export interface Product {
-  id: string;
+  id?: string;
   name: string;
   description: string | null;
   category: ProductCategory;
@@ -162,7 +168,7 @@ export interface Product {
 }
 
 export interface Kit {
-  id: string;
+  id?: string;
   name: string;
   description: string | null;
   price: number;
@@ -177,7 +183,7 @@ export interface Kit {
 }
 
 export interface KitItem {
-  id: string;
+  id?: string;
   kit_id: string;
   item_text: string;
   product_id: string | null;
