@@ -14,6 +14,7 @@ const Puppies = lazy(() => import("./pages/Puppies"));
 const Consultation = lazy(() => import("./pages/Consultation"));
 const Essentials = lazy(() => import("./pages/Essentials"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Breeds = lazy(() => import("./pages/Breeds"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/admin/Login"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -23,10 +24,7 @@ const ProductsList = lazy(() => import("./pages/admin/inventory/ProductsList"));
 const ProductForm = lazy(() => import("./pages/admin/inventory/ProductForm"));
 const KitsList = lazy(() => import("./pages/admin/inventory/KitsList"));
 const KitForm = lazy(() => import("./pages/admin/inventory/KitForm"));
-const PuppyInquiries = lazy(() => import("./pages/admin/leads/PuppyInquiries"));
-const Consultations = lazy(() => import("./pages/admin/leads/Consultations"));
-const ProductInquiries = lazy(() => import("./pages/admin/leads/ProductInquiries"));
-const ContactMessages = lazy(() => import("./pages/admin/leads/ContactMessages"));
+const Inquiries = lazy(() => import("./pages/admin/Inquiries"));
 
 const queryClient = new QueryClient();
 
@@ -46,6 +44,7 @@ const App = () => (
             <Route path="/consultation" element={<Consultation />} />
             <Route path="/essentials" element={<Essentials />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/breeds" element={<Breeds />} />
             
             {/* Admin login */}
             <Route path="/admin/login" element={<Login />} />
@@ -63,10 +62,7 @@ const App = () => (
                 <Route path="inventory/kits" element={<KitsList />} />
                 <Route path="inventory/kits/new" element={<KitForm />} />
                 <Route path="inventory/kits/:id/edit" element={<KitForm />} />
-                <Route path="leads/puppy-inquiries" element={<PuppyInquiries />} />
-                <Route path="leads/consultations" element={<Consultations />} />
-                <Route path="leads/product-inquiries" element={<ProductInquiries />} />
-                <Route path="leads/contact-messages" element={<ContactMessages />} />
+                <Route path="inquiries" element={<Inquiries />} />
               </Route>
             </Route>
             
