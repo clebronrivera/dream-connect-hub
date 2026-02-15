@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Puppy } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
@@ -16,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 
 export default function PuppiesList() {
   const queryClient = useQueryClient();
@@ -33,6 +35,15 @@ export default function PuppiesList() {
       return data as Puppy[];
     },
   });
+
+  const availablePuppies = useMemo(
+    () => (puppies ?? []).filter((p) => (p.status || '').toLowerCase() === 'available'),
+    [puppies]
+  );
+  const soldPuppies = useMemo(
+    () => (puppies ?? []).filter((p) => (p.status || '').toLowerCase() === 'sold'),
+    [puppies]
+  );
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -79,6 +90,21 @@ export default function PuppiesList() {
     },
     { header: 'Name', accessorKey: 'name' as keyof Puppy },
     { header: 'Breed', accessorKey: 'breed' as keyof Puppy },
+    {
+      header: 'Listed',
+      accessorKey: 'listing_date' as keyof Puppy,
+      cell: (puppy: Puppy) => {
+        const d = puppy.listing_date ?? puppy.created_at;
+        return d ? new Date(d).toLocaleDateString() : '-';
+      },
+    },
+    {
+      header: 'Age (wks)',
+      cell: (puppy: Puppy) => {
+        const w = getDisplayAgeWeeks(puppy);
+        return w != null ? w : '-';
+      },
+    },
     { header: 'Gender', accessorKey: 'gender' as keyof Puppy },
     { header: 'Status', accessorKey: 'status' as keyof Puppy },
     { 
@@ -141,7 +167,26 @@ export default function PuppiesList() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
         </div>
       ) : (
-        <DataTable columns={columns} data={puppies || []} sortable />
+        <>
+          <section className="mb-10">
+            <h2 className="text-xl font-semibold mb-4">Available ({availablePuppies.length})</h2>
+            <DataTable
+              columns={columns}
+              data={availablePuppies}
+              sortable
+              storageKey="admin-puppies-available-sort"
+            />
+          </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-4">Sold ({soldPuppies.length})</h2>
+            <DataTable
+              columns={columns}
+              data={soldPuppies}
+              sortable
+              storageKey="admin-puppies-sold-sort"
+            />
+          </section>
+        </>
       )}
     </div>
   );

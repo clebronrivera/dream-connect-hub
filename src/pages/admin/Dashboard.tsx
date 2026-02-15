@@ -4,13 +4,22 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dog, MessageSquare, Calendar, ShoppingCart, Mail, Package } from 'lucide-react';
 
+function daysSince(dateStr: string | null | undefined): number {
+  if (!dateStr) return 0;
+  const d = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function Dashboard() {
   // Fetch stats
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const [
-        puppiesRes,
+        activePuppiesRes,
         inquiriesRes,
         consultationsRes,
         productInquiriesRes,
@@ -18,21 +27,36 @@ export default function Dashboard() {
         productsRes,
         kitsRes,
       ] = await Promise.all([
-        supabase.from('puppies').select('*', { count: 'exact', head: true }),
-        supabase.from('puppy_inquiries').select('*', { count: 'exact', head: true }),
-        supabase.from('consultation_requests').select('*', { count: 'exact', head: true }),
-        supabase.from('product_inquiries').select('*', { count: 'exact', head: true }),
-        supabase.from('contact_messages').select('*', { count: 'exact', head: true }),
+        // Active puppies only (status=Available) with listing_date for avg days
+        supabase
+          .from('puppies')
+          .select('listing_date, created_at')
+          .eq('status', 'Available'),
+        // Unseen submissions (admin_viewed_at is null)
+        supabase.from('puppy_inquiries').select('*', { count: 'exact', head: true }).is('admin_viewed_at', null),
+        supabase.from('consultation_requests').select('*', { count: 'exact', head: true }).is('admin_viewed_at', null),
+        // Product inquiries: status='new' = unseen
+        supabase.from('product_inquiries').select('*', { count: 'exact', head: true }).eq('status', 'new'),
+        supabase.from('contact_messages').select('*', { count: 'exact', head: true }).is('admin_viewed_at', null),
         supabase.from('products').select('*', { count: 'exact', head: true }),
         supabase.from('kits').select('*', { count: 'exact', head: true }),
       ]);
 
+      const activePuppies = activePuppiesRes.error ? [] : (activePuppiesRes.data ?? []);
+      const count = activePuppies.length;
+      const totalDays = activePuppies.reduce((sum, p) => {
+        const listDate = p.listing_date ?? (p.created_at ? p.created_at.slice(0, 10) : null);
+        return sum + Math.max(0, daysSince(listDate));
+      }, 0);
+      const avgDaysListed = count > 0 ? Math.round(totalDays / count) : 0;
+
       return {
-        totalPuppies: puppiesRes.error ? 0 : (puppiesRes.count ?? 0),
-        totalInquiries: inquiriesRes.error ? 0 : (inquiriesRes.count ?? 0),
-        totalConsultations: consultationsRes.error ? 0 : (consultationsRes.count ?? 0),
-        totalProductInquiries: productInquiriesRes.error ? 0 : (productInquiriesRes.count ?? 0),
-        contactCount: contactRes.error ? 0 : (contactRes.count ?? 0),
+        activePuppyCount: count,
+        avgDaysListed,
+        unseenInquiries: inquiriesRes.error ? 0 : (inquiriesRes.count ?? 0),
+        unseenConsultations: consultationsRes.error ? 0 : (consultationsRes.count ?? 0),
+        unseenProductInquiries: productInquiriesRes.error ? 0 : (productInquiriesRes.count ?? 0),
+        unseenContact: contactRes.error ? 0 : (contactRes.count ?? 0),
         productCount: productsRes.error ? 0 : (productsRes.count ?? 0),
         kitCount: kitsRes.error ? 0 : (kitsRes.count ?? 0),
       };
@@ -40,11 +64,11 @@ export default function Dashboard() {
   });
 
   const statCards = [
-    { title: 'Total Puppies', value: stats?.totalPuppies ?? 0, icon: Dog, description: 'Active listings', to: '/admin/puppies' },
-    { title: 'Puppy Inquiries', value: stats?.totalInquiries ?? 0, icon: MessageSquare, description: 'Total submissions', to: '/admin/leads/puppy-inquiries' },
-    { title: 'Consultations', value: stats?.totalConsultations ?? 0, icon: Calendar, description: 'Scheduled & pending', to: '/admin/leads/consultations' },
-    { title: 'Product Inquiries', value: stats?.totalProductInquiries ?? 0, icon: ShoppingCart, description: 'Total inquiries', to: '/admin/leads/product-inquiries' },
-    { title: 'Contact Messages', value: stats?.contactCount ?? 0, icon: Mail, description: 'Contact form submissions', to: '/admin/leads/contact-messages' },
+    { title: 'Available Puppies', value: stats?.activePuppyCount ?? 0, icon: Dog, description: stats?.avgDaysListed != null && stats.avgDaysListed > 0 ? `Active listings · Avg ${stats.avgDaysListed} days listed` : 'Active listings', to: '/admin/puppies' },
+    { title: 'Puppy Inquiries', value: stats?.unseenInquiries ?? 0, icon: MessageSquare, description: 'Unseen submissions', to: '/admin/inquiries#puppy-inquiries' },
+    { title: 'Consultations', value: stats?.unseenConsultations ?? 0, icon: Calendar, description: 'Unseen submissions', to: '/admin/inquiries#consultations' },
+    { title: 'Product Inquiries', value: stats?.unseenProductInquiries ?? 0, icon: ShoppingCart, description: 'New inquiries', to: '/admin/inquiries#product-inquiries' },
+    { title: 'Contact Messages', value: stats?.unseenContact ?? 0, icon: Mail, description: 'Unseen submissions', to: '/admin/inquiries#contact-messages' },
     { title: 'Products', value: stats?.productCount ?? 0, icon: ShoppingCart, description: 'Inventory products', to: '/admin/inventory/products' },
     { title: 'Kits', value: stats?.kitCount ?? 0, icon: Package, description: 'Product kits', to: '/admin/inventory/kits' },
   ];

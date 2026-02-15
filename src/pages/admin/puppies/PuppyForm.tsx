@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { getAgeWeeks } from '@/lib/puppy-utils';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import * as React from 'react';
@@ -20,6 +21,7 @@ const puppySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   puppy_id: z.string().optional(),
   breed: z.string().min(1, 'Breed is required'),
+  listing_date: z.string().optional(), // Date added to website (YYYY-MM-DD)
   gender: z.enum(['Male', 'Female']).optional(),
   color: z.string().optional(),
   date_of_birth: z.string().optional(),
@@ -73,6 +75,7 @@ export default function PuppyForm() {
     resolver: zodResolver(puppySchema),
     defaultValues: {
       status: 'Available',
+      listing_date: new Date().toISOString().slice(0, 10),
       discount_active: false,
       health_certificate: false,
       microchipped: false,
@@ -89,6 +92,7 @@ export default function PuppyForm() {
         name: puppy.name || '',
         puppy_id: puppy.puppy_id || '',
         breed: puppy.breed || '',
+        listing_date: puppy.listing_date ?? (puppy.created_at ? puppy.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         gender: puppy.gender,
         color: puppy.color || '',
         date_of_birth: puppy.date_of_birth || '',
@@ -116,10 +120,15 @@ export default function PuppyForm() {
 
   const mutation = useMutation({
     mutationFn: async (data: PuppyFormValues) => {
+      const payload = { ...data };
+      // On create, set listing_date to today if not provided
+      if (!isEdit && !payload.listing_date) {
+        payload.listing_date = new Date().toISOString().slice(0, 10);
+      }
       if (isEdit && id) {
         const { data: result, error } = await supabase
           .from('puppies')
-          .update(data)
+          .update(payload)
           .eq('id', id)
           .select()
           .single();
@@ -129,7 +138,7 @@ export default function PuppyForm() {
       } else {
         const { data: result, error } = await supabase
           .from('puppies')
-          .insert([data])
+          .insert([payload])
           .select()
           .single();
         
@@ -244,6 +253,21 @@ export default function PuppyForm() {
 
             <FormField
               control={form.control}
+              name="listing_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Listing Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} placeholder="Date added to website" />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">Day this puppy was added to the website</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="gender"
               render={({ field }) => (
                 <FormItem>
@@ -319,19 +343,32 @@ export default function PuppyForm() {
             <FormField
               control={form.control}
               name="age_weeks"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Age (weeks)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const dob = form.watch('date_of_birth');
+                const computedWeeks = getAgeWeeks(dob);
+                const hasDob = !!dob && computedWeeks != null;
+                return (
+                  <FormItem>
+                    <FormLabel>Age (weeks)</FormLabel>
+                    {hasDob ? (
+                      <p className="text-sm text-muted-foreground py-2">
+                        {computedWeeks} weeks <span className="text-xs">(from date of birth)</span>
+                      </p>
+                    ) : (
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Optional if no DOB"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField

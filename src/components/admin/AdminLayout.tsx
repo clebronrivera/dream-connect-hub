@@ -5,9 +5,6 @@ import {
   LayoutDashboard,
   Dog,
   MessageSquare,
-  Calendar,
-  ShoppingCart,
-  Mail,
   LogOut,
   Package,
   Box,
@@ -23,10 +20,7 @@ export function AdminLayout() {
     { name: 'Puppies', href: '/admin/puppies', icon: Dog },
     { name: 'Products', href: '/admin/inventory/products', icon: Package },
     { name: 'Kits', href: '/admin/inventory/kits', icon: Box },
-    { name: 'Puppy Inquiries', href: '/admin/leads/puppy-inquiries', icon: MessageSquare },
-    { name: 'Consultations', href: '/admin/leads/consultations', icon: Calendar },
-    { name: 'Product Inquiries', href: '/admin/leads/product-inquiries', icon: ShoppingCart },
-    { name: 'Contact Messages', href: '/admin/leads/contact-messages', icon: Mail },
+    { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
   ];
 
   return (

@@ -5,10 +5,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { LeadRow } from '@/types/leads';
 
+export type StatusFilter = 'all' | 'active' | 'inactive';
+
 interface LeadsListProps {
   table: 'puppy_inquiries' | 'consultation_requests' | 'product_inquiries' | 'contact_messages';
   title: string;
   statusOptions: string[];
+  /** Filter by status: active, inactive, or show all */
+  statusFilter?: StatusFilter;
   extraColumns?: Array<{
     header: string;
     accessorKey?: string;
@@ -18,18 +22,28 @@ interface LeadsListProps {
   renderActions?: (row: LeadRow) => React.ReactNode;
 }
 
-export default function LeadsList({ table, title, statusOptions, extraColumns = [], renderActions }: LeadsListProps) {
+export default function LeadsList({ table, title, statusOptions, statusFilter = 'all', extraColumns = [], renderActions }: LeadsListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: leads, isLoading } = useQuery({
-    queryKey: ['admin-leads', table],
+    queryKey: ['admin-leads', table, statusFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .order('created_at', { ascending: false });
-      
+      let query = supabase.from(table).select('*').order('created_at', { ascending: false });
+      if (statusFilter === 'active') {
+        if (table === 'product_inquiries') {
+          query = query.eq('status', 'new');
+        } else {
+          query = query.eq('status', 'active');
+        }
+      } else if (statusFilter === 'inactive') {
+        if (table === 'product_inquiries') {
+          query = query.in('status', ['reviewed', 'contacted']);
+        } else {
+          query = query.eq('status', 'inactive');
+        }
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -37,9 +51,14 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // When admin updates status, mark as viewed (reduces unseen count on dashboard)
+      const updates: Record<string, unknown> = { status };
+      if (table !== 'product_inquiries') {
+        updates.admin_viewed_at = new Date().toISOString();
+      }
       const { error } = await supabase
         .from(table)
-        .update({ status })
+        .update(updates)
         .eq('id', id);
       
       if (error) throw error;
@@ -111,7 +130,7 @@ export default function LeadsList({ table, title, statusOptions, extraColumns = 
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">{title}</h1>
+      {title ? <h1 className="text-3xl font-bold mb-8">{title}</h1> : null}
       <DataTable columns={columns} data={leads || []} sortable />
     </div>
   );

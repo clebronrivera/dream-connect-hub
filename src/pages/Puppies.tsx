@@ -1,294 +1,193 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dog, Heart, Loader2, Info } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { PuppyInterestForm } from "@/components/PuppyInterestForm";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Dog,
+  Heart,
+  Loader2,
+  Info,
+  ChevronDown,
+  Share2,
+  ArrowLeft,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { supabase, Puppy } from "@/lib/supabase";
+import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 
-// Fetch only Available puppies for public list (ignore Pending/Reserved in public logic)
+const FAVORITES_KEY = "puppy-heaven-favorites";
+
+// Fetch only Available puppies for public/customer list
 async function fetchPuppies(): Promise<Puppy[]> {
   const { data, error } = await supabase
-    .from('puppies')
-    .select('*')
-    .eq('status', 'Available')
-    .order('display_order', { ascending: true })
-    .order('created_at', { ascending: false });
+    .from("puppies")
+    .select("*")
+    .eq("status", "Available")
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error('Error fetching puppies from Supabase:', error);
+    console.error("Error fetching puppies from Supabase:", error);
     throw new Error(`Failed to load puppies: ${error.message}`);
   }
 
   return data || [];
 }
 
-const TIMELINE_OPTIONS = [
-  { value: "asap", label: "ASAP" },
-  { value: "1-2-weeks", label: "1 to 2 weeks" },
-  { value: "3-4-weeks", label: "3 to 4 weeks" },
-  { value: "1-2-months", label: "1 to 2 months" },
-  { value: "browsing", label: "Just browsing" },
-];
+// Derive size from mom/dad weight (lbs)
+function getSizeCategory(puppy: Puppy): "small" | "medium" | "large" | null {
+  const mom = puppy.mom_weight_approx ?? 0;
+  const dad = puppy.dad_weight_approx ?? 0;
+  const avg = mom && dad ? (mom + dad) / 2 : mom || dad;
+  if (!avg) return null;
+  if (avg < 15) return "small";
+  if (avg < 45) return "medium";
+  return "large";
+}
 
-const EXPERIENCE_OPTIONS = [
-  { value: "first", label: "First puppy" },
-  { value: "some", label: "Some experience" },
-  { value: "experienced", label: "Experienced owner" },
-];
+// Check if breed matches "Poodle & Doodle" category
+function isPoodleOrDoodle(breed: string): boolean {
+  const b = (breed || "").toLowerCase();
+  return b.includes("poodle") || b.includes("doodle") || b.includes("goldendoodle") || b.includes("labradoodle");
+}
 
-function PuppyInterestForm({
-  open,
-  onOpenChange,
-  puppies,
-  initialPuppyId,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  puppies: Puppy[];
-  initialPuppyId?: string;
-}) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [interestedSpecific, setInterestedSpecific] = useState<"yes" | "no">(initialPuppyId ? "yes" : "no");
-  const [selectedPuppyId, setSelectedPuppyId] = useState(initialPuppyId || "");
-  const { toast } = useToast();
-
-  const selectedPuppy = puppies.find((p) => p.id === selectedPuppyId || String(p.id) === selectedPuppyId);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const phone = (formData.get("phone") as string) || undefined;
-    const city = formData.get("city") as string;
-    const state = formData.get("state") as string;
-    const timeline = formData.get("timeline") as string;
-    const experience = (formData.get("experience") as string) || undefined;
-    const household_description = (formData.get("household_description") as string) || undefined;
-    const additional_comments = (formData.get("additional_comments") as string) || undefined;
-
-    let puppy_id: string | null = null;
-    let needs_followup = false;
-    let puppy_name_at_submit: string | undefined;
-    let puppy_status_at_submit: string | undefined;
-    let preferences: Record<string, unknown> | undefined;
-
-    if (interestedSpecific === "yes") {
-      if (!selectedPuppyId) {
-        toast({ title: "Please select a puppy", variant: "destructive" });
-        setIsSubmitting(false);
-        return;
-      }
-      puppy_id = selectedPuppyId;
-      const { data: puppyRow } = await supabase.from("puppies").select("id, name, status").eq("id", selectedPuppyId).single();
-      if (puppyRow && puppyRow.status !== "Available") {
-        needs_followup = true;
-        puppy_name_at_submit = puppyRow.name ?? undefined;
-        puppy_status_at_submit = puppyRow.status ?? undefined;
-      }
-    } else {
-      preferences = {
-        type_size: formData.get("pref_type_size") || undefined,
-        breed: formData.get("pref_breed") || undefined,
-        color: formData.get("pref_color") || undefined,
-        gender: formData.get("pref_gender") || undefined,
-      };
-    }
-
-    const row = {
-      status: "active",
-      name,
-      email,
-      phone,
-      city,
-      state,
-      interested_specific: interestedSpecific === "yes",
-      puppy_id,
-      puppy_name: selectedPuppy?.name,
-      timeline,
-      experience,
-      household_description,
-      preferences,
-      additional_comments,
-      needs_followup,
-      puppy_name_at_submit,
-      puppy_status_at_submit,
-    };
-
-    try {
-      const { error } = await supabase.from("puppy_inquiries").insert([row]);
-      if (error) throw error;
-      toast({ title: "Interest Received!", description: "We'll get back to you soon." });
-      onOpenChange(false);
-      setSelectedPuppyId(initialPuppyId || "");
-      setInterestedSpecific(initialPuppyId ? "yes" : "no");
-      (e.target as HTMLFormElement).reset();
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Error", description: "Failed to submit. Please try again.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+// Check if breed matches "Small" category (small/toy breeds)
+function isSmallBreed(breed: string): boolean {
+  const b = (breed || "").toLowerCase();
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Puppy Interest Form</DialogTitle>
-          <DialogDescription>Fill this out and we will get back to you.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="pi-name">Your Name *</Label>
-              <Input id="pi-name" name="name" placeholder="Your name" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pi-email">Email *</Label>
-              <Input id="pi-email" name="email" type="email" placeholder="your@email.com" required />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pi-phone">Phone</Label>
-            <Input id="pi-phone" name="phone" type="tel" placeholder="(123) 456-7890" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="pi-city">City *</Label>
-              <Input id="pi-city" name="city" placeholder="City" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pi-state">State *</Label>
-              <Input id="pi-state" name="state" placeholder="State" required />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Are you interested in a specific puppy? *</Label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input type="radio" name="specific" checked={interestedSpecific === "yes"} onChange={() => setInterestedSpecific("yes")} />
-                Yes (select puppy)
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="specific" checked={interestedSpecific === "no"} onChange={() => setInterestedSpecific("no")} />
-                Not sure yet (I want recommendations)
-              </label>
-            </div>
-          </div>
-
-          {interestedSpecific === "yes" && (
-            <div className="space-y-2">
-              <Label>Select Puppy *</Label>
-              <Select value={selectedPuppyId} onValueChange={setSelectedPuppyId} required>
-                <SelectTrigger><SelectValue placeholder="Choose a puppy" /></SelectTrigger>
-                <SelectContent>
-                  {puppies.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name || "Unnamed"} — {p.breed}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedPuppy && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedPuppy.breed} • {selectedPuppy.gender || "—"} • {selectedPuppy.color || "—"} • {selectedPuppy.age_weeks ? `${selectedPuppy.age_weeks} weeks` : selectedPuppy.date_of_birth || "—"}
-                </p>
-              )}
-            </div>
-          )}
-
-          {interestedSpecific === "no" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pref_type_size">Type/Size Preference</Label>
-                <Input id="pref_type_size" name="pref_type_size" placeholder="e.g. Medium" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pref_breed">Breed Preference</Label>
-                <Input id="pref_breed" name="pref_breed" placeholder="e.g. Golden Retriever" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pref_color">Color Preference</Label>
-                <Input id="pref_color" name="pref_color" placeholder="e.g. Golden" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pref_gender">Gender Preference</Label>
-                <Select name="pref_gender">
-                  <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="any">Any</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="pi-timeline">When are you looking to bring a puppy home? *</Label>
-            <Select name="timeline" required>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent>
-                {TIMELINE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pi-experience">Do you have puppy experience?</Label>
-            <Select name="experience">
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent>
-                {EXPERIENCE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pi-household">Tell us about your household</Label>
-            <Textarea id="pi-household" name="household_description" placeholder="Kids, other pets, work schedule, activity level" rows={3} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="pi-comments">Additional Questions or Comments</Label>
-            <Textarea id="pi-comments" name="additional_comments" rows={2} />
-          </div>
-
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</> : "Send My Interest!"}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Required fields marked *. We respect your privacy and will never share your information.</p>
-        </form>
-      </DialogContent>
-    </Dialog>
+    b.includes("maltese") ||
+    b.includes("chihuahua") ||
+    b.includes("yorkshire") ||
+    b.includes("toy") ||
+    b.includes("mini") ||
+    b.includes("shih tzu") ||
+    b.includes("pomeranian") ||
+    b.includes("papillon")
   );
 }
 
+function useFavorites(): [Set<string>, (id: string) => void] {
+  const [favs, setFavs] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(FAVORITES_KEY);
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const toggle = useCallback((id: string) => {
+    setFavs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  return [favs, toggle];
+}
+
+type CategoryFilter = "all" | "poodle-doodle" | "small-toy";
+type SizeFilter = "all" | "small" | "medium" | "large";
+type SortOption = "name" | "breed" | "price-low" | "price-high";
+
 export default function Puppies() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const breedFromUrl = searchParams.get("breed")?.trim() || undefined;
+
   const [interestFormOpen, setInterestFormOpen] = useState(false);
   const [interestFormPuppyId, setInterestFormPuppyId] = useState<string | undefined>(undefined);
+  const [detailPuppy, setDetailPuppy] = useState<Puppy | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [sizeFilter, setSizeFilter] = useState<SizeFilter>("all");
+  const [breedFilter, setBreedFilter] = useState<string | undefined>(breedFromUrl);
+  const [sortBy, setSortBy] = useState<SortOption>("name");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [favorites, toggleFavorite] = useFavorites();
+
+  useEffect(() => {
+    if (breedFromUrl) setBreedFilter(breedFromUrl);
+  }, [breedFromUrl]);
 
   const { data: puppies, isLoading, isError, error } = useQuery({
-    queryKey: ['puppies'],
+    queryKey: ["puppies"],
     queryFn: fetchPuppies,
     retry: 2,
   });
+
+  const filteredAndSorted = useMemo(() => {
+    if (!puppies) return [];
+    let list = [...puppies];
+
+    // Breed filter (from URL or manual)
+    if (breedFilter) {
+      const b = breedFilter.toLowerCase();
+      list = list.filter((p) => (p.breed || "").toLowerCase().includes(b));
+    }
+
+    // Category filter
+    if (categoryFilter === "poodle-doodle") {
+      list = list.filter((p) => isPoodleOrDoodle(p.breed || ""));
+    } else if (categoryFilter === "small-toy") {
+      list = list.filter((p) => isSmallBreed(p.breed || ""));
+    }
+
+    // Size filter
+    if (sizeFilter !== "all") {
+      list = list.filter((p) => getSizeCategory(p) === sizeFilter);
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      const priceA = a.final_price ?? a.base_price ?? 0;
+      const priceB = b.final_price ?? b.base_price ?? 0;
+      switch (sortBy) {
+        case "name":
+          return (a.name || "").localeCompare(b.name || "");
+        case "breed":
+          return (a.breed || "").localeCompare(b.breed || "");
+        case "price-low":
+          return Number(priceA) - Number(priceB);
+        case "price-high":
+          return Number(priceB) - Number(priceA);
+        default:
+          return 0;
+      }
+    });
+
+    return list;
+  }, [puppies, breedFilter, categoryFilter, sizeFilter, sortBy]);
+
+  const hasActiveFilters =
+    categoryFilter !== "all" || sizeFilter !== "all" || Boolean(breedFilter);
+
+  const clearFilters = () => {
+    setCategoryFilter("all");
+    setSizeFilter("all");
+    setBreedFilter(undefined);
+    setSearchParams({}, { replace: true });
+  };
 
   const openInterestForm = (puppyId?: string) => {
     setInterestFormPuppyId(puppyId);
@@ -296,27 +195,66 @@ export default function Puppies() {
   };
 
   const getPuppyImage = (puppy: Puppy) => {
-    if (puppy.primary_photo) {
-      return puppy.primary_photo;
-    }
-    if (puppy.photos && puppy.photos.length > 0) {
-      return puppy.photos[0];
-    }
+    if (puppy.primary_photo) return puppy.primary_photo;
+    if (puppy.photos && puppy.photos.length > 0) return puppy.photos[0];
     return null;
   };
 
   const getDisplayPrice = (puppy: Puppy) => {
-    if (puppy.final_price) {
-      return puppy.final_price;
-    }
-    if (puppy.base_price) {
-      return puppy.base_price;
-    }
+    if (puppy.final_price) return puppy.final_price;
+    if (puppy.base_price) return puppy.base_price;
     return null;
   };
 
+  const handleShare = useCallback(async (puppy: Puppy) => {
+    const url = `${window.location.origin}/puppies`;
+    const text = `Check out ${puppy.name || "this puppy"} — ${puppy.breed} at Puppy Heaven!`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${puppy.name} - Puppy Heaven`,
+          text,
+          url,
+        });
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          navigator.clipboard?.writeText(`${text} ${url}`);
+        }
+      }
+    } else {
+      navigator.clipboard?.writeText(`${text} ${url}`);
+    }
+  }, []);
+
   return (
     <Layout>
+      {/* Breadcrumb / Navigation */}
+      <section className="border-b bg-muted/30">
+        <div className="container py-3">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Available Puppies</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center gap-2 mt-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to Site
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="bg-primary py-16">
         <div className="container text-center">
@@ -325,6 +263,9 @@ export default function Puppies() {
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Find your perfect furry companion. All our puppies are health-checked, vaccinated, and raised with love.
           </p>
+          <Button size="lg" variant="secondary" className="mt-6 text-foreground" asChild>
+            <Link to="/contact">Inquire About a Puppy</Link>
+          </Button>
         </div>
       </section>
 
@@ -334,13 +275,131 @@ export default function Puppies() {
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <span className="font-semibold">Please Note:</span> The names displayed for each puppy are for communication and identification purposes only. Puppies are not trained to respond to these names, allowing you the joy of naming your new family member yourself.
+              <span className="font-semibold">Please Note:</span> The names displayed for each puppy are for
+              communication and identification purposes only. Puppies are not trained to respond to these names,
+              allowing you the joy of naming your new family member yourself.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Puppies Grid */}
+      {/* Filters Bar */}
+      <section className="container py-4 sticky top-[calc(3.5rem+2px)] z-40 bg-background/95 backdrop-blur border-b">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                    Filters
+                    <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name A–Z</SelectItem>
+                    <SelectItem value="breed">Breed</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <CollapsibleContent>
+                <div className="flex flex-wrap gap-4 mt-4 p-4 rounded-lg bg-muted/50">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Category</Label>
+                    <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="poodle-doodle">Poodle & Doodle</SelectItem>
+                        <SelectItem value="small-toy">Small</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Size</Label>
+                    <Select value={sizeFilter} onValueChange={(v) => setSizeFilter(v as SizeFilter)}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {filteredAndSorted.length} {filteredAndSorted.length === 1 ? "puppy" : "puppies"}
+          </p>
+        </div>
+        {hasActiveFilters && (
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {breedFilter && (
+              <Badge variant="secondary" className="gap-1">
+                Breed: {breedFilter}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBreedFilter(undefined);
+                    setSearchParams({}, { replace: true });
+                  }}
+                  className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label="Remove breed filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {categoryFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                {categoryFilter === "poodle-doodle" ? "Poodle & Doodle" : "Small"}
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter("all")}
+                  className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label="Remove filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {sizeFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1 capitalize">
+                {sizeFilter}
+                <button
+                  type="button"
+                  onClick={() => setSizeFilter("all")}
+                  className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label="Remove filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Available Puppies */}
       <section className="container py-12">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -353,70 +412,91 @@ export default function Puppies() {
               Unable to load puppies at this time. Please try again later or contact us directly.
             </p>
             {import.meta.env.DEV && error && error instanceof Error && (
-              <p className="text-xs text-muted-foreground mb-4 font-mono break-all">
-                Error: {error.message}
-              </p>
+              <p className="text-xs text-muted-foreground mb-4 font-mono break-all">Error: {error.message}</p>
             )}
             <Button asChild>
-              <a href="/contact">Contact Us</a>
+              <Link to="/contact">Contact Us</Link>
             </Button>
           </div>
-        ) : puppies && puppies.length > 0 ? (
+        ) : filteredAndSorted.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {puppies.map((puppy) => {
+            {filteredAndSorted.map((puppy, index) => {
               const imageUrl = getPuppyImage(puppy);
               const price = getDisplayPrice(puppy);
-              const status = puppy.status || 'Unknown';
-              const isAvailable = status === 'Available';
+              const status = puppy.status || "Unknown";
+              const isAvailable = status === "Available";
+              const id = String(puppy.id);
+              const isFav = favorites.has(id);
+              const sizeCat = getSizeCategory(puppy);
 
               return (
-                <Card key={puppy.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  {/* Puppy Image */}
-                  {imageUrl ? (
-                    <div className="aspect-square overflow-hidden bg-muted">
-                      <img 
-                        src={imageUrl} 
-                        alt={puppy.name || 'Puppy'} 
-                        className="w-full h-full object-cover"
+                <Card
+                  key={puppy.id}
+                  className="overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
+                  style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
+                  onClick={() => setDetailPuppy(puppy)}
+                >
+                  <div className="relative aspect-square overflow-hidden bg-muted cursor-pointer">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={puppy.name || "Puppy"}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                    </div>
-                  ) : (
-                    <div className="aspect-square bg-muted flex items-center justify-center">
-                      <Dog className="h-24 w-24 text-muted-foreground/50" />
-                    </div>
-                  )}
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">{puppy.name || 'Unnamed'}</CardTitle>
-                      <span 
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Dog className="h-24 w-24 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <span
                         className={`text-xs px-2 py-1 rounded-full ${
-                          isAvailable
-                            ? "bg-primary/10 text-primary" 
-                            : "bg-muted text-muted-foreground"
+                          isAvailable ? "bg-primary/90 text-primary-foreground" : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {status}
                       </span>
+                      {sizeCat && (
+                        <Badge variant="secondary" className="capitalize text-xs">
+                          {sizeCat}
+                        </Badge>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(id);
+                      }}
+                      className="absolute top-2 left-2 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
+                      aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Heart
+                        className={`h-5 w-5 transition-colors ${isFav ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                      />
+                    </button>
+                  </div>
+                  <CardHeader className="cursor-pointer" onClick={() => setDetailPuppy(puppy)}>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl">{puppy.name || "Unnamed"}</CardTitle>
                     </div>
                     <CardDescription>
-                      {puppy.breed || 'Unknown Breed'}
+                      {puppy.breed || "Unknown Breed"}
                       {puppy.gender && ` • ${puppy.gender}`}
-                      {puppy.age_weeks && ` • ${puppy.age_weeks} weeks`}
+                      {(() => { const w = getDisplayAgeWeeks(puppy); return w != null && ` • ${w} weeks`; })()}
                     </CardDescription>
                     {puppy.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {puppy.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{puppy.description}</p>
                     )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between">
                       {price ? (
                         <span className="text-2xl font-bold text-foreground">
-                          ${price.toLocaleString()}
+                          ${Number(price).toLocaleString()}
                           {puppy.discount_active && puppy.discount_amount && (
                             <span className="text-sm text-muted-foreground line-through ml-2">
-                              ${(price + puppy.discount_amount).toLocaleString()}
+                              ${(Number(price) + Number(puppy.discount_amount)).toLocaleString()}
                             </span>
                           )}
                         </span>
@@ -437,23 +517,207 @@ export default function Puppies() {
             })}
           </div>
         ) : (
-          <div className="bg-muted/50 rounded-lg p-6 text-center">
+          <div className="bg-muted/50 rounded-lg p-12 text-center">
+            <Dog className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No puppies match your filters</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              No puppies available at this time. Check back soon!
+              Try adjusting your filters or clear them to see all available puppies.
             </p>
-            <Button variant="outline" onClick={() => openInterestForm()}>
+            <Button variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+            <p className="text-sm text-muted-foreground mt-4">No puppies available at all?</p>
+            <Button variant="link" onClick={() => openInterestForm()}>
               <Heart className="h-4 w-4 mr-2" />
               Send Interest (get recommendations)
             </Button>
           </div>
         )}
 
-        <PuppyInterestForm
-          open={interestFormOpen}
-          onOpenChange={setInterestFormOpen}
-          puppies={puppies || []}
-          initialPuppyId={interestFormPuppyId}
-        />
+        <Dialog open={interestFormOpen} onOpenChange={setInterestFormOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              {interestFormPuppyId && (() => {
+                const prePuppy = puppies?.find(
+                  (p) => String(p.id) === interestFormPuppyId || p.id === interestFormPuppyId
+                );
+                if (!prePuppy) return null;
+                const img = prePuppy.primary_photo ?? prePuppy.photos?.[0];
+                return (
+                  <div className="flex gap-4 items-start">
+                    {img && (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
+                        <img src={img} alt={prePuppy.name || "Puppy"} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div>
+                      <DialogTitle>Send Interest — {prePuppy.name || "Unnamed"}</DialogTitle>
+                      <DialogDescription>
+                        {prePuppy.breed}
+                        {prePuppy.gender && ` • ${prePuppy.gender}`}
+                        {getDisplayAgeWeeks(prePuppy) != null && ` • ${getDisplayAgeWeeks(prePuppy)} weeks`}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                );
+              })()}
+              {!interestFormPuppyId && (
+                <>
+                  <DialogTitle>Puppy Interest Form</DialogTitle>
+                  <DialogDescription>Tell us about yourself and your puppy preferences.</DialogDescription>
+                </>
+              )}
+            </DialogHeader>
+            <PuppyInterestForm
+              initialPuppyId={interestFormPuppyId}
+              preSelectedPuppy={
+                interestFormPuppyId
+                  ? puppies?.find(
+                      (p) => String(p.id) === interestFormPuppyId || p.id === interestFormPuppyId
+                    ) ?? null
+                  : null
+              }
+              puppies={puppies || []}
+              onSuccess={() => setInterestFormOpen(false)}
+              submitLabel="Send Interest"
+              compact
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Detail Modal */}
+        <Dialog open={!!detailPuppy} onOpenChange={(open) => !open && setDetailPuppy(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            {detailPuppy && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <DialogTitle className="text-2xl">{detailPuppy.name || "Unnamed"}</DialogTitle>
+                      <DialogDescription>
+                        {detailPuppy.breed || "Unknown Breed"}
+                        {detailPuppy.gender && ` • ${detailPuppy.gender}`}
+                        {detailPuppy.color && ` • ${detailPuppy.color}`}
+                        {(() => { const w = getDisplayAgeWeeks(detailPuppy); return w != null && ` • ${w} weeks`; })()}
+                      </DialogDescription>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleShare(detailPuppy)}
+                        aria-label="Share"
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => toggleFavorite(String(detailPuppy.id))}
+                        aria-label={favorites.has(String(detailPuppy.id)) ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Heart
+                          className={`h-4 w-4 ${favorites.has(String(detailPuppy.id)) ? "fill-primary text-primary" : ""}`}
+                        />
+                      </Button>
+                    </div>
+                  </div>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    {getPuppyImage(detailPuppy) ? (
+                      <img
+                        src={getPuppyImage(detailPuppy)!}
+                        alt={detailPuppy.name || "Puppy"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Dog className="h-24 w-24 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 left-2 flex gap-2">
+                      {getSizeCategory(detailPuppy) && (
+                        <Badge>{getSizeCategory(detailPuppy)}</Badge>
+                      )}
+                      {isPoodleOrDoodle(detailPuppy.breed || "") && (
+                        <Badge variant="secondary">Poodle & Doodle</Badge>
+                      )}
+                      {isSmallBreed(detailPuppy.breed || "") && (
+                        <Badge variant="secondary">Small</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {detailPuppy.description && (
+                      <p className="text-muted-foreground">{detailPuppy.description}</p>
+                    )}
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Health Certificate</span>
+                        <span>{detailPuppy.health_certificate ? "Yes" : "No"}</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-700 ease-out"
+                          style={{ width: detailPuppy.health_certificate ? "100%" : "0%" }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Microchipped</span>
+                        <span>{detailPuppy.microchipped ? "Yes" : "No"}</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-700 ease-out"
+                          style={{ width: detailPuppy.microchipped ? "100%" : "0%" }}
+                        />
+                      </div>
+                      {detailPuppy.vaccinations && (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Vaccinations</span>
+                            <span>Up to date</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                            <div
+                              className="h-full bg-primary transition-all duration-700 ease-out"
+                              style={{ width: "100%" }}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className="pt-4">
+                      {getDisplayPrice(detailPuppy) ? (
+                        <p className="text-2xl font-bold text-foreground mb-2">
+                          ${Number(getDisplayPrice(detailPuppy)).toLocaleString()}
+                          {detailPuppy.discount_active && detailPuppy.discount_amount && (
+                            <span className="text-sm text-muted-foreground line-through ml-2">
+                              $
+                              {(
+                                Number(getDisplayPrice(detailPuppy)) + Number(detailPuppy.discount_amount)
+                              ).toLocaleString()}
+                            </span>
+                          )}
+                        </p>
+                      ) : (
+                        <p className="text-muted-foreground mb-2">Price on request</p>
+                      )}
+                      <Button className="w-full" onClick={() => openInterestForm(detailPuppy.id)}>
+                        <Heart className="h-4 w-4 mr-2" />
+                        Send Interest
+                      </Button>
+                      <Button variant="outline" className="w-full mt-2" asChild>
+                        <Link to="/contact">Contact Us</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </section>
     </Layout>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -20,6 +20,8 @@ interface DataTableProps<T> {
   data: T[];
   /** Enable clickable column headers to sort by columns that have accessorKey */
   sortable?: boolean;
+  /** If set, sort key and direction are persisted to localStorage under this key (admin use) */
+  storageKey?: string;
 }
 
 function compare(a: unknown, b: unknown): number {
@@ -30,18 +32,48 @@ function compare(a: unknown, b: unknown): number {
   return String(a).localeCompare(String(b), undefined, { numeric: true });
 }
 
-export function DataTable<T extends Record<string, unknown>>({ columns, data, sortable }: DataTableProps<T>) {
-  const [sortKey, setSortKey] = useState<keyof T | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+function loadSortState<T>(storageKey: string, validKeys: (keyof T)[]): { key: keyof T | null; dir: 'asc' | 'desc' } {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return { key: null, dir: 'asc' };
+    const parsed = JSON.parse(raw) as { sortKey?: string; sortDir?: string };
+    const key = parsed.sortKey != null && validKeys.includes(parsed.sortKey as keyof T) ? (parsed.sortKey as keyof T) : null;
+    const dir = parsed.sortDir === 'desc' ? 'desc' : 'asc';
+    return { key, dir };
+  } catch {
+    return { key: null, dir: 'asc' };
+  }
+}
 
-  const handleSort = (key: keyof T) => {
-    if (sortKey !== key) {
-      setSortKey(key);
-      setSortDir('asc');
-    } else {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+function saveSortState(storageKey: string, sortKey: string | null, sortDir: 'asc' | 'desc') {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({ sortKey, sortDir }));
+  } catch {}
+}
+
+export function DataTable<T extends Record<string, unknown>>({ columns, data, sortable, storageKey }: DataTableProps<T>) {
+  const sortableKeys = columns.map((c) => c.accessorKey).filter(Boolean) as (keyof T)[];
+  const [sortKey, setSortKeyState] = useState<keyof T | null>(() =>
+    storageKey ? loadSortState<T>(storageKey, sortableKeys).key : null
+  );
+  const [sortDir, setSortDirState] = useState<'asc' | 'desc'>(() =>
+    storageKey ? loadSortState<T>(storageKey, sortableKeys).dir : 'asc'
+  );
+
+  useEffect(() => {
+    if (storageKey && sortKey != null) {
+      saveSortState(storageKey, String(sortKey), sortDir);
     }
-  };
+  }, [storageKey, sortKey, sortDir]);
+
+  const handleSort = useCallback((key: keyof T) => {
+    if (sortKey !== key) {
+      setSortKeyState(key);
+      setSortDirState('asc');
+    } else {
+      setSortDirState((d) => (d === 'asc' ? 'desc' : 'asc'));
+    }
+  }, [sortKey]);
 
   const sortedData = sortable && sortKey
     ? [...data].sort((ra, rb) => {

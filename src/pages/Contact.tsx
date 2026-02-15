@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,14 +11,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { PuppyInterestForm } from "@/components/PuppyInterestForm";
+import type { Puppy } from "@/lib/supabase";
 
 const SUBJECT_OTHER_CONSULTATION = "other-consultation";
+const SUBJECT_PUPPY_INQUIRY = "puppies";
+
+async function fetchAvailablePuppies(): Promise<Puppy[]> {
+  const { data, error } = await supabase
+    .from("puppies")
+    .select("*")
+    .eq("status", "Available")
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
 
 export default function Contact() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subject, setSubject] = useState("");
+  const { data: puppies } = useQuery({
+    queryKey: ["puppies"],
+    queryFn: fetchAvailablePuppies,
+    enabled: subject === SUBJECT_PUPPY_INQUIRY,
+  });
 
   useEffect(() => {
     const subjectFromUrl = searchParams.get("subject");
@@ -137,13 +157,40 @@ export default function Contact() {
           {/* Contact Form */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Send us a Message</CardTitle>
+              <CardTitle>
+                {subject === SUBJECT_PUPPY_INQUIRY ? "Puppy Interest Form" : "Send us a Message"}
+              </CardTitle>
               <CardDescription>
-                Fill out the form below and we'll get back to you as soon as possible.
+                {subject === SUBJECT_PUPPY_INQUIRY
+                  ? "Tell us about yourself and your puppy preferences. We'll get back to you soon."
+                  : "Fill out the form below and we'll get back to you as soon as possible."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4 mb-6">
+                <Label>Subject *</Label>
+                <Select value={subject} onValueChange={setSubject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SUBJECT_PUPPY_INQUIRY}>Puppy Inquiry</SelectItem>
+                    <SelectItem value="consultation">Pet Consultation</SelectItem>
+                    <SelectItem value={SUBJECT_OTHER_CONSULTATION}>Other Consultation Request</SelectItem>
+                    <SelectItem value="essentials">Pet Essentials</SelectItem>
+                    <SelectItem value="general">General Question</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {subject === SUBJECT_PUPPY_INQUIRY ? (
+                <PuppyInterestForm
+                  puppies={puppies ?? []}
+                  submitLabel="Submit Puppy Inquiry"
+                />
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Name *</Label>
@@ -159,22 +206,6 @@ export default function Contact() {
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
                     <Input id="phone" name="phone" type="tel" placeholder="(123) 456-7890" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject *</Label>
-                    <Select value={subject} onValueChange={setSubject} required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="puppies">Puppy Inquiry</SelectItem>
-                        <SelectItem value="consultation">Pet Consultation</SelectItem>
-                        <SelectItem value={SUBJECT_OTHER_CONSULTATION}>Other Consultation Request</SelectItem>
-                        <SelectItem value="essentials">Pet Essentials</SelectItem>
-                        <SelectItem value="general">General Question</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
 
@@ -200,6 +231,7 @@ export default function Contact() {
                   )}
                 </Button>
               </form>
+              )}
             </CardContent>
           </Card>
         </div>

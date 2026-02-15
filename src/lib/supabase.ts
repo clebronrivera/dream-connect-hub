@@ -137,6 +137,7 @@ export interface Puppy {
   microchipped?: boolean;
   featured?: boolean;
   display_order?: number;
+  listing_date?: string; // Date added to website (YYYY-MM-DD)
   created_at?: string;
   updated_at?: string;
 }
