@@ -9,6 +9,7 @@ import {
   Package,
   Box,
   ExternalLink,
+  CalendarHeart,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -18,6 +19,7 @@ export function AdminLayout() {
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Puppies', href: '/admin/puppies', icon: Dog },
+    { name: 'Upcoming Litters', href: '/admin/upcoming-litters', icon: CalendarHeart },
     { name: 'Products', href: '/admin/inventory/products', icon: Package },
     { name: 'Kits', href: '/admin/inventory/kits', icon: Box },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },

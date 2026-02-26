@@ -1,21 +1,39 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, Puppy } from '@/lib/supabase';
 import { uploadPuppyPhoto } from '@/lib/puppy-photos';
+import {
+  createLitterFromPuppy,
+  createPuppyFromLitter,
+  bulkCreatePuppiesFromLitter,
+} from '@/lib/litter-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getAgeWeeks } from '@/lib/puppy-utils';
+import { getAgeWeeks, getReadyDateFromDob } from '@/lib/puppy-utils';
+import { MAIN_BREEDS, normalizeBreedToCanonical } from '@/lib/breed-utils';
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users, UserPlus, Sparkles, Wand2 } from 'lucide-react';
 import * as React from 'react';
+
+// Coerce null to undefined so optional number fields don't fail validation
+const optionalNumber = (s: z.ZodNumber) =>
+  z.preprocess((v) => (v === null || v === '' ? undefined : v), s.optional());
 
 const puppySchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -25,34 +43,73 @@ const puppySchema = z.object({
   gender: z.enum(['Male', 'Female']).optional(),
   color: z.string().optional(),
   date_of_birth: z.string().optional(),
-  age_weeks: z.number().optional(),
+  age_weeks: optionalNumber(z.number()),
   ready_date: z.string().optional(),
-  base_price: z.number().min(0).optional(),
+  base_price: optionalNumber(z.number().min(0)),
   discount_active: z.boolean().optional(),
-  discount_amount: z.number().min(0).optional(),
+  discount_amount: optionalNumber(z.number().min(0)),
   discount_note: z.string().optional(),
-  final_price: z.number().min(0).optional(),
+  final_price: optionalNumber(z.number().min(0)),
   status: z.enum(['Available', 'Pending', 'Sold', 'Reserved']).default('Available'),
   description: z.string().optional(),
-  mom_weight_approx: z.number().optional(),
-  dad_weight_approx: z.number().optional(),
+  mom_weight_approx: optionalNumber(z.number()),
+  dad_weight_approx: optionalNumber(z.number()),
   vaccinations: z.string().optional(),
   health_certificate: z.boolean().optional(),
   microchipped: z.boolean().optional(),
   featured: z.boolean().optional(),
-  display_order: z.number().optional(),
+  display_order: optionalNumber(z.number()),
   primary_photo: z.string().optional(),
   photos: z.array(z.string()).optional(),
 });
 
 type PuppyFormValues = z.infer<typeof puppySchema>;
 
+/** Generate a short description from name, breed, gender, DOB/age (like past records). */
+function generatePuppyDescription(options: {
+  name?: string;
+  breed?: string;
+  gender?: string;
+  date_of_birth?: string;
+  age_weeks?: number | null;
+  color?: string;
+}): string {
+  const { name, breed, gender, date_of_birth, age_weeks } = options;
+  const adjectives = ['Sweet and playful', 'Adorable', 'Energetic and friendly', 'Loving', 'Happy'];
+  const closers = ['Great with kids!', 'Loves to play fetch!', 'Ready for a loving home.', 'Wonderful personality.', 'A great addition to any family.'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const breedName = breed?.trim() || 'puppy';
+  const age = date_of_birth ? getAgeWeeks(date_of_birth) : (age_weeks ?? null);
+  let first = `${adj} ${breedName} puppy.`;
+  if (name?.trim() && gender && age != null) {
+    first = `${name.trim()} is a ${age}-week-old ${gender.toLowerCase()} ${breedName} puppy.`;
+  } else if (gender && age != null) {
+    first = `This ${age}-week-old ${gender.toLowerCase()} ${breedName} puppy is`;
+  }
+  const second = closers[Math.floor(Math.random() * closers.length)];
+  return first.endsWith(' is') ? `${first} ${second.toLowerCase()}` : `${first} ${second}`;
+}
+
 export default function PuppyForm() {
   const { id } = useParams();
-  const isEdit = !!id;
+  const isEdit = !!id && id !== 'new';
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [addLittermateOpen, setAddLittermateOpen] = useState(false);
+  const [generateLittermatesOpen, setGenerateLittermatesOpen] = useState(false);
+  // Add littermate form state
+  const [littermateGender, setLittermateGender] = useState<'Male' | 'Female'>('Male');
+  const [littermateColor, setLittermateColor] = useState('');
+  const [littermateName, setLittermateName] = useState('');
+  const [littermatePhotoFile, setLittermatePhotoFile] = useState<File | null>(null);
+  const [littermatePhotoUrl, setLittermatePhotoUrl] = useState<string | null>(null);
+  // Bulk form state
+  const [bulkMaleCount, setBulkMaleCount] = useState(0);
+  const [bulkFemaleCount, setBulkFemaleCount] = useState(0);
+  const [bulkBaseName, setBulkBaseName] = useState('Littermate');
+  const [bulkCreatedIds, setBulkCreatedIds] = useState<string[]>([]);
 
   // Fetch existing puppy if editing
   const { data: puppy, isLoading } = useQuery({
@@ -85,13 +142,21 @@ export default function PuppyForm() {
     },
   });
 
+  // When DOB changes, set ready date to DOB + 8 weeks (user can override)
+  const dob = form.watch('date_of_birth');
+  useEffect(() => {
+    if (!dob || typeof dob !== 'string' || !dob.trim()) return;
+    const ready = getReadyDateFromDob(dob);
+    if (ready) form.setValue('ready_date', ready);
+  }, [dob, form]);
+
   // Update form when puppy data loads
   useEffect(() => {
     if (puppy) {
       form.reset({
         name: puppy.name || '',
         puppy_id: puppy.puppy_id || '',
-        breed: puppy.breed || '',
+        breed: normalizeBreedToCanonical(puppy.breed || '') || puppy.breed || '',
         listing_date: puppy.listing_date ?? (puppy.created_at ? puppy.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         gender: puppy.gender,
         color: puppy.color || '',
@@ -125,6 +190,34 @@ export default function PuppyForm() {
       if (!isEdit && !payload.listing_date) {
         payload.listing_date = new Date().toISOString().slice(0, 10);
       }
+      // When DOB is set: use computed age_weeks (present − DOB) and ready_date (DOB + 8 weeks) if missing
+      if (payload.date_of_birth) {
+        const ageWeeks = getAgeWeeks(payload.date_of_birth);
+        if (ageWeeks != null && (payload.age_weeks == null || payload.age_weeks === undefined)) {
+          payload.age_weeks = ageWeeks;
+        }
+        const readyDate = getReadyDateFromDob(payload.date_of_birth);
+        if (readyDate && (!payload.ready_date || !String(payload.ready_date).trim())) {
+          payload.ready_date = readyDate;
+        }
+      }
+      // Strip null/undefined for optional numbers so Supabase doesn't receive null
+      const optionalNumKeys = ['age_weeks', 'base_price', 'discount_amount', 'final_price', 'mom_weight_approx', 'dad_weight_approx', 'display_order'] as const;
+      optionalNumKeys.forEach((k) => {
+        const v = payload[k];
+        if (v === null || v === undefined) delete payload[k];
+      });
+      // Empty string is invalid for date columns — send null instead
+      const dateKeys = ['listing_date', 'date_of_birth', 'ready_date'] as const;
+      dateKeys.forEach((k) => {
+        const v = payload[k];
+        if (v === '' || (typeof v === 'string' && !v.trim())) {
+          (payload as Record<string, unknown>)[k] = null;
+        }
+      });
+      // All dogs come with first-round vaccinations and health certificate
+      payload.health_certificate = true;
+      payload.vaccinations = payload.vaccinations || 'First round included';
       if (isEdit && id) {
         const { data: result, error } = await supabase
           .from('puppies')
@@ -159,6 +252,71 @@ export default function PuppyForm() {
         description: error.message || `Failed to ${isEdit ? 'update' : 'create'} puppy.`,
         variant: 'destructive',
       });
+    },
+  });
+
+  const createLitterMutation = useMutation({
+    mutationFn: () => createLitterFromPuppy(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['puppy', id] });
+      toast({ title: 'Litter created', description: 'This puppy is now part of a litter. Add littermates below.' });
+    },
+    onError: (error: Error) => {
+      const msg = error.message || '';
+      const hint = /relation.*litters|does not exist|column.*litter_id/i.test(msg)
+        ? ' Run the database migration: Supabase SQL Editor → run supabase/migrations/20250224000000_litters_table_and_puppy_litter_id.sql'
+        : '';
+      toast({ title: 'Error', description: msg + hint, variant: 'destructive' });
+    },
+  });
+
+  const addLittermateMutation = useMutation({
+    mutationFn: async () => {
+      let primaryPhoto: string | null = littermatePhotoUrl;
+      if (littermatePhotoFile) {
+        const { url } = await uploadPuppyPhoto(littermatePhotoFile);
+        primaryPhoto = url;
+      }
+      return createPuppyFromLitter(puppy!.litter_id!, {
+        gender: littermateGender,
+        color: littermateColor || undefined,
+        name: littermateName || undefined,
+        primaryPhoto: primaryPhoto ?? undefined,
+      });
+    },
+    onSuccess: (newPuppyId) => {
+      setAddLittermateOpen(false);
+      setLittermateGender('Male');
+      setLittermateColor('');
+      setLittermateName('');
+      setLittermatePhotoFile(null);
+      setLittermatePhotoUrl(null);
+      toast({ title: 'Littermate added', description: 'Redirecting to edit the new puppy.' });
+      navigate(`/admin/puppies/${newPuppyId}/edit`);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const bulkCreateMutation = useMutation({
+    mutationFn: () =>
+      bulkCreatePuppiesFromLitter({
+        litterId: puppy!.litter_id!,
+        counts: { male: bulkMaleCount, female: bulkFemaleCount },
+        baseName: bulkBaseName || undefined,
+      }),
+    onSuccess: (ids) => {
+      setBulkCreatedIds(ids);
+      if (ids.length > 0) {
+        setBulkMaleCount(0);
+        setBulkFemaleCount(0);
+        setBulkBaseName('Littermate');
+        toast({ title: 'Littermates created', description: `${ids.length} puppy(ies) added.` });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -206,6 +364,70 @@ export default function PuppyForm() {
         {isEdit ? 'Edit Puppy' : 'Add New Puppy'}
       </h1>
 
+      {/* Litter actions: only when editing an existing puppy */}
+      {isEdit && (
+        <div className="mb-8 rounded-lg border border-border bg-muted/40 p-4 shadow-sm">
+          <h2 className="text-base font-semibold mb-2">Litter</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Create a litter from this puppy, then add littermates so shared fields (breed, dates, price, etc.) are prefilled.
+          </p>
+          {!puppy ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading…
+            </div>
+          ) : !puppy.litter_id ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => createLitterMutation.mutate()}
+                disabled={createLitterMutation.isPending}
+              >
+                {createLitterMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Users className="h-4 w-4 mr-2" />
+                )}
+                Create Litter From Puppy
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setAddLittermateOpen(true)}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Littermate
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setGenerateLittermatesOpen(true)}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate Littermates
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link to={`/admin/litters/${puppy.litter_id}/edit`}>
+                  Edit Litter Defaults
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -240,15 +462,33 @@ export default function PuppyForm() {
             <FormField
               control={form.control}
               name="breed"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Breed *</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const currentBreed = field.value;
+                const canonicalBreed = normalizeBreedToCanonical(currentBreed || '');
+                const isInMainList = MAIN_BREEDS.includes(canonicalBreed as (typeof MAIN_BREEDS)[number]);
+                const options = currentBreed && !isInMainList ? [...MAIN_BREEDS, currentBreed] : [...MAIN_BREEDS];
+                const selectValue = (canonicalBreed || currentBreed) || undefined;
+                return (
+                  <FormItem>
+                    <FormLabel>Breed *</FormLabel>
+                    <Select onValueChange={field.onChange} value={selectValue || undefined}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select breed" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {options.map((breed) => (
+                          <SelectItem key={breed} value={breed}>
+                            {breed}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
@@ -380,6 +620,7 @@ export default function PuppyForm() {
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">Auto-calculated as 8 weeks after date of birth; you can change it.</p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -498,38 +739,6 @@ export default function PuppyForm() {
 
             <FormField
               control={form.control}
-              name="vaccinations"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vaccinations</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="health_certificate"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Health Certificate</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="microchipped"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
@@ -588,7 +797,28 @@ export default function PuppyForm() {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description</FormLabel>
+                <div className="flex items-center justify-between gap-2">
+                  <FormLabel>Description</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const desc = generatePuppyDescription({
+                        name: form.getValues('name'),
+                        breed: form.getValues('breed'),
+                        gender: form.getValues('gender'),
+                        date_of_birth: form.getValues('date_of_birth'),
+                        age_weeks: form.getValues('age_weeks'),
+                        color: form.getValues('color'),
+                      });
+                      form.setValue('description', desc);
+                    }}
+                  >
+                    <Wand2 className="h-4 w-4 mr-1" />
+                    Generate from name, DOB, gender
+                  </Button>
+                </div>
                 <FormControl>
                   <Textarea {...field} rows={4} />
                 </FormControl>
@@ -646,6 +876,148 @@ export default function PuppyForm() {
           </div>
         </form>
       </Form>
+
+      {/* Add Littermate modal */}
+      <Dialog open={addLittermateOpen} onOpenChange={setAddLittermateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Littermate</DialogTitle>
+            <DialogDescription>
+              New puppy will use this litter&apos;s shared fields. You only need to set gender; photo and color can be filled on the edit page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Gender *</label>
+              <Select value={littermateGender} onValueChange={(v) => setLittermateGender(v as 'Male' | 'Female')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Color (optional)</label>
+              <Input
+                value={littermateColor}
+                onChange={(e) => setLittermateColor(e.target.value)}
+                placeholder="e.g. Golden"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Name (optional)</label>
+              <Input
+                value={littermateName}
+                onChange={(e) => setLittermateName(e.target.value)}
+                placeholder="Leave blank for default"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Primary photo (optional)</label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  setLittermatePhotoFile(f ?? null);
+                  setLittermatePhotoUrl(null);
+                }}
+              />
+              {(littermatePhotoUrl || littermatePhotoFile) && (
+                <p className="text-xs text-muted-foreground">
+                  {littermatePhotoFile ? littermatePhotoFile.name : 'Uploaded'} — will upload on submit
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddLittermateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => addLittermateMutation.mutate()}
+              disabled={addLittermateMutation.isPending}
+            >
+              {addLittermateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Add &amp; go to edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Littermates modal */}
+      <Dialog open={generateLittermatesOpen} onOpenChange={(open) => {
+        setGenerateLittermatesOpen(open);
+        if (!open) setBulkCreatedIds([]);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate Littermates</DialogTitle>
+            <DialogDescription>
+              Create multiple puppies from this litter. Names will be &quot;{bulkBaseName || 'Littermate'} 1&quot;, &quot;2&quot;, etc. You can add photos and colors on each puppy&apos;s edit page.
+            </DialogDescription>
+          </DialogHeader>
+          {bulkCreatedIds.length > 0 ? (
+            <div className="py-4 space-y-2">
+              <p className="text-sm font-medium">Created {bulkCreatedIds.length} puppy(ies). Open to add photo and color:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {bulkCreatedIds.map((pid) => (
+                  <li key={pid}>
+                    <Link to={`/admin/puppies/${pid}/edit`} className="text-primary underline">
+                      Edit puppy
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Button variant="outline" onClick={() => setGenerateLittermatesOpen(false)}>Close</Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Male count</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={bulkMaleCount}
+                    onChange={(e) => setBulkMaleCount(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Female count</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={bulkFemaleCount}
+                    onChange={(e) => setBulkFemaleCount(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Base name (optional)</label>
+                  <Input
+                    value={bulkBaseName}
+                    onChange={(e) => setBulkBaseName(e.target.value)}
+                    placeholder="Littermate"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setGenerateLittermatesOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={() => bulkCreateMutation.mutate()}
+                  disabled={bulkCreateMutation.isPending || (bulkMaleCount + bulkFemaleCount <= 0)}
+                >
+                  {bulkCreateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Create {bulkMaleCount + bulkFemaleCount} puppy(ies)
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

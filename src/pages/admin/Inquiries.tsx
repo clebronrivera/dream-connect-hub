@@ -177,6 +177,12 @@ export default function Inquiries() {
                   cell: (row: LeadRow) => (row.subject as string) || '-',
                 },
                 {
+                  header: 'Upcoming litter',
+                  cell: (row: LeadRow) =>
+                    (row.upcoming_litter_label as string) ||
+                    (row.upcoming_litter_id ? 'Litter selected' : '-'),
+                },
+                {
                   header: 'Message',
                   cell: (row: LeadRow) => {
                     const msg = row.message as string | undefined;

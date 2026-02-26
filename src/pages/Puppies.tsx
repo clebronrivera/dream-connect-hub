@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { supabase, Puppy } from "@/lib/supabase";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
+import { normalizeBreedToCanonical } from "@/lib/breed-utils";
 
 const FAVORITES_KEY = "puppy-heaven-favorites";
 
@@ -100,7 +101,9 @@ function useFavorites(): [Set<string>, (id: string) => void] {
       else next.add(id);
       try {
         localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
-      } catch {}
+      } catch {
+        // Ignore localStorage errors (e.g. private mode)
+      }
       return next;
     });
   }, []);
@@ -140,10 +143,14 @@ export default function Puppies() {
     if (!puppies) return [];
     let list = [...puppies];
 
-    // Breed filter (from URL or manual)
+    // Breed filter (from URL or manual); match old records to canonical breeds
     if (breedFilter) {
       const b = breedFilter.toLowerCase();
-      list = list.filter((p) => (p.breed || "").toLowerCase().includes(b));
+      list = list.filter((p) => {
+        const raw = (p.breed || "").toLowerCase();
+        const canonical = normalizeBreedToCanonical(p.breed || "").toLowerCase();
+        return raw.includes(b) || canonical.includes(b);
+      });
     }
 
     // Category filter
@@ -655,12 +662,22 @@ export default function Puppies() {
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Health Certificate</span>
-                        <span>{detailPuppy.health_certificate ? "Yes" : "No"}</span>
+                        <span>Yes</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all duration-700 ease-out"
-                          style={{ width: detailPuppy.health_certificate ? "100%" : "0%" }}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Vaccinations</span>
+                        <span>First round included</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-700 ease-out"
+                          style={{ width: "100%" }}
                         />
                       </div>
                       <div className="flex justify-between text-sm">
@@ -673,20 +690,6 @@ export default function Puppies() {
                           style={{ width: detailPuppy.microchipped ? "100%" : "0%" }}
                         />
                       </div>
-                      {detailPuppy.vaccinations && (
-                        <>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Vaccinations</span>
-                            <span>Up to date</span>
-                          </div>
-                          <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-                            <div
-                              className="h-full bg-primary transition-all duration-700 ease-out"
-                              style={{ width: "100%" }}
-                            />
-                          </div>
-                        </>
-                      )}
                     </div>
                     <div className="pt-4">
                       {getDisplayPrice(detailPuppy) ? (

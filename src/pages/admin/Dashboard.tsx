@@ -38,7 +38,7 @@ export default function Dashboard() {
         // Product inquiries: status='new' = unseen
         supabase.from('product_inquiries').select('*', { count: 'exact', head: true }).eq('status', 'new'),
         supabase.from('contact_messages').select('*', { count: 'exact', head: true }).is('admin_viewed_at', null),
-        supabase.from('products').select('*', { count: 'exact', head: true }),
+        supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'available'),
         supabase.from('kits').select('*', { count: 'exact', head: true }),
       ]);
 
@@ -57,7 +57,7 @@ export default function Dashboard() {
         unseenConsultations: consultationsRes.error ? 0 : (consultationsRes.count ?? 0),
         unseenProductInquiries: productInquiriesRes.error ? 0 : (productInquiriesRes.count ?? 0),
         unseenContact: contactRes.error ? 0 : (contactRes.count ?? 0),
-        productCount: productsRes.error ? 0 : (productsRes.count ?? 0),
+        availableProductCount: productsRes.error ? 0 : (productsRes.count ?? 0),
         kitCount: kitsRes.error ? 0 : (kitsRes.count ?? 0),
       };
     },
@@ -69,7 +69,7 @@ export default function Dashboard() {
     { title: 'Consultations', value: stats?.unseenConsultations ?? 0, icon: Calendar, description: 'Unseen submissions', to: '/admin/inquiries#consultations' },
     { title: 'Product Inquiries', value: stats?.unseenProductInquiries ?? 0, icon: ShoppingCart, description: 'New inquiries', to: '/admin/inquiries#product-inquiries' },
     { title: 'Contact Messages', value: stats?.unseenContact ?? 0, icon: Mail, description: 'Unseen submissions', to: '/admin/inquiries#contact-messages' },
-    { title: 'Products', value: stats?.productCount ?? 0, icon: ShoppingCart, description: 'Inventory products', to: '/admin/inventory/products' },
+    { title: 'Products Available', value: stats?.availableProductCount ?? 0, icon: ShoppingCart, description: 'Available for purchase', to: '/admin/inventory/products' },
     { title: 'Kits', value: stats?.kitCount ?? 0, icon: Package, description: 'Product kits', to: '/admin/inventory/kits' },
   ];
 

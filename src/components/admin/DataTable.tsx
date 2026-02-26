@@ -48,7 +48,9 @@ function loadSortState<T>(storageKey: string, validKeys: (keyof T)[]): { key: ke
 function saveSortState(storageKey: string, sortKey: string | null, sortDir: 'asc' | 'desc') {
   try {
     localStorage.setItem(storageKey, JSON.stringify({ sortKey, sortDir }));
-  } catch {}
+  } catch {
+    // Ignore localStorage errors (e.g. private mode)
+  }
 }
 
 export function DataTable<T extends Record<string, unknown>>({ columns, data, sortable, storageKey }: DataTableProps<T>) {

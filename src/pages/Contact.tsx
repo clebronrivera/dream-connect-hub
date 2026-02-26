@@ -12,10 +12,15 @@ import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
-import type { Puppy } from "@/lib/supabase";
+import type { Puppy, UpcomingLitter } from "@/lib/supabase";
 
 const SUBJECT_OTHER_CONSULTATION = "other-consultation";
 const SUBJECT_PUPPY_INQUIRY = "puppies";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isValidUuid(s: string | null): s is string {
+  return !!s && UUID_REGEX.test(s);
+}
 
 async function fetchAvailablePuppies(): Promise<Puppy[]> {
   const { data, error } = await supabase
@@ -28,15 +33,30 @@ async function fetchAvailablePuppies(): Promise<Puppy[]> {
   return data ?? [];
 }
 
+async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
+  const { data, error } = await supabase
+    .from("upcoming_litters")
+    .select("id, breed, due_label")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as UpcomingLitter[];
+}
+
 export default function Contact() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subject, setSubject] = useState("");
+  const [upcomingLitterId, setUpcomingLitterId] = useState<string | null>(null);
   const { data: puppies } = useQuery({
     queryKey: ["puppies"],
     queryFn: fetchAvailablePuppies,
     enabled: subject === SUBJECT_PUPPY_INQUIRY,
+  });
+  const { data: upcomingLitters } = useQuery({
+    queryKey: ["upcoming-litters-contact"],
+    queryFn: fetchActiveUpcomingLitters,
   });
 
   useEffect(() => {
@@ -44,17 +64,28 @@ export default function Contact() {
     if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
   }, [searchParams]);
 
+  // Preselect "Interested in upcoming litter" from ?litter= id (only after litters have loaded and param is valid UUID)
+  useEffect(() => {
+    const litterParam = searchParams.get("litter");
+    if (!isValidUuid(litterParam) || !upcomingLitters?.length) return;
+    const found = upcomingLitters.some((l) => l.id === litterParam);
+    if (found) setUpcomingLitterId(litterParam);
+  }, [searchParams, upcomingLitters]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
+    const selectedLitter = upcomingLitterId && upcomingLitters?.find((l) => l.id === upcomingLitterId);
     const data = {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
       phone: formData.get("phone") as string || undefined,
       subject: subject || (formData.get("subject") as string),
       message: formData.get("message") as string,
+      upcoming_litter_id: upcomingLitterId || null,
+      upcoming_litter_label: selectedLitter ? `${selectedLitter.breed}, ${selectedLitter.due_label}` : null,
     };
 
     try {
@@ -71,6 +102,7 @@ export default function Contact() {
       
       (e.target as HTMLFormElement).reset();
       setSubject("");
+      setUpcomingLitterId(null);
     } catch (error) {
       console.error("Error submitting contact form:", error);
       toast({
@@ -180,6 +212,26 @@ export default function Contact() {
                     <SelectItem value="essentials">Pet Essentials</SelectItem>
                     <SelectItem value="general">General Question</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <Label>Interested in upcoming litter</Label>
+                <Select
+                  value={upcomingLitterId ?? "none"}
+                  onValueChange={(v) => setUpcomingLitterId(v === "none" ? null : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Not sure yet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not sure yet</SelectItem>
+                    {(upcomingLitters ?? []).map((l) => (
+                      <SelectItem key={l.id} value={l.id!}>
+                        {l.breed}, {l.due_label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
