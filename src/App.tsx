@@ -14,12 +14,16 @@ const Puppies = lazy(() => import("./pages/Puppies"));
 const Consultation = lazy(() => import("./pages/Consultation"));
 const Essentials = lazy(() => import("./pages/Essentials"));
 const Contact = lazy(() => import("./pages/Contact"));
+const UpcomingLitters = lazy(() => import("./pages/UpcomingLitters"));
 const Breeds = lazy(() => import("./pages/Breeds"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/admin/Login"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const PuppiesList = lazy(() => import("./pages/admin/puppies/PuppiesList"));
 const PuppyForm = lazy(() => import("./pages/admin/puppies/PuppyForm"));
+const LitterForm = lazy(() => import("./pages/admin/litters/LitterForm"));
+const UpcomingLittersList = lazy(() => import("./pages/admin/upcoming-litters/UpcomingLittersList"));
+const UpcomingLitterForm = lazy(() => import("./pages/admin/upcoming-litters/UpcomingLitterForm"));
 const ProductsList = lazy(() => import("./pages/admin/inventory/ProductsList"));
 const ProductForm = lazy(() => import("./pages/admin/inventory/ProductForm"));
 const KitsList = lazy(() => import("./pages/admin/inventory/KitsList"));
@@ -44,6 +48,7 @@ const App = () => (
             <Route path="/consultation" element={<Consultation />} />
             <Route path="/essentials" element={<Essentials />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/upcoming-litters" element={<UpcomingLitters />} />
             <Route path="/breeds" element={<Breeds />} />
             
             {/* Admin login */}
@@ -56,6 +61,10 @@ const App = () => (
                 <Route path="puppies" element={<PuppiesList />} />
                 <Route path="puppies/new" element={<PuppyForm />} />
                 <Route path="puppies/:id/edit" element={<PuppyForm />} />
+                <Route path="litters/:id/edit" element={<LitterForm />} />
+                <Route path="upcoming-litters" element={<UpcomingLittersList />} />
+                <Route path="upcoming-litters/new" element={<UpcomingLitterForm />} />
+                <Route path="upcoming-litters/:id/edit" element={<UpcomingLitterForm />} />
                 <Route path="inventory/products" element={<ProductsList />} />
                 <Route path="inventory/products/new" element={<ProductForm />} />
                 <Route path="inventory/products/:id/edit" element={<ProductForm />} />

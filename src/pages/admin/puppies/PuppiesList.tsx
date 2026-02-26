@@ -161,6 +161,9 @@ export default function PuppiesList() {
           </Button>
         </Link>
       </div>
+      <p className="text-sm text-muted-foreground mb-4">
+        Use the <strong>Edit</strong> (pencil) button on a puppy to create a litter and add littermates.
+      </p>
 
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">

@@ -27,3 +27,19 @@ export function getDisplayAgeWeeks(puppy: PuppyWithAge): number | null {
   if (puppy.age_weeks != null && puppy.age_weeks >= 0) return puppy.age_weeks;
   return null;
 }
+
+/** Number of weeks after DOB when the puppy is "ready" (e.g. to go home). */
+export const READY_WEEKS_AFTER_DOB = 8;
+
+/**
+ * Compute ready date as DOB + 8 weeks.
+ * Returns YYYY-MM-DD string or null if dateOfBirth is missing/invalid.
+ */
+export function getReadyDateFromDob(dateOfBirth: string | null | undefined): string | null {
+  if (!dateOfBirth) return null;
+  const dob = new Date(dateOfBirth);
+  if (isNaN(dob.getTime())) return null;
+  const ready = new Date(dob);
+  ready.setDate(ready.getDate() + READY_WEEKS_AFTER_DOB * 7);
+  return ready.toISOString().slice(0, 10);
+}

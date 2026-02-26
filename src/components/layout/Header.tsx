@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const navLinks = [
   { to: "/", label: "Home" },
   { to: "/puppies", label: "Available Puppies" },
+  { to: "/upcoming-litters", label: "Upcoming Litters" },
   { to: "/breeds", label: "Our Breeds" },
   { to: "/consultation", label: "Pet Consultation" },
   { to: "/essentials", label: "Pet Essentials" },

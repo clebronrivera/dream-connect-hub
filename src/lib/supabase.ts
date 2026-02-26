@@ -108,7 +108,42 @@ export interface ContactMessage {
   message: string;
   status?: SubmissionStatus;
   admin_notes?: string;
+  upcoming_litter_id?: string | null;
+  upcoming_litter_label?: string | null;
   created_at?: string;
+}
+
+export interface UpcomingLitter {
+  id?: string;
+  breed: string;
+  due_label: string;
+  price_label?: string | null;
+  deposit_amount: number;
+  description?: string | null;
+  placeholder_image_path?: string | null;
+  deposit_link?: string | null;
+  cta_contact_link?: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Litter {
+  id?: string;
+  breed: string;
+  listing_date?: string | null;
+  date_of_birth?: string | null;
+  ready_date?: string | null;
+  base_price?: number;
+  mom_weight_lbs?: number | null;
+  dad_weight_lbs?: number | null;
+  vaccinations?: string | null;
+  health_certificate_default?: boolean;
+  microchipped_default?: boolean;
+  status_default?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Puppy {
@@ -138,6 +173,7 @@ export interface Puppy {
   featured?: boolean;
   display_order?: number;
   listing_date?: string; // Date added to website (YYYY-MM-DD)
+  litter_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }

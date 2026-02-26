@@ -64,6 +64,10 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
+## Email notifications for puppy inquiries
+
+To receive an email whenever someone submits a puppy inquiry, see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md). Setup uses a Supabase Edge Function, a Database Webhook, and Resend (free tier).
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
