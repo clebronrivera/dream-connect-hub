@@ -455,19 +455,26 @@ export default function Puppies() {
                         <Dog className="h-24 w-24 text-muted-foreground/50" />
                       </div>
                     )}
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          isAvailable ? "bg-primary/90 text-primary-foreground" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {status}
-                      </span>
-                      {sizeCat && (
-                        <Badge variant="secondary" className="capitalize text-xs">
-                          {sizeCat}
+                    <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                      {puppy.discount_active && puppy.discount_amount != null && Number(puppy.discount_amount) > 0 && (
+                        <Badge className="bg-primary text-primary-foreground text-xs shrink-0">
+                          ${Number(puppy.discount_amount).toLocaleString()} OFF
                         </Badge>
                       )}
+                      <div className="flex gap-2">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            isAvailable ? "bg-primary/90 text-primary-foreground" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {status}
+                        </span>
+                        {sizeCat && (
+                          <Badge variant="secondary" className="capitalize text-xs">
+                            {sizeCat}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -498,12 +505,20 @@ export default function Puppies() {
                   </CardHeader>
                   <CardContent onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between">
-                      {price ? (
-                        <span className="text-2xl font-bold text-foreground">
-                          ${Number(price).toLocaleString()}
-                          {puppy.discount_active && puppy.discount_amount && (
-                            <span className="text-sm text-muted-foreground line-through ml-2">
-                              ${(Number(price) + Number(puppy.discount_amount)).toLocaleString()}
+                      {price != null ? (
+                        <span className="flex flex-wrap items-baseline gap-2">
+                          {puppy.discount_active && (puppy.base_price != null || puppy.discount_amount != null) ? (
+                            <>
+                              <span className="text-sm text-muted-foreground line-through">
+                                ${Number(puppy.base_price ?? price + Number(puppy.discount_amount ?? 0)).toLocaleString()}
+                              </span>
+                              <span className="text-2xl font-bold text-foreground">
+                                ${Number(price).toLocaleString()}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold text-foreground">
+                              ${Number(price).toLocaleString()}
                             </span>
                           )}
                         </span>
@@ -692,15 +707,29 @@ export default function Puppies() {
                       </div>
                     </div>
                     <div className="pt-4">
-                      {getDisplayPrice(detailPuppy) ? (
-                        <p className="text-2xl font-bold text-foreground mb-2">
-                          ${Number(getDisplayPrice(detailPuppy)).toLocaleString()}
-                          {detailPuppy.discount_active && detailPuppy.discount_amount && (
-                            <span className="text-sm text-muted-foreground line-through ml-2">
-                              $
-                              {(
-                                Number(getDisplayPrice(detailPuppy)) + Number(detailPuppy.discount_amount)
-                              ).toLocaleString()}
+                      {getDisplayPrice(detailPuppy) != null ? (
+                        <p className="mb-2 flex flex-wrap items-baseline gap-2">
+                          {detailPuppy.discount_active && (detailPuppy.base_price != null || detailPuppy.discount_amount != null) ? (
+                            <>
+                              <span className="text-sm text-muted-foreground line-through">
+                                $
+                                {Number(
+                                  detailPuppy.base_price ??
+                                    Number(getDisplayPrice(detailPuppy)) + Number(detailPuppy.discount_amount ?? 0)
+                                ).toLocaleString()}
+                              </span>
+                              <span className="text-2xl font-bold text-foreground">
+                                ${Number(getDisplayPrice(detailPuppy)).toLocaleString()}
+                              </span>
+                              {detailPuppy.discount_amount != null && Number(detailPuppy.discount_amount) > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  ${Number(detailPuppy.discount_amount).toLocaleString()} OFF
+                                </Badge>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold text-foreground">
+                              ${Number(getDisplayPrice(detailPuppy)).toLocaleString()}
                             </span>
                           )}
                         </p>

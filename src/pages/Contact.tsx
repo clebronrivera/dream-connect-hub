@@ -12,7 +12,9 @@ import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
+import { UpcomingLitterInquiryForm } from "@/components/UpcomingLitterInquiryForm";
 import type { Puppy, UpcomingLitter } from "@/lib/supabase";
+import { SUBJECT_UPCOMING_LITTER } from "@/lib/inquiry-subjects";
 
 const SUBJECT_OTHER_CONSULTATION = "other-consultation";
 const SUBJECT_PUPPY_INQUIRY = "puppies";
@@ -36,7 +38,7 @@ async function fetchAvailablePuppies(): Promise<Puppy[]> {
 async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
   const { data, error } = await supabase
     .from("upcoming_litters")
-    .select("id, breed, due_label")
+    .select("*")
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
   if (error) throw error;
@@ -57,14 +59,16 @@ export default function Contact() {
   const { data: upcomingLitters } = useQuery({
     queryKey: ["upcoming-litters-contact"],
     queryFn: fetchActiveUpcomingLitters,
+    enabled: subject === SUBJECT_UPCOMING_LITTER || !subject,
   });
 
   useEffect(() => {
     const subjectFromUrl = searchParams.get("subject");
     if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
+    if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER) setSubject(SUBJECT_UPCOMING_LITTER);
   }, [searchParams]);
 
-  // Preselect "Interested in upcoming litter" from ?litter= id (only after litters have loaded and param is valid UUID)
+  // Preselect litter from ?litter= id when on Upcoming Litter subject (e.g. from /contact?subject=upcoming-litter&litter=uuid)
   useEffect(() => {
     const litterParam = searchParams.get("litter");
     if (!isValidUuid(litterParam) || !upcomingLitters?.length) return;
@@ -85,7 +89,7 @@ export default function Contact() {
       subject: subject || (formData.get("subject") as string),
       message: formData.get("message") as string,
       upcoming_litter_id: upcomingLitterId || null,
-      upcoming_litter_label: selectedLitter ? `${selectedLitter.breed}, ${selectedLitter.due_label}` : null,
+      upcoming_litter_label: selectedLitter ? `${selectedLitter.display_breed || selectedLitter.breed}${selectedLitter.due_label ? `, ${selectedLitter.due_label}` : ''}` : null,
     };
 
     try {
@@ -190,12 +194,18 @@ export default function Contact() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>
-                {subject === SUBJECT_PUPPY_INQUIRY ? "Puppy Interest Form" : "Send us a Message"}
+                {subject === SUBJECT_PUPPY_INQUIRY
+                  ? "Puppy Interest Form"
+                  : subject === SUBJECT_UPCOMING_LITTER
+                    ? "Upcoming Litter"
+                    : "Send us a Message"}
               </CardTitle>
               <CardDescription>
                 {subject === SUBJECT_PUPPY_INQUIRY
                   ? "Tell us about yourself and your puppy preferences. We'll get back to you soon."
-                  : "Fill out the form below and we'll get back to you as soon as possible."}
+                  : subject === SUBJECT_UPCOMING_LITTER
+                    ? "Join the waitlist or inquire about a deposit for an upcoming litter. We'll follow up with next steps."
+                    : "Fill out the form below and we'll get back to you as soon as possible."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -207,31 +217,9 @@ export default function Contact() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={SUBJECT_PUPPY_INQUIRY}>Puppy Inquiry</SelectItem>
-                    <SelectItem value="consultation">Pet Consultation</SelectItem>
-                    <SelectItem value={SUBJECT_OTHER_CONSULTATION}>Other Consultation Request</SelectItem>
-                    <SelectItem value="essentials">Pet Essentials</SelectItem>
+                    <SelectItem value={SUBJECT_UPCOMING_LITTER}>Upcoming Litter</SelectItem>
                     <SelectItem value="general">General Question</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <Label>Interested in upcoming litter</Label>
-                <Select
-                  value={upcomingLitterId ?? "none"}
-                  onValueChange={(v) => setUpcomingLitterId(v === "none" ? null : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Not sure yet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not sure yet</SelectItem>
-                    {(upcomingLitters ?? []).map((l) => (
-                      <SelectItem key={l.id} value={l.id!}>
-                        {l.breed}, {l.due_label}
-                      </SelectItem>
-                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -240,6 +228,48 @@ export default function Contact() {
                 <PuppyInterestForm
                   puppies={puppies ?? []}
                   submitLabel="Submit Puppy Inquiry"
+                />
+              ) : subject === SUBJECT_UPCOMING_LITTER ? (
+                <UpcomingLitterInquiryForm
+                  litters={upcomingLitters ?? []}
+                  initialLitterId={upcomingLitterId}
+                  isSubmitting={isSubmitting}
+                  submitLabel="Send Message"
+                  onSubmit={async (payload) => {
+                    setIsSubmitting(true);
+                    try {
+                      const { error } = await supabase.from("contact_messages").insert([
+                        {
+                          name: payload.name,
+                          email: payload.email,
+                          phone: payload.phone || null,
+                          city: payload.city || null,
+                          state: payload.state || null,
+                          subject: payload.subject,
+                          message: payload.message,
+                          upcoming_litter_id: payload.upcoming_litter_id,
+                          upcoming_litter_label: payload.upcoming_litter_label,
+                          interest_options: payload.interest_options?.length ? payload.interest_options : null,
+                        },
+                      ]);
+                      if (error) throw error;
+                      toast({
+                        title: "Message Sent!",
+                        description: "We'll get back to you as soon as possible.",
+                      });
+                      setSubject("");
+                      setUpcomingLitterId(null);
+                    } catch (err) {
+                      console.error("Error submitting upcoming litter inquiry:", err);
+                      toast({
+                        title: "Error",
+                        description: "Failed to send. Please try again or contact us directly.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
                 />
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">

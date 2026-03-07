@@ -26,7 +26,7 @@ export default function LeadsList({ table, title, statusOptions, statusFilter = 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: leads, isLoading } = useQuery({
+  const { data: leads, isLoading, error: queryError } = useQuery({
     queryKey: ['admin-leads', table, statusFilter],
     queryFn: async () => {
       let query = supabase.from(table).select('*').order('created_at', { ascending: false });
@@ -124,6 +124,15 @@ export default function LeadsList({ table, title, statusOptions, statusFilter = 
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+        <p className="font-medium">Unable to load inquiries</p>
+        <p className="text-sm mt-1">{queryError.message || 'Check your connection and try again.'}</p>
       </div>
     );
   }

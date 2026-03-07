@@ -64,8 +64,10 @@ const defaultValues: Partial<PuppyInterestFormValues> = {
   howHeard: "",
   viewingPreference: "",
   wantsAiTraining: false,
-  consentCommunications: false,
 };
+
+const SHOW_AI_TRAINING_SECTION = false;
+const SHOW_STAY_CONNECTED_SECTION = true;
 
 export function PuppyInterestForm({
   initialPuppyId,
@@ -160,7 +162,7 @@ export function PuppyInterestForm({
         title: "Interest Received!",
         description: "We'll get back to you soon.",
       });
-      form.reset({ ...defaultValues, consentCommunications: false });
+      form.reset({ ...defaultValues, consentCommunications: undefined });
       onSuccess?.();
     } catch (err) {
       console.error(err);
@@ -577,82 +579,127 @@ export function PuppyInterestForm({
           />
         </div>
 
-        {/* 5. AI Training Resources */}
-        <div className={sectionClass}>
-          <h3 className={sectionTitleClass}>Training Resources</h3>
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-            <div className="flex gap-3">
-              <GraduationCap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">NEW! AI-Powered Training Schedules</p>
-                <p>
-                  Using AI technology, we can create personalized training visuals and schedules for YOUR
-                  puppy, including:
-                </p>
-                <ul className="list-disc list-inside ml-2 space-y-0.5">
-                  <li>Feeding schedules</li>
-                  <li>Potty training timeline</li>
-                  <li>Crate training guide</li>
-                  <li>Walking/exercise plan</li>
-                </ul>
-                <p className="pt-1">You'll receive a follow-up email with a questionnaire.</p>
+        {/* 5. AI Training Resources (hidden for now) */}
+        {SHOW_AI_TRAINING_SECTION && (
+          <div className={sectionClass}>
+            <h3 className={sectionTitleClass}>Training Resources</h3>
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+              <div className="flex gap-3">
+                <GraduationCap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p className="font-medium text-foreground">NEW! AI-Powered Training Schedules</p>
+                  <p>
+                    Using AI technology, we can create personalized training visuals and schedules for YOUR
+                    puppy, including:
+                  </p>
+                  <ul className="list-disc list-inside ml-2 space-y-0.5">
+                    <li>Feeding schedules</li>
+                    <li>Potty training timeline</li>
+                    <li>Crate training guide</li>
+                    <li>Walking/exercise plan</li>
+                  </ul>
+                  <p className="pt-1">You'll receive a follow-up email with a questionnaire.</p>
+                </div>
               </div>
+              <FormField
+                control={form.control}
+                name="wantsAiTraining"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value === true}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="font-normal cursor-pointer text-sm">
+                      Yes, I'm interested in receiving personalized training resources
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
             </div>
+          </div>
+        )}
+
+        {/* 6. Communications Consent (hidden for now) */}
+        {SHOW_STAY_CONNECTED_SECTION && (
+          <div className={sectionClass}>
+            <h3 className={sectionTitleClass}>Stay Connected *</h3>
             <FormField
               control={form.control}
-              name="wantsAiTraining"
+              name="consentCommunications"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                <FormItem className="rounded-lg border p-4 space-y-3">
                   <FormControl>
-                    <Checkbox
-                      checked={field.value === true}
-                      onCheckedChange={field.onChange}
-                    />
+                    <RadioGroup
+                      onValueChange={(value) => field.onChange(value === "all")}
+                      value={
+                        field.value === true
+                          ? "all"
+                          : field.value === false
+                            ? "inquiry-only"
+                            : ""
+                      }
+                      className="space-y-3"
+                    >
+                      <div className="flex items-start space-x-2">
+                        <RadioGroupItem value="all" id="consent-all" className="mt-1" />
+                        <div className="text-sm leading-relaxed space-y-1">
+                          <FormLabel htmlFor="consent-all" className="font-normal cursor-pointer">
+                            I consent to receive communications from Puppy Heaven LLC regarding:
+                          </FormLabel>
+                          <ul className="list-disc list-inside text-muted-foreground ml-4">
+                            <li>New available puppies</li>
+                            <li>Special promotions and offers</li>
+                            <li>Helpful puppy care information</li>
+                            <li>Updates about my inquiry</li>
+                          </ul>
+                          <p className="text-muted-foreground pt-1">
+                            We respect your privacy. You can unsubscribe anytime.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-2">
+                        <RadioGroupItem value="inquiry-only" id="consent-inquiry-only" className="mt-1" />
+                        <FormLabel htmlFor="consent-inquiry-only" className="font-normal cursor-pointer text-sm">
+                          No, please only email me regarding this inquiry.
+                        </FormLabel>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
-                  <FormLabel className="font-normal cursor-pointer text-sm">
-                    Yes, I'm interested in receiving personalized training resources
-                  </FormLabel>
+                  <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-        </div>
+        )}
 
-        {/* 6. Communications Consent */}
-        <div className={sectionClass}>
-          <h3 className={sectionTitleClass}>Stay Connected *</h3>
-          <FormField
-            control={form.control}
-            name="consentCommunications"
-            render={({ field }) => (
-              <FormItem className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-start space-x-2">
+        {!SHOW_STAY_CONNECTED_SECTION && (
+          <>
+            {/* Compact inquiry-only follow-up option */}
+            <FormField
+              control={form.control}
+              name="consentCommunications"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-2 space-y-0">
                   <FormControl>
-                    <Checkbox
-                      checked={field.value === true}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
                   </FormControl>
-                  <div className="text-sm leading-relaxed space-y-1">
-                    <FormLabel className="font-normal cursor-pointer">
-                      I consent to receive communications from Puppy Heaven LLC regarding:
+                  <div className="space-y-0.5">
+                    <FormLabel className="font-normal cursor-pointer text-sm">
+                      Email me regarding this inquiry.
                     </FormLabel>
-                    <ul className="list-disc list-inside text-muted-foreground ml-4">
-                      <li>New available puppies</li>
-                      <li>Special promotions and offers</li>
-                      <li>Helpful puppy care information</li>
-                      <li>Updates about my inquiry</li>
-                    </ul>
-                    <p className="text-muted-foreground pt-1">
-                      We respect your privacy. You can unsubscribe anytime.
-                    </p>
+                    <FormDescription className="text-xs">
+                      Optional follow-up updates for this submission only.
+                    </FormDescription>
                   </div>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                </FormItem>
+              )}
+            />
+          </>
+        )}
 
         <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? (

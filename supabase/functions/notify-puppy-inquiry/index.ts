@@ -11,6 +11,7 @@ const NOTIFY_EMAILS = (Deno.env.get("NOTIFY_EMAIL") ?? "Dreampuppies22@gmail.com
 const TO_EMAILS = NOTIFY_EMAILS.length > 0 ? NOTIFY_EMAILS : ["Dreampuppies22@gmail.com"];
 const RESEND_FROM =
   Deno.env.get("RESEND_FROM") ?? "Dream Connect <onboarding@resend.dev>";
+const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";
 
 interface WebhookPayload {
   type: "INSERT" | "UPDATE" | "DELETE";
@@ -20,16 +21,77 @@ interface WebhookPayload {
   old_record: Record<string, unknown> | null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown, fallback = "—"): string {
+  if (value == null) return fallback;
+  const s = String(value).trim();
+  return s.length > 0 ? s : fallback;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function readBoolean(value: unknown): string {
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  return "—";
+}
+
+function extractFromEmail(fromValue: string): string {
+  const match = fromValue.match(/<([^>]+)>/);
+  if (match?.[1]) return match[1].trim();
+  const trimmed = fromValue.trim();
+  return trimmed.includes("@") ? trimmed : DEFAULT_FROM_EMAIL;
+}
+
+function buildFromHeader(inquirySubject: string): string {
+  const fromEmail = extractFromEmail(RESEND_FROM);
+  const subjectPart = inquirySubject.trim() || "Inquiry";
+  return `Dream Puppies - ${subjectPart} <${fromEmail}>`;
+}
+
 function buildEmailBody(record: Record<string, unknown>): string {
-  const name = [record.name].flat().join(" ");
-  const email = String(record.email ?? "");
-  const phone = String(record.phone ?? "—");
-  const city = String(record.city ?? "—");
-  const state = String(record.state ?? "—");
-  const puppyName = String(record.puppy_name ?? "—");
-  const timeline = String(record.timeline ?? "—");
-  const experience = String(record.experience ?? "—");
-  const needsFollowup = record.needs_followup === true ? "Yes" : "No";
+  const name = readString(record.name);
+  const email = readString(record.email);
+  const phone = readString(record.phone);
+  const city = readString(record.city);
+  const state = readString(record.state);
+  const interestedSpecific = readBoolean(record.interested_specific);
+  const puppyId = readString(record.puppy_id);
+  const puppyName = readString(record.puppy_name);
+  const puppyNameAtSubmit = readString(record.puppy_name_at_submit);
+  const puppyStatusAtSubmit = readString(record.puppy_status_at_submit);
+  const timeline = readString(record.timeline);
+  const experience = readString(record.experience);
+  const needsFollowup = readBoolean(record.needs_followup);
+  const householdDescription = readString(record.household_description);
+  const additionalComments = readString(record.additional_comments);
+  const preferences = isRecord(record.preferences) ? record.preferences : {};
+  const firstName = readString(preferences.firstName);
+  const lastName = readString(preferences.lastName);
+  const sizePreference = readString(preferences.sizePreference);
+  const breedPreferenceList = readStringArray(preferences.breedPreference);
+  const breedPreference = breedPreferenceList.length ? breedPreferenceList.join(", ") : "—";
+  const genderPreference = readString(preferences.genderPreference);
+  const howHeard = readString(preferences.howHeard);
+  const howHeardOther = readString(preferences.howHeardOther);
+  const viewingPreference = readString(preferences.viewingPreference);
+  const wantsAiTraining = readBoolean(preferences.wantsAiTraining);
+  const consentCommunicationsRaw = preferences.consentCommunications;
+  const consentCommunications =
+    consentCommunicationsRaw === true
+      ? "Yes (all communications)"
+      : consentCommunicationsRaw === false
+        ? "Inquiry updates only"
+        : "—";
   const createdAt = record.created_at
     ? new Date(String(record.created_at)).toLocaleString()
     : "—";
@@ -38,12 +100,27 @@ function buildEmailBody(record: Record<string, unknown>): string {
 <h2>New puppy inquiry</h2>
 <table style="border-collapse: collapse; max-width: 480px;">
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Name</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(name)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>First / Last</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(firstName)} / ${escapeHtml(lastName)}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Email</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;"><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Phone</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(phone)}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>City / State</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(city)} / ${escapeHtml(state)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Interested in specific puppy</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${interestedSpecific}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Puppy ID</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(puppyId)}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Puppy</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(puppyName)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Puppy at submit</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(puppyNameAtSubmit)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Puppy status at submit</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(puppyStatusAtSubmit)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Size preference</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(sizePreference)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Breed preference</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(breedPreference)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Gender preference</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(genderPreference)}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Timeline</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(timeline)}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Experience</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(experience)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>How heard about us</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(howHeard)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>How heard details</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(howHeardOther)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Viewing preference</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(viewingPreference)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Interested in AI training</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${wantsAiTraining}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Communication consent</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(consentCommunications)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Household description</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(householdDescription)}</td></tr>
+  <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Additional comments</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(additionalComments)}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Needs follow-up</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${needsFollowup}</td></tr>
   <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Submitted</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(createdAt)}</td></tr>
 </table>
@@ -100,8 +177,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
+  const inquirySubject = "Puppy Inquiry";
   const subject = `New puppy inquiry from ${[record.name].flat().join(" ")}`;
   const html = buildEmailBody(record);
+  const resendFrom = buildFromHeader(inquirySubject);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -110,7 +189,7 @@ const handler = async (req: Request): Promise<Response> => {
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: RESEND_FROM,
+      from: resendFrom,
       to: TO_EMAILS,
       subject,
       html,

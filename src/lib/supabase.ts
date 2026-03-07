@@ -45,6 +45,7 @@ export interface PuppyInquiry {
   created_at?: string;
   status?: SubmissionStatus;
   admin_notes?: string;
+  followed_up_at?: string | null;
   assigned_to?: string;
   needs_followup?: boolean;
   name: string;
@@ -108,15 +109,19 @@ export interface ContactMessage {
   message: string;
   status?: SubmissionStatus;
   admin_notes?: string;
+  followed_up_at?: string | null;
   upcoming_litter_id?: string | null;
   upcoming_litter_label?: string | null;
+  city?: string | null;
+  state?: string | null;
+  interest_options?: string[] | null;
   created_at?: string;
 }
 
 export interface UpcomingLitter {
   id?: string;
   breed: string;
-  due_label: string;
+  due_label?: string | null;
   price_label?: string | null;
   deposit_amount: number;
   description?: string | null;
@@ -125,6 +130,15 @@ export interface UpcomingLitter {
   cta_contact_link?: string | null;
   is_active: boolean;
   sort_order: number;
+  dam_name?: string | null;
+  sire_name?: string | null;
+  dam_breed?: string | null;
+  sire_breed?: string | null;
+  display_breed?: string | null;
+  dam_photo_path?: string | null;
+  sire_photo_path?: string | null;
+  example_puppy_image_paths?: string[] | null;
+  breeding_date?: string | null;
   created_at?: string;
   updated_at?: string;
 }
