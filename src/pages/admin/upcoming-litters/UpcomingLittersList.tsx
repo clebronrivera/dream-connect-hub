@@ -50,7 +50,10 @@ export default function UpcomingLittersList() {
   });
 
   const columns = [
-    { header: 'Breed', accessorKey: 'breed' as keyof UpcomingLitter },
+    {
+      header: 'Display breed',
+      cell: (row: UpcomingLitter) => row.display_breed || row.breed || '—',
+    },
     { header: 'Due', accessorKey: 'due_label' as keyof UpcomingLitter },
     { header: 'Price', accessorKey: 'price_label' as keyof UpcomingLitter },
     {
@@ -86,7 +89,7 @@ export default function UpcomingLittersList() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete this upcoming litter?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will remove &quot;{row.breed}, {row.due_label}&quot; from the public page. Contact messages that referenced it will keep the link unless you added upcoming_litter_label.
+                  This will remove &quot;{row.display_breed || row.breed}{row.due_label ? `, ${row.due_label}` : ''}&quot; from the public page. Contact messages that referenced it will keep the link unless you added upcoming_litter_label.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

@@ -25,7 +25,7 @@ export async function createLitterFromPuppy(puppyId: string): Promise<string> {
     dad_weight_lbs: (puppy as Puppy).dad_weight_approx ?? null,
     vaccinations: (puppy as Puppy).vaccinations ?? null,
     health_certificate_default: (puppy as Puppy).health_certificate ?? false,
-    microchipped_default: (puppy as Puppy).microchipped ?? false,
+    microchipped_default: true,
     status_default: (puppy as Puppy).status ?? 'Available',
   };
 
@@ -98,7 +98,7 @@ export async function createPuppyFromLitter(
     dad_weight_approx: L.dad_weight_lbs ?? undefined,
     vaccinations: L.vaccinations ?? undefined,
     health_certificate: L.health_certificate_default ?? false,
-    microchipped: L.microchipped_default ?? false,
+    microchipped: true,
     featured: false,
     display_order: 0,
     primary_photo: overrides.primaryPhoto ?? null,
@@ -171,7 +171,7 @@ export async function bulkCreatePuppiesFromLitter(
       dad_weight_approx: L.dad_weight_lbs ?? undefined,
       vaccinations: L.vaccinations ?? undefined,
       health_certificate: L.health_certificate_default ?? false,
-      microchipped: L.microchipped_default ?? false,
+      microchipped: true,
       featured: false,
       display_order: 0,
       primary_photo: null,
@@ -221,7 +221,7 @@ export async function applyLitterDefaultsToLittermates(litterId: string): Promis
     dad_weight_approx: L.dad_weight_lbs ?? null,
     vaccinations: L.vaccinations ?? null,
     health_certificate: L.health_certificate_default ?? false,
-    microchipped: L.microchipped_default ?? false,
+    microchipped: true,
     status: L.status_default ?? 'Available',
   };
 

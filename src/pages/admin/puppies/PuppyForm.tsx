@@ -26,20 +26,24 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getAgeWeeks, getReadyDateFromDob } from '@/lib/puppy-utils';
-import { MAIN_BREEDS, normalizeBreedToCanonical } from '@/lib/breed-utils';
+import { MAIN_BREEDS, normalizeBreedToCanonical, isMainBreed, OTHER_BREED_OPTION } from '@/lib/breed-utils';
+import { getSuggestedPuppyName } from '@/lib/puppy-name-generator';
+import { generatePuppyDescription } from '@/lib/puppy-description-generator';
 import { useState, useEffect } from 'react';
-import { Loader2, Users, UserPlus, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, Users, UserPlus, Sparkles, RefreshCw } from 'lucide-react';
 import * as React from 'react';
 
 // Coerce null to undefined so optional number fields don't fail validation
 const optionalNumber = (s: z.ZodNumber) =>
   z.preprocess((v) => (v === null || v === '' ? undefined : v), s.optional());
 
-const puppySchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  puppy_id: z.string().optional(),
-  breed: z.string().min(1, 'Breed is required'),
-  listing_date: z.string().optional(), // Date added to website (YYYY-MM-DD)
+const puppySchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    puppy_id: z.string().optional(),
+    breed_select: z.string().min(1, 'Please select a breed'),
+    other_breed: z.string().optional(),
+    listing_date: z.string().optional(), // Date added to website (YYYY-MM-DD)
   gender: z.enum(['Male', 'Female']).optional(),
   color: z.string().optional(),
   date_of_birth: z.string().optional(),
@@ -61,34 +65,16 @@ const puppySchema = z.object({
   display_order: optionalNumber(z.number()),
   primary_photo: z.string().optional(),
   photos: z.array(z.string()).optional(),
-});
+  })
+  .refine(
+    (data) => {
+      if (data.breed_select === OTHER_BREED_OPTION) return !!data.other_breed?.trim();
+      return true;
+    },
+    { message: 'Please enter the other breed', path: ['other_breed'] }
+  );
 
 type PuppyFormValues = z.infer<typeof puppySchema>;
-
-/** Generate a short description from name, breed, gender, DOB/age (like past records). */
-function generatePuppyDescription(options: {
-  name?: string;
-  breed?: string;
-  gender?: string;
-  date_of_birth?: string;
-  age_weeks?: number | null;
-  color?: string;
-}): string {
-  const { name, breed, gender, date_of_birth, age_weeks } = options;
-  const adjectives = ['Sweet and playful', 'Adorable', 'Energetic and friendly', 'Loving', 'Happy'];
-  const closers = ['Great with kids!', 'Loves to play fetch!', 'Ready for a loving home.', 'Wonderful personality.', 'A great addition to any family.'];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const breedName = breed?.trim() || 'puppy';
-  const age = date_of_birth ? getAgeWeeks(date_of_birth) : (age_weeks ?? null);
-  let first = `${adj} ${breedName} puppy.`;
-  if (name?.trim() && gender && age != null) {
-    first = `${name.trim()} is a ${age}-week-old ${gender.toLowerCase()} ${breedName} puppy.`;
-  } else if (gender && age != null) {
-    first = `This ${age}-week-old ${gender.toLowerCase()} ${breedName} puppy is`;
-  }
-  const second = closers[Math.floor(Math.random() * closers.length)];
-  return first.endsWith(' is') ? `${first} ${second.toLowerCase()}` : `${first} ${second}`;
-}
 
 export default function PuppyForm() {
   const { id } = useParams();
@@ -128,14 +114,26 @@ export default function PuppyForm() {
     enabled: isEdit,
   });
 
+  // Fetch existing puppy names for duplicate-aware suggestions (new puppy only)
+  const { data: existingNames = [] } = useQuery({
+    queryKey: ['puppy-names'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('puppies').select('name').not('name', 'is', null);
+      if (error) throw error;
+      return (data ?? []).map((r) => (r as { name: string }).name).filter(Boolean);
+    },
+    enabled: !isEdit,
+  });
+
   const form = useForm<PuppyFormValues>({
     resolver: zodResolver(puppySchema),
     defaultValues: {
+      breed_select: '',
+      other_breed: '',
       status: 'Available',
       listing_date: new Date().toISOString().slice(0, 10),
       discount_active: false,
       health_certificate: false,
-      microchipped: false,
       featured: false,
       display_order: 0,
       photos: [],
@@ -150,13 +148,38 @@ export default function PuppyForm() {
     if (ready) form.setValue('ready_date', ready);
   }, [dob, form]);
 
+  // Auto-calculate final price when base price, discount toggle, or discount amount changes
+  const basePrice = form.watch('base_price');
+  const discountActive = form.watch('discount_active');
+  const discountAmount = form.watch('discount_amount');
+  useEffect(() => {
+    const base = basePrice != null && basePrice !== '' ? Number(basePrice) : 0;
+    const amount = discountActive && discountAmount != null && discountAmount !== '' ? Number(discountAmount) : 0;
+    const final = Math.max(0, base - amount);
+    form.setValue('final_price', final);
+  }, [basePrice, discountActive, discountAmount, form]);
+
+  // Auto-fill name when gender is selected on new puppy and name is empty
+  const gender = form.watch('gender');
+  useEffect(() => {
+    if (isEdit || !gender) return;
+    const current = form.getValues('name');
+    if (current != null && String(current).trim() !== '') return;
+    const suggested = getSuggestedPuppyName(gender, existingNames);
+    form.setValue('name', suggested);
+  }, [isEdit, gender, existingNames, form]);
+
   // Update form when puppy data loads
   useEffect(() => {
     if (puppy) {
+      const savedBreed = (puppy.breed || '').trim();
+      const canonical = normalizeBreedToCanonical(savedBreed);
+      const useMainBreed = isMainBreed(savedBreed);
       form.reset({
         name: puppy.name || '',
         puppy_id: puppy.puppy_id || '',
-        breed: normalizeBreedToCanonical(puppy.breed || '') || puppy.breed || '',
+        breed_select: useMainBreed ? canonical : OTHER_BREED_OPTION,
+        other_breed: useMainBreed ? '' : savedBreed,
         listing_date: puppy.listing_date ?? (puppy.created_at ? puppy.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         gender: puppy.gender,
         color: puppy.color || '',
@@ -174,7 +197,6 @@ export default function PuppyForm() {
         dad_weight_approx: puppy.dad_weight_approx,
         vaccinations: puppy.vaccinations || '',
         health_certificate: puppy.health_certificate || false,
-        microchipped: puppy.microchipped || false,
         featured: puppy.featured || false,
         display_order: puppy.display_order || 0,
         primary_photo: puppy.primary_photo || '',
@@ -185,7 +207,10 @@ export default function PuppyForm() {
 
   const mutation = useMutation({
     mutationFn: async (data: PuppyFormValues) => {
-      const payload = { ...data };
+      const { breed_select, other_breed, ...rest } = data;
+      const breed =
+        breed_select === OTHER_BREED_OPTION ? (other_breed || '').trim() : breed_select;
+      const payload = { ...rest, breed };
       // On create, set listing_date to today if not provided
       if (!isEdit && !payload.listing_date) {
         payload.listing_date = new Date().toISOString().slice(0, 10);
@@ -215,9 +240,19 @@ export default function PuppyForm() {
           (payload as Record<string, unknown>)[k] = null;
         }
       });
-      // All dogs come with first-round vaccinations and health certificate
+      // puppy_id is UNIQUE; empty string would duplicate. Use null so multiple puppies can have "no custom ID"
+      const pid = payload.puppy_id;
+      if (pid === '' || (typeof pid === 'string' && !pid.trim())) {
+        (payload as Record<string, unknown>).puppy_id = null;
+      }
+      // Clamp final price to 0 (never persist negative)
+      const base = payload.base_price != null ? Number(payload.base_price) : 0;
+      const discount = payload.discount_active && payload.discount_amount != null ? Number(payload.discount_amount) : 0;
+      payload.final_price = Math.max(0, base - discount);
+      // All dogs come with first-round vaccinations, health certificate, and microchipping
       payload.health_certificate = true;
       payload.vaccinations = payload.vaccinations || 'First round included';
+      payload.microchipped = true;
       if (isEdit && id) {
         const { data: result, error } = await supabase
           .from('puppies')
@@ -436,10 +471,38 @@ export default function PuppyForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name *</FormLabel>
+                  <div className="flex items-center justify-between gap-2">
+                    <FormLabel>Name *</FormLabel>
+                    {!isEdit && (
+                      gender ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const currentName = form.getValues('name');
+                            const exclude = [...existingNames];
+                            if (currentName?.trim()) exclude.push(currentName.trim());
+                            const next = getSuggestedPuppyName(gender, exclude);
+                            form.setValue('name', next);
+                          }}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Regenerate name
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Select gender to generate a name</span>
+                      )
+                    )}
+                  </div>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder={!isEdit ? 'Select gender below to auto-fill, or type your own' : undefined} />
                   </FormControl>
+                  {!isEdit && (
+                    <p className="text-xs text-muted-foreground">
+                      A suggested name will appear when you select Gender below. You can change it or use Regenerate name for another.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -461,35 +524,50 @@ export default function PuppyForm() {
 
             <FormField
               control={form.control}
-              name="breed"
-              render={({ field }) => {
-                const currentBreed = field.value;
-                const canonicalBreed = normalizeBreedToCanonical(currentBreed || '');
-                const isInMainList = MAIN_BREEDS.includes(canonicalBreed as (typeof MAIN_BREEDS)[number]);
-                const options = currentBreed && !isInMainList ? [...MAIN_BREEDS, currentBreed] : [...MAIN_BREEDS];
-                const selectValue = (canonicalBreed || currentBreed) || undefined;
-                return (
+              name="breed_select"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Breed *</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value !== OTHER_BREED_OPTION) form.setValue('other_breed', '');
+                    }}
+                    value={field.value || undefined}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select breed" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {MAIN_BREEDS.map((b) => (
+                        <SelectItem key={b} value={b}>
+                          {b}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {form.watch('breed_select') === OTHER_BREED_OPTION && (
+              <FormField
+                control={form.control}
+                name="other_breed"
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Breed *</FormLabel>
-                    <Select onValueChange={field.onChange} value={selectValue || undefined}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select breed" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {options.map((breed) => (
-                          <SelectItem key={breed} value={breed}>
-                            {breed}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Other breed *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter breed name" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
-                );
-              }}
-            />
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -685,20 +763,22 @@ export default function PuppyForm() {
             <FormField
               control={form.control}
               name="final_price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Final Price</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const value = field.value;
+                const display = value != null && value !== '' ? Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—';
+                return (
+                  <FormItem>
+                    <FormLabel>Final Price</FormLabel>
+                    <FormControl>
+                      <span className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm font-medium">
+                        {value != null && value !== '' ? `$${display}` : '—'}
+                      </span>
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">Calculated from base price and discount (read-only)</p>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
@@ -733,24 +813,6 @@ export default function PuppyForm() {
                     />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="microchipped"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Microchipped</FormLabel>
-                  </div>
                 </FormItem>
               )}
             />
@@ -795,36 +857,70 @@ export default function PuppyForm() {
           <FormField
             control={form.control}
             name="description"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center justify-between gap-2">
-                  <FormLabel>Description</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const desc = generatePuppyDescription({
-                        name: form.getValues('name'),
-                        breed: form.getValues('breed'),
-                        gender: form.getValues('gender'),
-                        date_of_birth: form.getValues('date_of_birth'),
-                        age_weeks: form.getValues('age_weeks'),
-                        color: form.getValues('color'),
-                      });
-                      form.setValue('description', desc);
-                    }}
-                  >
-                    <Wand2 className="h-4 w-4 mr-1" />
-                    Generate from name, DOB, gender
-                  </Button>
-                </div>
-                <FormControl>
-                  <Textarea {...field} rows={4} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const breedSelect = form.watch('breed_select');
+              const breed =
+                breedSelect === OTHER_BREED_OPTION
+                  ? (form.watch('other_breed') || '').trim()
+                  : breedSelect;
+              const name = form.watch('name')?.trim();
+              const gender = form.watch('gender');
+              const canGenerate = !!name && !!breed && !!gender;
+              const handleGenerateDescription = () => {
+                if (!canGenerate) return;
+                const input = {
+                  name: name || 'This puppy',
+                  breed,
+                  gender: gender ?? undefined,
+                  color: form.watch('color') || undefined,
+                  date_of_birth: form.watch('date_of_birth') || undefined,
+                  age_weeks: form.watch('age_weeks') ?? undefined,
+                };
+                const text = generatePuppyDescription(input, { sentenceCount: 5 });
+                form.setValue('description', text);
+                toast({ title: 'Description generated', description: 'You can edit the text before saving.' });
+              };
+              return (
+                <FormItem>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <FormLabel>Description</FormLabel>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateDescription}
+                        disabled={!canGenerate}
+                      >
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        Generate description
+                      </Button>
+                      {field.value && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateDescription}
+                          disabled={!canGenerate}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Regenerate
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {!canGenerate && (
+                    <p className="text-xs text-muted-foreground">
+                      Set Name, Breed, and Gender to enable Generate / Regenerate.
+                    </p>
+                  )}
+                  <FormControl>
+                    <Textarea {...field} rows={4} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
 
           <FormField

@@ -24,12 +24,6 @@ export function Footer() {
               <Link to="/puppies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Available Puppies
               </Link>
-              <Link to="/consultation" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Pet Consultation
-              </Link>
-              <Link to="/essentials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Pet Essentials
-              </Link>
               <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Contact Us
               </Link>

@@ -10,8 +10,6 @@ const navLinks = [
   { to: "/puppies", label: "Available Puppies" },
   { to: "/upcoming-litters", label: "Upcoming Litters" },
   { to: "/breeds", label: "Our Breeds" },
-  { to: "/consultation", label: "Pet Consultation" },
-  { to: "/essentials", label: "Pet Essentials" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -28,7 +26,7 @@ export function Header() {
             Dreampuppies22@gmail.com
           </a>
           <p className="text-center text-primary-foreground/90">
-            Serving Florida & North Carolina • Consultation & Shipping Nationwide
+            Serving Florida & North Carolina • Hand delivery service available.
           </p>
         </div>
       </div>

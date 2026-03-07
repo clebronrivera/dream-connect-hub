@@ -25,7 +25,6 @@ const litterSchema = z.object({
   dad_weight_lbs: z.number().optional(),
   vaccinations: z.string().optional(),
   health_certificate_default: z.boolean().optional(),
-  microchipped_default: z.boolean().optional(),
   status_default: z.string().optional(),
 });
 
@@ -56,7 +55,6 @@ export default function LitterForm() {
     defaultValues: {
       status_default: 'Available',
       health_certificate_default: false,
-      microchipped_default: false,
     },
   });
 
@@ -72,7 +70,6 @@ export default function LitterForm() {
         dad_weight_lbs: litter.dad_weight_lbs ?? undefined,
         vaccinations: litter.vaccinations ?? '',
         health_certificate_default: litter.health_certificate_default ?? false,
-        microchipped_default: litter.microchipped_default ?? false,
         status_default: litter.status_default ?? 'Available',
       });
     }
@@ -92,7 +89,7 @@ export default function LitterForm() {
           dad_weight_lbs: data.dad_weight_lbs ?? null,
           vaccinations: data.vaccinations || null,
           health_certificate_default: data.health_certificate_default ?? false,
-          microchipped_default: data.microchipped_default ?? false,
+          microchipped_default: true,
           status_default: data.status_default ?? 'Available',
         })
         .eq('id', id!);
@@ -315,18 +312,6 @@ export default function LitterForm() {
                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                   <FormLabel>Health certificate default</FormLabel>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="microchipped_default"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <FormLabel>Microchipped default</FormLabel>
                 </FormItem>
               )}
             />
