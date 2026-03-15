@@ -71,6 +71,7 @@ export function AppRoutes() {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/puppies" element={<Puppies />} />
+        <Route path="/puppies/:id" element={<Puppies />} />
         <Route path="/consultation" element={<Consultation />} />
         <Route path="/essentials" element={<Essentials />} />
         <Route path="/contact" element={<Contact />} />
