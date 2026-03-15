@@ -44,7 +44,7 @@ export default function Index() {
       {(() => {
         const baseUrl = appEnv.supabaseUrl ?? '';
         const defaultBanner = baseUrl
-          ? `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg`
+          ? `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/site-assets/banner-puppies.png.jpeg`
           : '';
         const bannerUrl =
           appEnv.bannerImageUrl?.trim() || defaultBanner;
