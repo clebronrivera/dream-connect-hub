@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useRef } from 'react';
 import { Loader2, Eye, Upload, X } from 'lucide-react';
-import { uploadPuppyPhoto } from '@/lib/puppy-photos';
+import { getBreedingDogPhotoUrl, uploadPuppyPhoto } from '@/lib/puppy-photos';
 
 function getStoragePublicUrl(path: string): string {
   return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
@@ -29,6 +29,7 @@ const schema = z.object({
   due_label: z.string().optional(),
   price_label: z.string().optional(),
   deposit_amount: z.number().min(0),
+  refundable_deposit_amount: z.number().min(0).optional(),
   description: z.string().optional(),
   placeholder_image_path: z.string().optional(),
   deposit_link: z.string().optional(),
@@ -89,6 +90,7 @@ export default function UpcomingLitterForm() {
       due_label: '',
       price_label: '',
       deposit_amount: 0,
+      refundable_deposit_amount: undefined,
       description: '',
       placeholder_image_path: '',
       deposit_link: '',
@@ -109,6 +111,8 @@ export default function UpcomingLitterForm() {
   const goHomeWindow = getGoHomeWindow(breedingDate);
   const selectedDam = damId ? dams.find((d) => d.id === damId) : null;
   const selectedSire = sireId ? sires.find((s) => s.id === sireId) : null;
+  const selectedDamPhotoUrl = getBreedingDogPhotoUrl(selectedDam?.photo_path);
+  const selectedSirePhotoUrl = getBreedingDogPhotoUrl(selectedSire?.photo_path);
 
   /** Past dogs from this line: up to 3 images. Each slot is existing path or new file. */
   type ExamplePuppySlot = { path?: string; file?: File };
@@ -149,6 +153,7 @@ export default function UpcomingLitterForm() {
         due_label: row.due_label ?? '',
         price_label: row.price_label ?? '',
         deposit_amount: row.deposit_amount ?? 0,
+        refundable_deposit_amount: row.refundable_deposit_amount ?? undefined,
         description: row.description ?? '',
         placeholder_image_path: row.placeholder_image_path ?? '',
         deposit_link: row.deposit_link ?? '',
@@ -187,6 +192,7 @@ export default function UpcomingLitterForm() {
       max_expected_puppies: data.max_expected_puppies ?? null,
       price_label: data.price_label || null,
       deposit_amount: data.deposit_amount,
+      refundable_deposit_amount: data.refundable_deposit_amount ?? null,
       description: data.description || null,
       placeholder_image_path: data.placeholder_image_path || null,
       deposit_link: data.deposit_link || null,
@@ -194,8 +200,10 @@ export default function UpcomingLitterForm() {
       is_active: data.is_active,
       sort_order: data.sort_order,
       breeding_date: data.breeding_date || null,
-      dam_photo_path: null,
-      sire_photo_path: null,
+      // Keep denormalized fallback photo paths populated so upcoming litter cards
+      // still render parent images if the join cannot be read in the browser.
+      dam_photo_path: dam?.photo_path ?? null,
+      sire_photo_path: sire?.photo_path ?? null,
       example_puppy_image_paths: examplePuppyPaths && examplePuppyPaths.length > 0 ? examplePuppyPaths : null,
     };
   };
@@ -397,6 +405,30 @@ export default function UpcomingLitterForm() {
           />
           <FormField
             control={form.control}
+            name="refundable_deposit_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Refundable deposit amount ($)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Optional"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      field.onChange(v === '' ? undefined : parseInt(v, 10));
+                    }}
+                  />
+                </FormControl>
+                <p className="text-sm text-muted-foreground">Refundable up to the date of birth.</p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="description"
             render={({ field }) => (
               <FormItem>
@@ -435,6 +467,13 @@ export default function UpcomingLitterForm() {
                   </Select>
                   {selectedDam && (
                     <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground space-y-1">
+                      {selectedDamPhotoUrl && (
+                        <img
+                          src={selectedDamPhotoUrl}
+                          alt={selectedDam.name}
+                          className="mb-2 h-24 w-24 rounded-lg object-cover border"
+                        />
+                      )}
                       <p><span className="font-medium text-foreground">Breed:</span> {selectedDam.breed}</p>
                       <p><span className="font-medium text-foreground">Composition:</span> {selectedDam.composition}</p>
                       <p><span className="font-medium text-foreground">Color:</span> {selectedDam.color}</p>
@@ -467,6 +506,13 @@ export default function UpcomingLitterForm() {
                   </Select>
                   {selectedSire && (
                     <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground space-y-1">
+                      {selectedSirePhotoUrl && (
+                        <img
+                          src={selectedSirePhotoUrl}
+                          alt={selectedSire.name}
+                          className="mb-2 h-24 w-24 rounded-lg object-cover border"
+                        />
+                      )}
                       <p><span className="font-medium text-foreground">Breed:</span> {selectedSire.breed}</p>
                       <p><span className="font-medium text-foreground">Composition:</span> {selectedSire.composition}</p>
                       <p><span className="font-medium text-foreground">Color:</span> {selectedSire.color}</p>

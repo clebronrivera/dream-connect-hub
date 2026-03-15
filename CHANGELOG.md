@@ -22,6 +22,7 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 - **Dam and sire photos on Upcoming Litters cards**
   - Card photos for dam/sire now come from the **selected** dam/sire in **Breeding Dogs** (joined via `dam_id` / `sire_id`). No change to where photos are uploaded: still **Admin → Breeding Dogs** only. Public fetch in `src/lib/upcoming-litters.ts` joins `breeding_dogs` so each card uses the correct `photo_path` for the chosen dam/sire.
   - **Upcoming Litters** page: Defensive handling so dam/sire are read correctly even if the API returns them as a single-element array; fallback chain remains: joined `dam/sire.photo_path` → legacy `dam_photo_path`/`sire_photo_path` → placeholder.
+  - Important clarification from debugging: a dog can show a photo in **Admin → Breeding Dogs** and still fail to show on upcoming litter cards if the browser cannot read joined `breeding_dogs` rows (RLS/policy not applied) and the litter row's fallback `dam_photo_path` / `sire_photo_path` is blank. To prevent that, `src/pages/admin/upcoming-litters/UpcomingLitterForm.tsx` now denormalizes the selected dogs' current `photo_path` values onto the litter row when saving.
 - **QueryClient location**
   - `createAppQueryClient()` moved from `src/App.tsx` to **src/lib/query-client.ts** so the app entry only exports components (fixes react-refresh lint). `scripts/postbuild-seo.tsx` updated to import from the new module.
 
@@ -38,6 +39,11 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 ### Notes
 
 - Dam and sire photos are **not** uploaded from the Upcoming Litter form; they are managed only under **Admin → Breeding Dogs**. Assign dam/sire per litter in **Admin → Upcoming Litters → Edit** (Parents section); the public card then shows that breeding dog’s photo when available.
+- Troubleshooting shortcut for missing upcoming litter parent photos:
+  - 1. Check **Admin → Breeding Dogs** for the dog's `photo_path` / thumbnail.
+  - 2. Check the upcoming litter row has `dam_id` / `sire_id` set to the intended dogs.
+  - 3. If cards still show placeholders, verify whether browser-side joins to `breeding_dogs` are returning `null`; if so, confirm the public-read policy from `supabase/migrations/20250318000000_breeding_dogs_public_read.sql` is actually applied in Supabase.
+  - 4. If the policy is not yet applied, the site should rely on `upcoming_litters.dam_photo_path` / `sire_photo_path`, so re-save the litter or backfill those columns from the selected breeding dogs.
 
 ### Reference: dam/sire pairings for upcoming litters
 

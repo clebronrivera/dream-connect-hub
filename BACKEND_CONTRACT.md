@@ -302,8 +302,8 @@ Source: migration `20250225000000_upcoming_litters.sql` + migrations `2025030500
 | updated_at | timestamptz | yes | now() | trigger-updated |
 | dam_name | text | no |  |  |
 | sire_name | text | no |  |  |
-| dam_photo_path | text | no |  | storage path |
-| sire_photo_path | text | no |  | storage path |
+| dam_photo_path | text | no |  | storage path; denormalized fallback copied from selected `breeding_dogs.photo_path` |
+| sire_photo_path | text | no |  | storage path; denormalized fallback copied from selected `breeding_dogs.photo_path` |
 | example_puppy_image_paths | text[] | no | '{}' | storage paths |
 | breeding_date | date | no |  |  |
 | dam_breed | text | no |  |  |
@@ -316,6 +316,11 @@ Keys and constraints:
 Derived/computed:
 - `updated_at` trigger: `set_upcoming_litters_updated_at()`
 - UI derives due label and date windows from `breeding_date` in `src/pages/admin/upcoming-litters/UpcomingLitterForm.tsx` and `src/lib/litter-timeline.ts`
+- Parent-photo resolution at runtime:
+  - Primary source: join to `breeding_dogs` via `dam_id` / `sire_id` and read `dam.photo_path` / `sire.photo_path`.
+  - Browser fallback: if join data is unavailable (for example, `breeding_dogs` public `SELECT` policy not applied in the deployed DB), UI falls back to `upcoming_litters.dam_photo_path` / `sire_photo_path`.
+  - Admin save behavior: `src/pages/admin/upcoming-litters/UpcomingLitterForm.tsx` now persists those fallback columns from the selected breeding dogs on create/update so cards still render if the join is blocked.
+  - Practical debugging note: seeing a thumbnail in **Admin → Breeding Dogs** does not prove the browser can read joined `breeding_dogs` rows. Check both the dog's `photo_path` and the litter row's fallback photo columns.
 
 Read files:
 - `src/lib/upcoming-litters.ts`
@@ -968,7 +973,8 @@ Key query set (parallel):
 - Puppies page: `puppies.select('*').eq('status','Available').order(display_order).order(created_at desc)`
 - Contact page puppy subset: same as above
 - Upcoming litters page + contact upcoming selector:
-  - `upcoming_litters.select('*').eq('is_active',true).order(sort_order).order(created_at desc)`
+  - `upcoming_litters.select('*, dam:breeding_dogs!dam_id(id, name, photo_path), sire:breeding_dogs!sire_id(id, name, photo_path)').eq('is_active',true).order(sort_order).order(created_at desc)`
+  - If that join errors or returns unusable parent data, `src/lib/upcoming-litters.ts` falls back to `upcoming_litters.select('*')`, which means cards depend on denormalized `dam_photo_path` / `sire_photo_path`.
 - Essentials page:
   - `products.select('*').in('status',['available','sold_out']).order(display_order)`
   - `kits.select('*, kit_items(id,item_text,display_order)').in('status',['available','sold_out']).order(display_order)`

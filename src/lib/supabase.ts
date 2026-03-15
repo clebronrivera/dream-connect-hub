@@ -154,6 +154,7 @@ export interface UpcomingLitter {
   due_label?: string | null;
   price_label?: string | null;
   deposit_amount: number;
+  refundable_deposit_amount?: number | null;
   description?: string | null;
   placeholder_image_path?: string | null;
   deposit_link?: string | null;
