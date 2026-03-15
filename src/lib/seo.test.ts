@@ -44,7 +44,7 @@ describe("seo helpers", () => {
         supabaseUrl: "https://project.supabase.co/",
       })
     ).toBe(
-      "https://project.supabase.co/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg"
+      "https://project.supabase.co/storage/v1/object/public/site-assets/banner-puppies.png.jpeg"
     );
   });
 

@@ -43,6 +43,12 @@ const FAVORITES_KEY = "puppy-heaven-favorites";
 
 // Fetch only Available puppies for public/customer list
 async function fetchPuppies(): Promise<Puppy[]> {
+  if (!appEnv.supabaseUrl || !appEnv.supabaseAnonKey) {
+    throw new Error(
+      "Website data connection is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
+    );
+  }
+
   const { data, error } = await supabase
     .from("puppies")
     .select("*")
@@ -52,6 +58,12 @@ async function fetchPuppies(): Promise<Puppy[]> {
 
   if (error) {
     console.error("Error fetching puppies from Supabase:", error);
+    const message = error.message?.toLowerCase() ?? "";
+    if (message.includes("permission denied")) {
+      throw new Error(
+        "Puppies cannot load because public read access is blocked in Supabase. Ensure an anon SELECT policy exists for the puppies table."
+      );
+    }
     throw new Error(`Failed to load puppies: ${error.message}`);
   }
 
@@ -492,11 +504,9 @@ export default function Puppies() {
           </div>
         ) : isError ? (
           <div className="bg-muted/50 rounded-lg p-6 text-center">
-            <p className="text-sm text-muted-foreground mb-4">
-              Unable to load puppies at this time. Please try again later or contact us directly.
-            </p>
-            {appEnv.isDev && error && error instanceof Error && (
-              <p className="text-xs text-muted-foreground mb-4 font-mono break-all">Error: {error.message}</p>
+            <p className="text-sm text-muted-foreground mb-2">Unable to load puppies right now.</p>
+            {error && error instanceof Error && (
+              <p className="text-xs text-muted-foreground mb-4">{error.message}</p>
             )}
             <Button asChild>
               <Link to="/contact">Contact Us</Link>

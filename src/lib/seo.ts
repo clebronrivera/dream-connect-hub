@@ -173,7 +173,7 @@ export function resolveSocialImageUrl(env: SeoEnvOverrides = appEnv): string | u
   const supabaseUrl = env.supabaseUrl?.trim().replace(/\/$/, "");
   if (!supabaseUrl) return undefined;
 
-  return `${supabaseUrl}/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg`;
+  return `${supabaseUrl}/storage/v1/object/public/site-assets/banner-puppies.png.jpeg`;
 }
 
 export function getSeoRoute(pageId: SeoPageId): SeoRouteConfig {
