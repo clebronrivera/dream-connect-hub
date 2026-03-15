@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +14,17 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
 import { UpcomingLitterInquiryForm } from "@/components/UpcomingLitterInquiryForm";
-import type { Puppy, UpcomingLitter } from "@/lib/supabase";
-import { SUBJECT_UPCOMING_LITTER } from "@/lib/inquiry-subjects";
-
-const SUBJECT_OTHER_CONSULTATION = "other-consultation";
-const SUBJECT_PUPPY_INQUIRY = "puppies";
+import type { Puppy } from "@/lib/supabase";
+import {
+  SUBJECT_UPCOMING_LITTER,
+  SUBJECT_PUPPY_INQUIRY,
+  SUBJECT_OTHER_CONSULTATION,
+} from "@/lib/inquiry-subjects";
+import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
+import {
+  insertContactMessage,
+  upcomingLitterPayloadToRow,
+} from "@/lib/contact-messages";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function isValidUuid(s: string | null): s is string {
@@ -35,16 +42,6 @@ async function fetchAvailablePuppies(): Promise<Puppy[]> {
   return data ?? [];
 }
 
-async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
-  const { data, error } = await supabase
-    .from("upcoming_litters")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as UpcomingLitter[];
-}
-
 export default function Contact() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -57,7 +54,7 @@ export default function Contact() {
     enabled: subject === SUBJECT_PUPPY_INQUIRY,
   });
   const { data: upcomingLitters } = useQuery({
-    queryKey: ["upcoming-litters-contact"],
+    queryKey: UPCOMING_LITTERS_ACTIVE_QUERY_KEY,
     queryFn: fetchActiveUpcomingLitters,
     enabled: subject === SUBJECT_UPCOMING_LITTER || !subject,
   });
@@ -65,7 +62,8 @@ export default function Contact() {
   useEffect(() => {
     const subjectFromUrl = searchParams.get("subject");
     if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
-    if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER) setSubject(SUBJECT_UPCOMING_LITTER);
+    if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER)
+      setSubject(SUBJECT_UPCOMING_LITTER);
   }, [searchParams]);
 
   // Preselect litter from ?litter= id when on Upcoming Litter subject (e.g. from /contact?subject=upcoming-litter&litter=uuid)
@@ -93,10 +91,7 @@ export default function Contact() {
     };
 
     try {
-      const { error } = await supabase
-        .from("contact_messages")
-        .insert([data]);
-
+      const { error } = await insertContactMessage(data);
       if (error) throw error;
 
       toast({
@@ -121,6 +116,7 @@ export default function Contact() {
 
   return (
     <Layout>
+      <Seo pageId="contact" />
       {/* Hero Section */}
       <section className="bg-primary py-16">
         <div className="container text-center">
@@ -238,20 +234,9 @@ export default function Contact() {
                   onSubmit={async (payload) => {
                     setIsSubmitting(true);
                     try {
-                      const { error } = await supabase.from("contact_messages").insert([
-                        {
-                          name: payload.name,
-                          email: payload.email,
-                          phone: payload.phone || null,
-                          city: payload.city || null,
-                          state: payload.state || null,
-                          subject: payload.subject,
-                          message: payload.message,
-                          upcoming_litter_id: payload.upcoming_litter_id,
-                          upcoming_litter_label: payload.upcoming_litter_label,
-                          interest_options: payload.interest_options?.length ? payload.interest_options : null,
-                        },
-                      ]);
+                      const { error } = await insertContactMessage(
+                        upcomingLitterPayloadToRow(payload)
+                      );
                       if (error) throw error;
                       toast({
                         title: "Message Sent!",

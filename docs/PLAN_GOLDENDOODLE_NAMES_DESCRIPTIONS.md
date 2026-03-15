@@ -2,6 +2,8 @@
 
 This is the single canonical plan for Goldendoodle names and current description handling.
 
+**Note:** As of the last audit, description-generation UI may still exist in PuppyForm; this doc describes the target state (manual-only description field).
+
 ---
 
 ## Locked name mapping (all five are male)

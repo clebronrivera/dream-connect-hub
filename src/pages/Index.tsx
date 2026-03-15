@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { appEnv } from "@/lib/env";
 import { Dog, Heart, MapPin, Phone, Mail, Users, CheckCircle2 } from "lucide-react";
 
 const services = [
@@ -37,11 +39,15 @@ export default function Index() {
 
   return (
     <Layout>
+      <Seo pageId="home" />
       {/* Hero Section — banner from env or hardcoded Supabase URL (Lovable has no env); fallback to red */}
       {(() => {
+        const baseUrl = appEnv.supabaseUrl ?? '';
+        const defaultBanner = baseUrl
+          ? `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg`
+          : '';
         const bannerUrl =
-          (import.meta.env.VITE_BANNER_IMAGE_URL as string | undefined)?.trim() ||
-          'https://xwudsqswlfpoljuhbphr.supabase.co/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg';
+          appEnv.bannerImageUrl?.trim() || defaultBanner;
         const useImage = Boolean(bannerUrl);
         return (
           <section

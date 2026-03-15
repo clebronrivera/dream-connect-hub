@@ -1,77 +1,58 @@
-# Welcome to your Lovable project
+# Puppy Heaven (Dream Connect Hub)
 
-## Project info
+Family-operated puppy website: available puppies, upcoming litters, pet consultation, contact, and breed information. Built with Vite, React, TypeScript, and Supabase.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Setup
 
-## How can I edit this code?
+1. **Clone and install**
 
-There are several ways of editing your application.
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd dream-connect-hub
+   npm i
+   ```
 
-**Use Lovable**
+2. **Environment**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+   Copy `.env.example` to `.env.local` and set:
 
-Changes made via Lovable will be committed automatically to this repo.
+   - `VITE_SUPABASE_URL` – Supabase project URL (e.g. `https://YOUR_REF.supabase.co`)
+   - `VITE_SUPABASE_ANON_KEY` – Supabase anon key
+   - `VITE_SITE_URL` – Public production site URL used for canonical SEO URLs, `og:url`, sitemap, and robots output
 
-**Use your preferred IDE**
+   Optional: `VITE_BANNER_IMAGE_URL` for hero banner; `SUPABASE_SERVICE_ROLE_KEY` for admin/scripts only (never commit).
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+3. **Run**
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+   ```sh
+   npm run dev
+   ```
 
-Follow these steps:
+   Open the URL shown (e.g. http://localhost:5173).
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Build & deploy
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- **Build:** `npm run build`
+- **Preview:** `npm run preview`
+- **Deploy:** The app is configured for Netlify (`netlify.toml`). Use `npm run build` and SPA fallback. Ensure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_SITE_URL` are set in the deploy environment.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Tech stack
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+- Vite, TypeScript, React, React Router
+- shadcn/ui, Tailwind CSS
+- Supabase (Auth, Database, Storage, Edge Functions)
+- TanStack Query
 
-**Edit a file directly in GitHub**
+## Email notifications
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+To receive emails when someone submits a puppy inquiry or contact message, see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md). Setup uses Supabase Edge Functions, database webhooks, and Resend (free tier).
 
-**Use GitHub Codespaces**
+## Technical audit report
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+A technical report with audit outcomes, implementation summary, and a file map is in **[docs/TECHNICAL_AUDIT_REPORT.md](docs/TECHNICAL_AUDIT_REPORT.md)**. Use it to see what was changed, where everything lives, and how the system is wired after the refactor.
 
-## What technologies are used for this project?
+## Database
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Email notifications for puppy inquiries
-
-To receive an email whenever someone submits a puppy inquiry, see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md). Setup uses a Supabase Edge Function, a Database Webhook, and Resend (free tier).
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Schema and migrations live in `supabase/migrations`.
+- **With Supabase CLI:** Link once with `supabase link --project-ref YOUR_REF`, then run `npm run db:push` (or `supabase db push`) to apply.
+- Admin access is controlled via the `profiles` table (`role = 'admin'`). Create an admin user in Supabase Auth, then insert a row into `profiles` with that user’s `user_id` and `role = 'admin'`.

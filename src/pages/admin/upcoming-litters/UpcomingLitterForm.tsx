@@ -3,10 +3,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { addDays, format, parseISO, isValid } from 'date-fns';
-import { supabase, type UpcomingLitter } from '@/lib/supabase';
-import { uploadPuppyPhoto } from '@/lib/puppy-photos';
-import { MAIN_BREEDS, OTHER_BREED_OPTION, getDisplayBreedFromParentBreeds, isMainBreed } from '@/lib/breed-utils';
+import { format } from 'date-fns';
+import { supabase, type UpcomingLitter, type BreedingDog } from '@/lib/supabase';
+import { getBirthWindow, getGoHomeWindow, getDueLabelFromBreedingDate, getExpectedWhelpingDate } from '@/lib/litter-timeline';
+import { getDisplayBreedFromParentBreeds } from '@/lib/breed-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,89 +14,35 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Loader2, Eye } from 'lucide-react';
 
-const MAX_EXAMPLE_IMAGES = 3;
-
-const schema = z
-  .object({
-    dam_breed_select: z.string().min(1, 'Dam breed is required'),
-    dam_other_breed: z.string().optional(),
-    sire_breed_select: z.string().min(1, 'Sire breed is required'),
-    sire_other_breed: z.string().optional(),
-    display_breed: z.string().min(1, 'Display breed is required'),
-    due_label: z.string().optional(),
-    price_label: z.string().optional(),
-    deposit_amount: z.number().min(0),
-    description: z.string().optional(),
-    placeholder_image_path: z.string().optional(),
-    deposit_link: z.string().optional(),
-    cta_contact_link: z.string().optional(),
-    is_active: z.boolean(),
-    sort_order: z.number().int().min(0),
-    dam_name: z.string().optional(),
-    sire_name: z.string().optional(),
-    dam_photo_path: z.string().optional(),
-    sire_photo_path: z.string().optional(),
-    example_puppy_image_paths: z.array(z.string()).max(MAX_EXAMPLE_IMAGES).optional(),
-    breeding_date: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.dam_breed_select === OTHER_BREED_OPTION) return !!data.dam_other_breed?.trim();
-      return true;
-    },
-    { message: 'Please enter dam breed', path: ['dam_other_breed'] }
-  )
-  .refine(
-    (data) => {
-      if (data.sire_breed_select === OTHER_BREED_OPTION) return !!data.sire_other_breed?.trim();
-      return true;
-    },
-    { message: 'Please enter sire breed', path: ['sire_other_breed'] }
-  );
+const schema = z.object({
+  dam_id: z.string().optional(),
+  sire_id: z.string().optional(),
+  display_breed: z.string().min(1, 'Display breed is required'),
+  due_label: z.string().optional(),
+  price_label: z.string().optional(),
+  deposit_amount: z.number().min(0),
+  description: z.string().optional(),
+  placeholder_image_path: z.string().optional(),
+  deposit_link: z.string().optional(),
+  cta_contact_link: z.string().optional(),
+  is_active: z.boolean(),
+  sort_order: z.number().int().min(0),
+  breeding_date: z.string().optional(),
+  expected_whelping_date: z.string().optional(),
+  min_expected_puppies: z.number().int().min(0).optional(),
+  max_expected_puppies: z.number().int().min(0).optional(),
+});
 
 type FormValues = z.infer<typeof schema>;
-
-function getBirthWindow(breedingDateStr: string | null | undefined): { earliest: Date; latest: Date } | null {
-  if (!breedingDateStr || !breedingDateStr.trim()) return null;
-  try {
-    const d = parseISO(breedingDateStr);
-    if (isNaN(d.getTime())) return null;
-    return { earliest: addDays(d, 60), latest: addDays(d, 67) };
-  } catch {
-    return null;
-  }
-}
-
-function getGoHomeWindow(breedingDateStr: string | null | undefined): { earliest: Date; latest: Date } | null {
-  const birth = getBirthWindow(breedingDateStr);
-  if (!birth) return null;
-  return { earliest: addDays(birth.earliest, 56), latest: addDays(birth.latest, 56) };
-}
-
-/** Compute due label from breeding (insemination) date: "Due MMM d, yyyy" (approx 63 days). */
-function getDueLabelFromBreedingDate(breedingDateStr: string | null | undefined): string | null {
-  if (!breedingDateStr?.trim()) return null;
-  try {
-    const d = parseISO(breedingDateStr);
-    if (!isValid(d)) return null;
-    const dueDate = addDays(d, 63);
-    return `Due ${format(dueDate, 'MMM d, yyyy')}`;
-  } catch {
-    return null;
-  }
-}
 
 export default function UpcomingLitterForm() {
   const { id } = useParams();
   const isNew = !id || id === 'new';
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [uploadingDam, setUploadingDam] = useState(false);
-  const [uploadingSire, setUploadingSire] = useState(false);
-  const [uploadingExample, setUploadingExample] = useState(false);
 
   const { data: row, isLoading } = useQuery({
     queryKey: ['upcoming-litter', id],
@@ -113,13 +59,27 @@ export default function UpcomingLitterForm() {
     enabled: !isNew,
   });
 
+  const { data: breedingDogs = [] } = useQuery({
+    queryKey: ['breeding-dogs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('breeding_dogs')
+        .select('*')
+        .order('role', { ascending: true })
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BreedingDog[];
+    },
+  });
+
+  const dams = breedingDogs.filter((d) => d.role === 'Dam');
+  const sires = breedingDogs.filter((d) => d.role === 'Sire');
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      dam_breed_select: '',
-      dam_other_breed: '',
-      sire_breed_select: '',
-      sire_other_breed: '',
+      dam_id: '',
+      sire_id: '',
       display_breed: '',
       due_label: '',
       price_label: '',
@@ -130,58 +90,40 @@ export default function UpcomingLitterForm() {
       cta_contact_link: '/contact',
       is_active: true,
       sort_order: 0,
-      dam_name: '',
-      sire_name: '',
-      dam_photo_path: '',
-      sire_photo_path: '',
-      example_puppy_image_paths: [],
       breeding_date: '',
+      expected_whelping_date: '',
+      min_expected_puppies: undefined,
+      max_expected_puppies: undefined,
     },
   });
 
   const breedingDate = form.watch('breeding_date');
+  const damId = form.watch('dam_id');
+  const sireId = form.watch('sire_id');
   const birthWindow = getBirthWindow(breedingDate);
   const goHomeWindow = getGoHomeWindow(breedingDate);
-
-  const damBreedSelect = form.watch('dam_breed_select');
-  const damOtherBreed = form.watch('dam_other_breed');
-  const sireBreedSelect = form.watch('sire_breed_select');
-  const sireOtherBreed = form.watch('sire_other_breed');
-
-  const resolvedDamBreed = damBreedSelect === OTHER_BREED_OPTION ? (damOtherBreed || '').trim() : damBreedSelect;
-  const resolvedSireBreed = sireBreedSelect === OTHER_BREED_OPTION ? (sireOtherBreed || '').trim() : sireBreedSelect;
+  const selectedDam = damId ? dams.find((d) => d.id === damId) : null;
+  const selectedSire = sireId ? sires.find((s) => s.id === sireId) : null;
 
   useEffect(() => {
     const computed = getDueLabelFromBreedingDate(breedingDate);
     if (computed) form.setValue('due_label', computed);
+    const whelping = getExpectedWhelpingDate(breedingDate);
+    if (whelping) form.setValue('expected_whelping_date', whelping);
   }, [breedingDate, form]);
 
   useEffect(() => {
-    if (resolvedDamBreed || resolvedSireBreed) {
-      const display = getDisplayBreedFromParentBreeds(resolvedDamBreed, resolvedSireBreed);
+    if (selectedDam?.breed || selectedSire?.breed) {
+      const display = getDisplayBreedFromParentBreeds(selectedDam?.breed ?? '', selectedSire?.breed ?? '');
       if (display) form.setValue('display_breed', display);
     }
-  }, [resolvedDamBreed, resolvedSireBreed, form]);
+  }, [selectedDam?.breed, selectedSire?.breed, form]);
 
   useEffect(() => {
     if (row) {
-      const mapDam = (b: string | null | undefined) => {
-        if (!b?.trim()) return { select: '', other: '' };
-        if (isMainBreed(b)) return { select: b.trim(), other: '' };
-        return { select: OTHER_BREED_OPTION, other: b.trim() };
-      };
-      const mapSire = (b: string | null | undefined) => {
-        if (!b?.trim()) return { select: '', other: '' };
-        if (isMainBreed(b)) return { select: b.trim(), other: '' };
-        return { select: OTHER_BREED_OPTION, other: b.trim() };
-      };
-      const dam = mapDam(row.dam_breed ?? row.breed);
-      const sire = mapSire(row.sire_breed ?? row.breed);
       form.reset({
-        dam_breed_select: dam.select,
-        dam_other_breed: dam.other,
-        sire_breed_select: sire.select,
-        sire_other_breed: sire.other,
+        dam_id: row.dam_id ?? '',
+        sire_id: row.sire_id ?? '',
         display_breed: (row.display_breed ?? row.breed) ?? '',
         due_label: row.due_label ?? '',
         price_label: row.price_label ?? '',
@@ -192,44 +134,53 @@ export default function UpcomingLitterForm() {
         cta_contact_link: row.cta_contact_link ?? '/contact',
         is_active: row.is_active ?? true,
         sort_order: row.sort_order ?? 0,
-        dam_name: row.dam_name ?? '',
-        sire_name: row.sire_name ?? '',
-        dam_photo_path: row.dam_photo_path ?? '',
-        sire_photo_path: row.sire_photo_path ?? '',
-        example_puppy_image_paths: row.example_puppy_image_paths ?? [],
         breeding_date: row.breeding_date ?? '',
+        expected_whelping_date: row.expected_whelping_date ?? '',
+        min_expected_puppies: row.min_expected_puppies ?? undefined,
+        max_expected_puppies: row.max_expected_puppies ?? undefined,
       });
     }
   }, [row, form]);
 
+  const buildPayload = (data: FormValues) => {
+    const due_label = getDueLabelFromBreedingDate(data.breeding_date) || data.due_label || null;
+    const expected_whelping_date = getExpectedWhelpingDate(data.breeding_date) || data.expected_whelping_date || null;
+    const dam = data.dam_id ? dams.find((d) => d.id === data.dam_id) : null;
+    const sire = data.sire_id ? sires.find((s) => s.id === data.sire_id) : null;
+    const display_breed = (data.display_breed || '').trim() || getDisplayBreedFromParentBreeds(dam?.breed ?? '', sire?.breed ?? '');
+    const breed = display_breed;
+    return {
+      breed,
+      display_breed,
+      dam_id: data.dam_id || null,
+      sire_id: data.sire_id || null,
+      dam_name: dam?.name ?? null,
+      dam_breed: dam?.breed ?? null,
+      sire_name: sire?.name ?? null,
+      sire_breed: sire?.breed ?? null,
+      due_label,
+      expected_whelping_date,
+      min_expected_puppies: data.min_expected_puppies ?? null,
+      max_expected_puppies: data.max_expected_puppies ?? null,
+      price_label: data.price_label || null,
+      deposit_amount: data.deposit_amount,
+      description: data.description || null,
+      placeholder_image_path: data.placeholder_image_path || null,
+      deposit_link: data.deposit_link || null,
+      cta_contact_link: data.cta_contact_link || '/contact',
+      is_active: data.is_active,
+      sort_order: data.sort_order,
+      breeding_date: data.breeding_date || null,
+      dam_photo_path: null,
+      sire_photo_path: null,
+      example_puppy_image_paths: null,
+    };
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const due_label = getDueLabelFromBreedingDate(data.breeding_date) || data.due_label || null;
-      const dam_breed = data.dam_breed_select === OTHER_BREED_OPTION ? (data.dam_other_breed || '').trim() : data.dam_breed_select;
-      const sire_breed = data.sire_breed_select === OTHER_BREED_OPTION ? (data.sire_other_breed || '').trim() : data.sire_breed_select;
-      const display_breed = (data.display_breed || '').trim() || getDisplayBreedFromParentBreeds(dam_breed, sire_breed);
-      const breed = display_breed;
-      const { error } = await supabase.from('upcoming_litters').insert({
-        breed,
-        display_breed,
-        dam_breed,
-        sire_breed,
-        due_label,
-        price_label: data.price_label || null,
-        deposit_amount: data.deposit_amount,
-        description: data.description || null,
-        placeholder_image_path: data.placeholder_image_path || null,
-        deposit_link: data.deposit_link || null,
-        cta_contact_link: data.cta_contact_link || '/contact',
-        is_active: data.is_active,
-        sort_order: data.sort_order,
-        dam_name: data.dam_name || null,
-        sire_name: data.sire_name || null,
-        dam_photo_path: data.dam_photo_path || null,
-        sire_photo_path: data.sire_photo_path || null,
-        example_puppy_image_paths: data.example_puppy_image_paths?.length ? data.example_puppy_image_paths : null,
-        breeding_date: data.breeding_date || null,
-      });
+      const payload = buildPayload(data);
+      const { error } = await supabase.from('upcoming_litters').insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -243,34 +194,10 @@ export default function UpcomingLitterForm() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const due_label = getDueLabelFromBreedingDate(data.breeding_date) || data.due_label || null;
-      const dam_breed = data.dam_breed_select === OTHER_BREED_OPTION ? (data.dam_other_breed || '').trim() : data.dam_breed_select;
-      const sire_breed = data.sire_breed_select === OTHER_BREED_OPTION ? (data.sire_other_breed || '').trim() : data.sire_breed_select;
-      const display_breed = (data.display_breed || '').trim() || getDisplayBreedFromParentBreeds(dam_breed, sire_breed);
-      const breed = display_breed;
+      const payload = buildPayload(data);
       const { error } = await supabase
         .from('upcoming_litters')
-        .update({
-          breed,
-          display_breed,
-          dam_breed,
-          sire_breed,
-          due_label,
-          price_label: data.price_label || null,
-          deposit_amount: data.deposit_amount,
-          description: data.description || null,
-          placeholder_image_path: data.placeholder_image_path || null,
-          deposit_link: data.deposit_link || null,
-          cta_contact_link: data.cta_contact_link || '/contact',
-          is_active: data.is_active,
-          sort_order: data.sort_order,
-          dam_name: data.dam_name || null,
-          sire_name: data.sire_name || null,
-          dam_photo_path: data.dam_photo_path || null,
-          sire_photo_path: data.sire_photo_path || null,
-          example_puppy_image_paths: data.example_puppy_image_paths?.length ? data.example_puppy_image_paths : null,
-          breeding_date: data.breeding_date || null,
-        })
+        .update(payload)
         .eq('id', id!);
       if (error) throw error;
     },
@@ -315,7 +242,21 @@ export default function UpcomingLitterForm() {
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
-                <p className="text-xs text-muted-foreground">Date the dogs tied or insemination occurred. Shown at top of public card; drives birth and go-home windows.</p>
+                <p className="text-xs text-muted-foreground">Date the dogs tied or insemination occurred. Drives due date (~63 days, 1-week range) and go-home (8 weeks after due).</p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="expected_whelping_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Expected whelping date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} readOnly className="bg-muted" />
+                </FormControl>
+                <p className="text-xs text-muted-foreground">Calculated as breeding date + 63 days.</p>
                 <FormMessage />
               </FormItem>
             )}
@@ -332,6 +273,46 @@ export default function UpcomingLitterForm() {
               <p className="mt-1">{format(goHomeWindow.earliest, 'MMM d')} – {format(goHomeWindow.latest, 'MMM d')}</p>
             </div>
           )}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="min_expected_puppies"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Min expected puppies</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value || '0', 10))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="max_expected_puppies"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max expected puppies</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value || '0', 10))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
             name="due_label"
@@ -339,9 +320,9 @@ export default function UpcomingLitterForm() {
               <FormItem>
                 <FormLabel>Due label</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Auto-filled from breeding date, or e.g. Late March 2026" />
+                  <Input {...field} placeholder="Auto-filled: due approx. 63 days from breeding, 1-week range" />
                 </FormControl>
-                <p className="text-xs text-muted-foreground">Optional; derived from breeding date when set.</p>
+                <p className="text-xs text-muted-foreground">Optional; derived from breeding date (avg 63-day pregnancy, ~1 week range).</p>
                 <FormMessage />
               </FormItem>
             )}
@@ -393,206 +374,67 @@ export default function UpcomingLitterForm() {
 
           <div className="space-y-4 rounded-lg border p-4">
             <h3 className="font-medium">Parents</h3>
+            <p className="text-sm text-muted-foreground">Select from Breeding Dogs. Add dams and sires in the Breeding Dogs tab if needed.</p>
             <FormField
               control={form.control}
-              name="dam_breed_select"
+              name="dam_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dam breed *</FormLabel>
+                  <FormLabel>Dam (female parent)</FormLabel>
                   <Select
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      if (v !== OTHER_BREED_OPTION) form.setValue('dam_other_breed', '');
-                    }}
+                    onValueChange={field.onChange}
                     value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select breed" />
+                        <SelectValue placeholder="Select dam" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {MAIN_BREEDS.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      {dams.map((d) => (
+                        <SelectItem key={d.id} value={d.id!}>{d.name}</SelectItem>
                       ))}
-                      <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {damBreedSelect === OTHER_BREED_OPTION && (
-              <FormField
-                control={form.control}
-                name="dam_other_breed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dam other breed *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter breed" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            <FormField
-              control={form.control}
-              name="dam_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dam (female parent) name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Name of female parent" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="dam_photo_path"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dam photo (optional)</FormLabel>
-                  <FormControl>
-                    <div className="space-y-2">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        disabled={uploadingDam}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploadingDam(true);
-                          try {
-                            const { path } = await uploadPuppyPhoto(file);
-                            field.onChange(path);
-                            toast({ title: 'Dam photo uploaded' });
-                          } catch (err) {
-                            toast({ title: 'Upload failed', description: (err as Error).message, variant: 'destructive' });
-                          } finally {
-                            setUploadingDam(false);
-                            e.target.value = '';
-                          }
-                        }}
-                      />
-                      {field.value && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={supabase.storage.from('puppy-photos').getPublicUrl(field.value).data.publicUrl}
-                            alt="Dam"
-                            className="h-20 w-20 rounded object-cover"
-                          />
-                          <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange('')}>Remove</Button>
-                        </div>
-                      )}
-                      {uploadingDam && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading…</p>}
+                  {selectedDam && (
+                    <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground space-y-1">
+                      <p><span className="font-medium text-foreground">Breed:</span> {selectedDam.breed}</p>
+                      <p><span className="font-medium text-foreground">Composition:</span> {selectedDam.composition}</p>
+                      <p><span className="font-medium text-foreground">Color:</span> {selectedDam.color}</p>
                     </div>
-                  </FormControl>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="sire_breed_select"
+              name="sire_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sire breed *</FormLabel>
+                  <FormLabel>Sire (male parent)</FormLabel>
                   <Select
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      if (v !== OTHER_BREED_OPTION) form.setValue('sire_other_breed', '');
-                    }}
+                    onValueChange={field.onChange}
                     value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select breed" />
+                        <SelectValue placeholder="Select sire" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {MAIN_BREEDS.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      {sires.map((s) => (
+                        <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
                       ))}
-                      <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {sireBreedSelect === OTHER_BREED_OPTION && (
-              <FormField
-                control={form.control}
-                name="sire_other_breed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sire other breed *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter breed" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            <FormField
-              control={form.control}
-              name="sire_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sire (male parent) name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Name of male parent" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="sire_photo_path"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sire photo (optional)</FormLabel>
-                  <FormControl>
-                    <div className="space-y-2">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        disabled={uploadingSire}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploadingSire(true);
-                          try {
-                            const { path } = await uploadPuppyPhoto(file);
-                            field.onChange(path);
-                            toast({ title: 'Sire photo uploaded' });
-                          } catch (err) {
-                            toast({ title: 'Upload failed', description: (err as Error).message, variant: 'destructive' });
-                          } finally {
-                            setUploadingSire(false);
-                            e.target.value = '';
-                          }
-                        }}
-                      />
-                      {field.value && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={supabase.storage.from('puppy-photos').getPublicUrl(field.value).data.publicUrl}
-                            alt="Sire"
-                            className="h-20 w-20 rounded object-cover"
-                          />
-                          <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange('')}>Remove</Button>
-                        </div>
-                      )}
-                      {uploadingSire && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading…</p>}
+                  {selectedSire && (
+                    <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground space-y-1">
+                      <p><span className="font-medium text-foreground">Breed:</span> {selectedSire.breed}</p>
+                      <p><span className="font-medium text-foreground">Composition:</span> {selectedSire.composition}</p>
+                      <p><span className="font-medium text-foreground">Color:</span> {selectedSire.color}</p>
                     </div>
-                  </FormControl>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -616,70 +458,6 @@ export default function UpcomingLitterForm() {
               </FormItem>
             )}
           />
-
-          <div className="space-y-4 rounded-lg border p-4">
-            <h3 className="font-medium">Example puppy images (up to 3)</h3>
-            <p className="text-sm text-muted-foreground">Photos from previous litters to show what puppies from this pairing typically look like.</p>
-            <FormField
-              control={form.control}
-              name="example_puppy_image_paths"
-              render={({ field }) => {
-                const paths = field.value ?? [];
-                return (
-                  <FormItem>
-                    <FormControl>
-                      <div className="space-y-2">
-                        {paths.length < MAX_EXAMPLE_IMAGES && (
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            disabled={uploadingExample}
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              setUploadingExample(true);
-                              try {
-                                const { path } = await uploadPuppyPhoto(file);
-                                field.onChange([...paths, path].slice(0, MAX_EXAMPLE_IMAGES));
-                                toast({ title: 'Example image uploaded' });
-                              } catch (err) {
-                                toast({ title: 'Upload failed', description: (err as Error).message, variant: 'destructive' });
-                              } finally {
-                                setUploadingExample(false);
-                                e.target.value = '';
-                              }
-                            }}
-                          />
-                        )}
-                        {uploadingExample && <p className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading…</p>}
-                        <div className="flex flex-wrap gap-2">
-                          {paths.map((p, i) => (
-                            <div key={p} className="relative">
-                              <img
-                                src={supabase.storage.from('puppy-photos').getPublicUrl(p).data.publicUrl}
-                                alt={`Example ${i + 1}`}
-                                className="h-20 w-20 rounded object-cover"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0"
-                                onClick={() => field.onChange(paths.filter((_, j) => j !== i))}
-                              >
-                                ×
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-          </div>
 
           <FormField
             control={form.control}

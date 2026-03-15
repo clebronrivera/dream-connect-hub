@@ -45,7 +45,11 @@ export default function UpcomingLittersList() {
       toast({ title: 'Upcoming litter deleted' });
     },
     onError: (e: Error) => {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      const msg = e.message || '';
+      const hint = msg.includes('foreign key') || msg.includes('violates foreign key')
+        ? ' Contact messages may reference this litter; the database will be updated to allow deletion.'
+        : '';
+      toast({ title: 'Error', description: msg + hint, variant: 'destructive' });
     },
   });
 

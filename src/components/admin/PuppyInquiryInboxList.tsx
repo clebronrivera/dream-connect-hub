@@ -14,7 +14,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PuppyInquiryDetailDialog } from '@/components/admin/PuppyInquiryDetailDialog';
 import type { PuppyInquiry } from '@/lib/supabase';
-import type { StatusFilter } from '@/pages/admin/leads/LeadsList';
+import type { StatusFilter } from '@/lib/inquiry-subjects';
 import { Eye, Loader2 } from 'lucide-react';
 
 interface PuppyInquiryInboxListProps {
@@ -38,31 +38,38 @@ export function PuppyInquiryInboxList({
   const [localStatus, setLocalStatus] = useState<StatusFilter>(statusFilter);
 
   const effectiveFilter = showStatusFilter ? localStatus : statusFilter;
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
 
-  const { data: inquiries = [], isLoading, error } = useQuery({
-    queryKey: ['admin-puppy-inquiries', effectiveFilter],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin-puppy-inquiries', effectiveFilter, page],
     queryFn: async () => {
       let query = supabase
         .from('puppy_inquiries')
-        .select('*')
+        .select('id, created_at, name, phone, email, puppy_name, puppy_name_at_submit, puppy_id', { count: 'exact' })
         .order('created_at', { ascending: false });
       if (effectiveFilter === 'active') {
         query = query.eq('status', 'active');
       } else if (effectiveFilter === 'inactive') {
         query = query.eq('status', 'inactive');
       }
-      const { data, error: err } = await query;
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data: rows, error: err, count } = await query.range(from, to);
       if (err) throw err;
-      return (data ?? []) as PuppyInquiry[];
+      return { rows: (rows ?? []) as PuppyInquiry[], total: count ?? 0 };
     },
   });
 
+  const inquiries = data?.rows ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentIndex = selectedId ? inquiries.findIndex((i) => i.id === selectedId) : -1;
   const currentInquiry = currentIndex >= 0 ? inquiries[currentIndex] ?? null : null;
 
   // When opened from dashboard link (?open=id&source=puppy-inquiry), select that inquiry and clear URL
   useEffect(() => {
-    if (!initialOpenId || inquiries.length === 0) return;
+    if (!initialOpenId) return;
     if (inquiries.some((i) => i.id === initialOpenId)) {
       setSelectedId(initialOpenId);
       const next = new URLSearchParams(searchParams);
@@ -163,11 +170,26 @@ export function PuppyInquiryInboxList({
         </TableBody>
       </Table>
 
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
+          <span>
+            Page {page} of {totalPages} ({total} total)
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
       <PuppyInquiryDetailDialog
         open={selectedId != null}
         onOpenChange={(open) => !open && setSelectedId(null)}
-        inquiry={currentInquiry}
-        allInquiries={inquiries}
+        selectedId={selectedId}
+        listRows={inquiries}
         currentIndex={currentIndex < 0 ? 0 : currentIndex}
         onSelectIndex={(idx) => setSelectedId(inquiries[idx]?.id ?? null)}
         queryKey={['admin-puppy-inquiries', effectiveFilter]}

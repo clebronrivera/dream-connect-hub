@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dog, MessageSquare, Calendar, ShoppingCart, Mail, Package, BarChart3, TrendingUp } from 'lucide-react';
-import { SUBJECT_UPCOMING_LITTER } from '@/lib/inquiry-subjects';
+import { SUBJECT_UPCOMING_LITTER, sourceToSlug, type RecentInquirySource } from '@/lib/inquiry-subjects';
 
 // --- Helper functions ---
 function daysSince(dateStr: string | null | undefined): number {
@@ -23,10 +23,8 @@ function formatShortDate(iso: string | null | undefined): string {
 
 /** URL source param for routing to Inquiries tab and opening a message. */
 function sourceToSearchParam(source: RecentInquirySource): string {
-  return source === 'Puppy Inquiry' ? 'puppy-inquiry' : source === 'Upcoming Litter' ? 'upcoming-litter' : 'contact-message';
+  return sourceToSlug(source);
 }
-
-export type RecentInquirySource = 'Puppy Inquiry' | 'Upcoming Litter' | 'Contact Message';
 
 export interface RecentInquiryRow {
   id: string;

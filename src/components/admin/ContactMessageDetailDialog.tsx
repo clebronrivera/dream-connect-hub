@@ -10,38 +10,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import type { ContactMessage } from '@/lib/supabase';
+import { toDatetimeLocal } from '@/lib/date-utils';
+import { Field, Section } from '@/components/admin/InquiryDetailShared';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-
-function Field({ label, value }: { label: string; value: string | undefined | null }) {
-  const v = value == null || value === '' ? '—' : String(value);
-  return (
-    <div className="space-y-1">
-      <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-sm text-foreground break-words">{v}</dd>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-foreground border-b pb-1">{title}</h3>
-      <dl className="grid gap-2">{children}</dl>
-    </div>
-  );
-}
 
 interface ContactMessageDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  message: ContactMessage | null;
-  /** All messages in current list (for next/prev). Same order as list. */
-  allMessages: ContactMessage[];
-  /** Index of current message in allMessages */
+  /** Selected row id; dialog fetches full row when open. */
+  selectedId: string | null;
+  /** List rows (current page) for next/prev navigation. */
+  listRows: { id?: string }[];
   currentIndex: number;
   onSelectIndex: (index: number) => void;
   queryKey: string[];
@@ -50,22 +33,32 @@ interface ContactMessageDetailDialogProps {
 export function ContactMessageDetailDialog({
   open,
   onOpenChange,
-  message,
-  allMessages,
+  selectedId,
+  listRows,
   currentIndex,
   onSelectIndex,
   queryKey,
 }: ContactMessageDetailDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: message } = useQuery({
+    queryKey: ['contact-message-detail', selectedId],
+    queryFn: async () => {
+      if (!selectedId) return null;
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .select('*')
+        .eq('id', selectedId)
+        .single();
+      if (error) throw error;
+      return data as ContactMessage;
+    },
+    enabled: open && !!selectedId,
+  });
+
   const [status, setStatus] = useState<string>(message?.status ?? 'active');
   const [adminNotes, setAdminNotes] = useState(message?.admin_notes ?? '');
-  function toDatetimeLocal(iso: string | null | undefined): string {
-    if (!iso) return '';
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
 
   const [followedUpAt, setFollowedUpAt] = useState(
     message?.followed_up_at ? toDatetimeLocal(message.followed_up_at) : ''
@@ -93,6 +86,7 @@ export function ContactMessageDetailDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ['contact-message-detail', selectedId] });
       toast({ title: 'Saved' });
     },
     onError: (err: Error) => {
@@ -112,9 +106,9 @@ export function ContactMessageDetailDialog({
   };
 
   const hasPrev = currentIndex > 0;
-  const hasNext = currentIndex < allMessages.length - 1 && allMessages.length > 1;
-  const prevMessage = hasPrev ? allMessages[currentIndex - 1] : null;
-  const nextMessage = hasNext ? allMessages[currentIndex + 1] : null;
+  const hasNext = currentIndex < listRows.length - 1 && listRows.length > 1;
+  const prevMessage = hasPrev ? listRows[currentIndex - 1] : null;
+  const nextMessage = hasNext ? listRows[currentIndex + 1] : null;
 
   if (!message) return null;
 
@@ -147,7 +141,7 @@ export function ContactMessageDetailDialog({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-normal text-muted-foreground tabular-nums">
-                {currentIndex + 1} / {allMessages.length}
+                {currentIndex + 1} / {listRows.length}
               </span>
               <Button
                 type="button"

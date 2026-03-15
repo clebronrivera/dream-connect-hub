@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -295,6 +296,7 @@ export default function Essentials() {
 
   return (
     <Layout>
+      <Seo pageId="essentials" />
       {/* Hero Section */}
       <section className="bg-primary py-16">
         <div className="container text-center">
