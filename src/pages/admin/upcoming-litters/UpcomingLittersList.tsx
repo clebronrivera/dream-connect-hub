@@ -65,6 +65,13 @@ export default function UpcomingLittersList() {
       cell: (row: UpcomingLitter) => (row.deposit_amount != null ? `$${row.deposit_amount}` : '-'),
     },
     {
+      header: 'Refundable',
+      cell: (row: UpcomingLitter) =>
+        row.refundable_deposit_amount != null && row.refundable_deposit_amount > 0
+          ? `$${row.refundable_deposit_amount}`
+          : '-',
+    },
+    {
       header: 'Status',
       cell: (row: UpcomingLitter) =>
         row.is_active ? (

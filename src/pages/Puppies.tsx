@@ -114,6 +114,7 @@ export default function Puppies() {
   const [interestFormPuppyId, setInterestFormPuppyId] = useState<string | undefined>(undefined);
   const [detailPuppy, setDetailPuppy] = useState<Puppy | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [sharePuppy, setSharePuppy] = useState<Puppy | null>(null);
   const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sizeFilter, setSizeFilter] = useState<SizeFilter>("all");
@@ -538,19 +539,33 @@ export default function Puppies() {
                         )}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(id);
-                      }}
-                      className="absolute top-2 left-2 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
-                      aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Heart
-                        className={`h-5 w-5 transition-colors ${isFav ? "fill-primary text-primary" : "text-muted-foreground"}`}
-                      />
-                    </button>
+                    <div className="absolute top-2 left-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(id);
+                        }}
+                        className="p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
+                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Heart
+                          className={`h-5 w-5 transition-colors ${isFav ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSharePuppy(puppy);
+                          setShareDialogOpen(true);
+                        }}
+                        className="p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
+                        aria-label="Share on Facebook or Instagram"
+                      >
+                        <Share2 className="h-5 w-5 text-muted-foreground" />
+                      </button>
+                    </div>
                   </div>
                   <CardHeader
                     className="cursor-pointer"
@@ -829,70 +844,87 @@ export default function Puppies() {
           </DialogContent>
         </Dialog>
 
-        {/* Share dialog: Facebook, Copy link (Instagram), Download image */}
-        <Dialog open={shareDialogOpen && !!detailPuppy} onOpenChange={setShareDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Share this puppy</DialogTitle>
-              <DialogDescription>
-                Share {detailPuppy?.name ?? "this puppy"} on Facebook, copy the link for Instagram or stories, or
-                download the photo to post.
-              </DialogDescription>
-            </DialogHeader>
-            {detailPuppy && (
-              <div className="grid gap-3 py-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-3"
-                  onClick={() => {
-                    handleShareToFacebook(detailPuppy);
-                    setShareDialogOpen(false);
-                  }}
-                >
-                  <Facebook className="h-5 w-5" />
-                  Share on Facebook
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-3"
-                  onClick={async () => {
-                    await handleCopyLink(detailPuppy);
-                    setShareDialogOpen(false);
-                  }}
-                >
-                  <Copy className="h-5 w-5" />
-                  Copy link (paste in Instagram story or bio)
-                </Button>
-                {getPuppyImage(detailPuppy) && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-3"
-                    onClick={() => {
-                      handleDownloadImage(detailPuppy);
-                      setShareDialogOpen(false);
-                    }}
-                  >
-                    <Download className="h-5 w-5" />
-                    Download photo (post to Instagram manually)
-                  </Button>
+        {/* Share dialog: Facebook, Copy link (Instagram), Download image — works from tile or detail */}
+        {(() => {
+          const puppyToShare = sharePuppy ?? detailPuppy;
+          return (
+            <Dialog
+              open={shareDialogOpen && !!puppyToShare}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setShareDialogOpen(false);
+                  setSharePuppy(null);
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Share this puppy</DialogTitle>
+                  <DialogDescription>
+                    Share {puppyToShare?.name ?? "this puppy"} on Facebook, copy the link for Instagram or stories, or
+                    download the photo to post.
+                  </DialogDescription>
+                </DialogHeader>
+                {puppyToShare && (
+                  <div className="grid gap-3 py-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-3"
+                      onClick={() => {
+                        handleShareToFacebook(puppyToShare);
+                        setShareDialogOpen(false);
+                        setSharePuppy(null);
+                      }}
+                    >
+                      <Facebook className="h-5 w-5" />
+                      Share on Facebook
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-3"
+                      onClick={async () => {
+                        await handleCopyLink(puppyToShare);
+                        setShareDialogOpen(false);
+                        setSharePuppy(null);
+                      }}
+                    >
+                      <Copy className="h-5 w-5" />
+                      Copy link (paste in Instagram story or bio)
+                    </Button>
+                    {getPuppyImage(puppyToShare) && (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start gap-3"
+                        onClick={() => {
+                          handleDownloadImage(puppyToShare);
+                          setShareDialogOpen(false);
+                          setSharePuppy(null);
+                        }}
+                      >
+                        <Download className="h-5 w-5" />
+                        Download photo (post to Instagram manually)
+                      </Button>
+                    )}
+                    {typeof navigator !== "undefined" && navigator.share && (
+                      <Button
+                        variant="default"
+                        className="w-full justify-start gap-3"
+                        onClick={async () => {
+                          await handleNativeShare(puppyToShare);
+                          setShareDialogOpen(false);
+                          setSharePuppy(null);
+                        }}
+                      >
+                        <Share2 className="h-5 w-5" />
+                        Share with your app
+                      </Button>
+                    )}
+                  </div>
                 )}
-                {typeof navigator !== "undefined" && navigator.share && (
-                  <Button
-                    variant="default"
-                    className="w-full justify-start gap-3"
-                    onClick={async () => {
-                      await handleNativeShare(detailPuppy);
-                      setShareDialogOpen(false);
-                    }}
-                  >
-                    <Share2 className="h-5 w-5" />
-                    Share with your app
-                  </Button>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
       </section>
     </Layout>
   );

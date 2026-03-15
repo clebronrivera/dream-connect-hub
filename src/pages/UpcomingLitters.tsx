@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { format, parseISO, isValid } from "date-fns";
+import { format } from "date-fns";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,10 @@ import { insertContactMessage, upcomingLitterPayloadToRow } from "@/lib/contact-
 
 const DEFAULT_DEPOSIT_AMOUNT = 300;
 
+/** Inline fallback when any image fails (no dependency on /placeholder.svg). */
+const FALLBACK_IMAGE_SRC =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='18' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ENo photo%3C/text%3E%3C/svg%3E";
+
 /** Single breed shown for the litter (display_breed; fallback to breed or generic). */
 function getDisplayBreed(litter: UpcomingLitter): string {
   return (litter.display_breed || litter.breed || "Upcoming Litter").trim() || "Upcoming Litter";
@@ -42,6 +46,12 @@ function getPlaceholderImageUrl(path: string | null | undefined): string {
 
 function getStoragePublicUrl(path: string): string {
   return supabase.storage.from("puppy-photos").getPublicUrl(path).data.publicUrl;
+}
+
+/** Non-empty path or null so we never call getStoragePublicUrl with "". */
+function photoPathOrNull(path: string | null | undefined): string | null {
+  const s = typeof path === "string" ? path.trim() : "";
+  return s || null;
 }
 
 export default function UpcomingLitters() {
@@ -111,11 +121,11 @@ export default function UpcomingLitters() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {litters.map((litter) => {
               const imageUrl = getPlaceholderImageUrl(litter.placeholder_image_path);
-              // Photo comes from the selected dam/sire in breeding_dogs (joined by dam_id/sire_id). Fallback to legacy denormalized path, then placeholder.
+              // Photo from joined breeding_dogs or denormalized columns; empty path = use placeholder.
               const dam = Array.isArray(litter.dam) ? (litter.dam as { photo_path?: string | null }[])[0] : litter.dam;
               const sire = Array.isArray(litter.sire) ? (litter.sire as { photo_path?: string | null }[])[0] : litter.sire;
-              const damPhotoPath = dam?.photo_path ?? litter.dam_photo_path;
-              const sirePhotoPath = sire?.photo_path ?? litter.sire_photo_path;
+              const damPhotoPath = photoPathOrNull(dam?.photo_path ?? litter.dam_photo_path);
+              const sirePhotoPath = photoPathOrNull(sire?.photo_path ?? litter.sire_photo_path);
               const damHeroImage = damPhotoPath ? getStoragePublicUrl(damPhotoPath) : imageUrl;
               const sireHeroImage = sirePhotoPath ? getStoragePublicUrl(sirePhotoPath) : imageUrl;
               const damLabel = [litter.dam_name, litter.dam_breed].filter(Boolean).join(" • ");
@@ -123,17 +133,11 @@ export default function UpcomingLitters() {
               const birthWindow = getBirthWindow(litter.breeding_date);
               const goHomeWindow = getGoHomeWindow(litter.breeding_date);
               const depositAmount = litter.deposit_amount != null && litter.deposit_amount > 0 ? litter.deposit_amount : DEFAULT_DEPOSIT_AMOUNT;
+              const refundableAmount =
+                litter.refundable_deposit_amount != null && litter.refundable_deposit_amount > 0
+                  ? litter.refundable_deposit_amount
+                  : null;
               const displayBreedLabel = getDisplayBreed(litter);
-              const hasBreedingDate = litter.breeding_date?.trim();
-              let breedingDateFormatted: string | null = null;
-              if (hasBreedingDate) {
-                try {
-                  const d = parseISO(litter.breeding_date!);
-                  if (isValid(d)) breedingDateFormatted = format(d, 'MMM d, yyyy');
-                } catch {
-                  breedingDateFormatted = litter.breeding_date!;
-                }
-              }
               return (
                 <Card key={litter.id} className="overflow-hidden flex flex-col">
                   <div className="relative aspect-[4/3] bg-muted grid grid-cols-2">
@@ -143,7 +147,7 @@ export default function UpcomingLitters() {
                         alt={`${litter.dam_name || "Dam"} photo`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                         }}
                       />
                       <Badge className="absolute bottom-3 left-3" variant="outline">
@@ -156,7 +160,7 @@ export default function UpcomingLitters() {
                         alt={`${litter.sire_name || "Sire"} photo`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                         }}
                       />
                       <Badge className="absolute bottom-3 left-3" variant="outline">
@@ -168,12 +172,6 @@ export default function UpcomingLitters() {
                     </Badge>
                   </div>
                   <CardHeader>
-                    {breedingDateFormatted && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
-                        <Calendar className="h-4 w-4 flex-shrink-0" />
-                        Breeding: {breedingDateFormatted}
-                      </p>
-                    )}
                     <CardTitle className="text-2xl">{displayBreedLabel}</CardTitle>
                     {(litter.dam_name || litter.dam_breed || litter.sire_name || litter.sire_breed) && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
@@ -210,6 +208,14 @@ export default function UpcomingLitters() {
                         </p>
                       ) : null}
                       <p>Deposit amount: ${depositAmount}.</p>
+                      {refundableAmount != null && (
+                        <p className="text-sm text-muted-foreground">
+                          Refundable deposit: ${refundableAmount}. Refundable up to the date of birth.
+                        </p>
+                      )}
+                      {refundableAmount == null && (
+                        <p className="text-sm text-muted-foreground italic">Refundable up to the date of birth.</p>
+                      )}
                     </div>
                     {(litter.example_puppy_image_paths?.length ?? 0) > 0 && (
                       <div className="space-y-2">
@@ -222,7 +228,7 @@ export default function UpcomingLitters() {
                               alt={`Past puppy ${i + 1}`}
                               className="h-16 w-16 rounded object-cover flex-shrink-0"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                                (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                               }}
                             />
                           ))}
