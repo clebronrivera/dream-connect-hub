@@ -6,6 +6,7 @@ export const DEFAULT_ROBOTS = "index,follow";
 export const NOINDEX_ROBOTS = "noindex,nofollow";
 export const DEFAULT_OG_TYPE = "website";
 export const DEFAULT_TWITTER_CARD = "summary_large_image";
+export const DEFAULT_SOCIAL_IMAGE_PATH = "/puppy-heaven-banner.jpg";
 
 export type SeoPageId =
   | "home"
@@ -185,10 +186,10 @@ export function resolveSocialImageUrl(env: SeoEnvOverrides = appEnv): string | u
   const explicitBanner = normalizePublicAssetUrl(env.bannerImageUrl);
   if (explicitBanner) return explicitBanner;
 
-  const supabaseUrl = env.supabaseUrl?.trim().replace(/\/$/, "");
-  if (!supabaseUrl) return undefined;
+  const origin = resolveSiteOrigin(undefined, env);
+  if (origin) return `${origin}${DEFAULT_SOCIAL_IMAGE_PATH}`;
 
-  return `${supabaseUrl}/storage/v1/object/public/site-assets/banner-puppies.png.jpeg`;
+  return undefined;
 }
 
 export function getSeoRoute(pageId: SeoPageId): SeoRouteConfig {

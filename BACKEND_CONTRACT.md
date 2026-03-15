@@ -644,7 +644,8 @@ Inconsistency flag:
 - What is stored:
   - Hero/banner and breed page static images
 - Read/display path construction:
-  - Index fallback: `${VITE_SUPABASE_URL}/storage/v1/object/public/site-assets/banner-puppies.png.jpeg` (`src/pages/Index.tsx`)
+  - Homepage hero banner: local public asset `/puppy-heaven-banner.jpg` (`src/pages/Index.tsx`)
+  - SEO/social image default: `${VITE_SITE_URL}/puppy-heaven-banner.jpg` when `VITE_SITE_URL` is available, or current browser origin + `/puppy-heaven-banner.jpg` at runtime (`src/lib/seo.ts`)
   - Breeds page base: `${VITE_SUPABASE_URL}/storage/v1/object/public/site-assets/...` (`src/pages/Breeds.tsx`)
 - Upload files in repo:
   - No frontend uploader in current codebase
