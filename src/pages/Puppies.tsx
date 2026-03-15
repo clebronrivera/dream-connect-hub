@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
@@ -29,11 +29,15 @@ import {
   ArrowLeft,
   SlidersHorizontal,
   X,
+  Facebook,
+  Copy,
+  Download,
 } from "lucide-react";
 import { supabase, Puppy } from "@/lib/supabase";
 import { appEnv } from "@/lib/env";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { normalizeBreedToCanonical } from "@/lib/breed-utils";
+import { useToast } from "@/hooks/use-toast";
 
 const FAVORITES_KEY = "puppy-heaven-favorites";
 
@@ -119,11 +123,15 @@ type SortOption = "name" | "breed" | "price-low" | "price-high";
 
 export default function Puppies() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { id: puppyIdFromUrl } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const breedFromUrl = searchParams.get("breed")?.trim() || undefined;
 
   const [interestFormOpen, setInterestFormOpen] = useState(false);
   const [interestFormPuppyId, setInterestFormPuppyId] = useState<string | undefined>(undefined);
   const [detailPuppy, setDetailPuppy] = useState<Puppy | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sizeFilter, setSizeFilter] = useState<SizeFilter>("all");
   const [breedFilter, setBreedFilter] = useState<string | undefined>(breedFromUrl);
@@ -134,6 +142,15 @@ export default function Puppies() {
   useEffect(() => {
     if (breedFromUrl) setBreedFilter(breedFromUrl);
   }, [breedFromUrl]);
+
+  // Open detail dialog when URL has /puppies/:id and we have data
+  useEffect(() => {
+    if (!puppyIdFromUrl || !puppies?.length) return;
+    const puppy = puppies.find(
+      (p) => String(p.id) === puppyIdFromUrl || p.id === puppyIdFromUrl
+    );
+    if (puppy) setDetailPuppy(puppy);
+  }, [puppyIdFromUrl, puppies]);
 
   const { data: puppies, isLoading, isError, error } = useQuery({
     queryKey: ["puppies"],
@@ -215,8 +232,49 @@ export default function Puppies() {
     return null;
   };
 
-  const handleShare = useCallback(async (puppy: Puppy) => {
-    const url = `${window.location.origin}/puppies`;
+  const getShareUrl = useCallback((puppy: Puppy) => {
+    const id = puppy.id ?? puppy.puppy_id;
+    if (!id) return `${window.location.origin}/puppies`;
+    return `${window.location.origin}/puppies/${encodeURIComponent(String(id))}`;
+  }, []);
+
+  const handleShareToFacebook = useCallback((puppy: Puppy) => {
+    const url = getShareUrl(puppy);
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      "facebook-share",
+      "width=580,height=400,menubar=no,toolbar=no"
+    );
+  }, [getShareUrl]);
+
+  const handleCopyLink = useCallback(
+    async (puppy: Puppy) => {
+      const url = getShareUrl(puppy);
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link copied", description: "Paste it in Instagram, Facebook, or anywhere to share." });
+      } catch {
+        window.prompt("Copy this link:", url);
+      }
+    },
+    [getShareUrl, toast]
+  );
+
+  const handleDownloadImage = useCallback((puppy: Puppy) => {
+    const imgUrl = getPuppyImage(puppy);
+    if (!imgUrl) return;
+    const link = document.createElement("a");
+    link.href = imgUrl;
+    link.download = `${(puppy.name || "puppy").replace(/\s+/g, "-")}-puppy-heaven.jpg`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, []);
+
+  const handleNativeShare = useCallback(async (puppy: Puppy) => {
+    const url = getShareUrl(puppy);
     const text = `Check out ${puppy.name || "this puppy"} — ${puppy.breed} at Puppy Heaven!`;
     if (navigator.share) {
       try {
@@ -227,17 +285,33 @@ export default function Puppies() {
         });
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          navigator.clipboard?.writeText(`${text} ${url}`);
+          navigator.clipboard?.writeText(url);
         }
       }
     } else {
-      navigator.clipboard?.writeText(`${text} ${url}`);
+      navigator.clipboard?.writeText(url);
     }
-  }, []);
+  }, [getShareUrl]);
+
+  // Per-puppy SEO when viewing a shared link (/puppies/:id) so Facebook/Instagram show the puppy image
+  const puppyForSeo =
+    puppyIdFromUrl && detailPuppy && (String(detailPuppy.id) === puppyIdFromUrl || detailPuppy.id === puppyIdFromUrl)
+      ? detailPuppy
+      : null;
 
   return (
     <Layout>
-      <Seo pageId="puppies" />
+      <Seo
+        pageId="puppies"
+        title={puppyForSeo ? `${puppyForSeo.name ?? "Puppy"} — ${puppyForSeo.breed}` : undefined}
+        description={
+          puppyForSeo
+            ? `${puppyForSeo.breed}${puppyForSeo.gender ? ` • ${puppyForSeo.gender}` : ""}. Available at Puppy Heaven.`
+            : undefined
+        }
+        canonicalPath={puppyForSeo ? `/puppies/${puppyForSeo.id}` : undefined}
+        imageUrl={puppyForSeo ? getPuppyImage(puppyForSeo) ?? undefined : undefined}
+      />
       {/* Breadcrumb / Navigation */}
       <section className="border-b bg-muted/30">
         <div className="container py-3">
@@ -444,7 +518,11 @@ export default function Puppies() {
                   key={puppy.id}
                   className="overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
                   style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
-                  onClick={() => setDetailPuppy(puppy)}
+                  onClick={() => {
+                    const id = puppy.id ?? puppy.puppy_id;
+                    if (id) navigate(`/puppies/${encodeURIComponent(String(id))}`);
+                    setDetailPuppy(puppy);
+                  }}
                 >
                   <div className="relative aspect-square overflow-hidden bg-muted cursor-pointer">
                     {imageUrl ? (
@@ -493,7 +571,14 @@ export default function Puppies() {
                       />
                     </button>
                   </div>
-                  <CardHeader className="cursor-pointer" onClick={() => setDetailPuppy(puppy)}>
+                  <CardHeader
+                    className="cursor-pointer"
+                    onClick={() => {
+                      const id = puppy.id ?? puppy.puppy_id;
+                      if (id) navigate(`/puppies/${encodeURIComponent(String(id))}`);
+                      setDetailPuppy(puppy);
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xl">{puppy.name || "Unnamed"}</CardTitle>
                     </div>
@@ -611,7 +696,16 @@ export default function Puppies() {
         </Dialog>
 
         {/* Detail Modal */}
-        <Dialog open={!!detailPuppy} onOpenChange={(open) => !open && setDetailPuppy(null)}>
+        <Dialog
+          open={!!detailPuppy}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDetailPuppy(null);
+              setShareDialogOpen(false);
+              navigate("/puppies", { replace: true });
+            }
+          }}
+        >
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             {detailPuppy && (
               <>
@@ -630,7 +724,7 @@ export default function Puppies() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => handleShare(detailPuppy)}
+                        onClick={() => setShareDialogOpen(true)}
                         aria-label="Share"
                       >
                         <Share2 className="h-4 w-4" />
@@ -750,6 +844,71 @@ export default function Puppies() {
                   </div>
                 </div>
               </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Share dialog: Facebook, Copy link (Instagram), Download image */}
+        <Dialog open={shareDialogOpen && !!detailPuppy} onOpenChange={setShareDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Share this puppy</DialogTitle>
+              <DialogDescription>
+                Share {detailPuppy?.name ?? "this puppy"} on Facebook, copy the link for Instagram or stories, or
+                download the photo to post.
+              </DialogDescription>
+            </DialogHeader>
+            {detailPuppy && (
+              <div className="grid gap-3 py-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-3"
+                  onClick={() => {
+                    handleShareToFacebook(detailPuppy);
+                    setShareDialogOpen(false);
+                  }}
+                >
+                  <Facebook className="h-5 w-5" />
+                  Share on Facebook
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-3"
+                  onClick={async () => {
+                    await handleCopyLink(detailPuppy);
+                    setShareDialogOpen(false);
+                  }}
+                >
+                  <Copy className="h-5 w-5" />
+                  Copy link (paste in Instagram story or bio)
+                </Button>
+                {getPuppyImage(detailPuppy) && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-3"
+                    onClick={() => {
+                      handleDownloadImage(detailPuppy);
+                      setShareDialogOpen(false);
+                    }}
+                  >
+                    <Download className="h-5 w-5" />
+                    Download photo (post to Instagram manually)
+                  </Button>
+                )}
+                {typeof navigator !== "undefined" && navigator.share && (
+                  <Button
+                    variant="default"
+                    className="w-full justify-start gap-3"
+                    onClick={async () => {
+                      await handleNativeShare(detailPuppy);
+                      setShareDialogOpen(false);
+                    }}
+                  >
+                    <Share2 className="h-5 w-5" />
+                    Share with your app
+                  </Button>
+                )}
+              </div>
             )}
           </DialogContent>
         </Dialog>

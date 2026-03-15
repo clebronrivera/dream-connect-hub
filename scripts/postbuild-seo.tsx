@@ -16,13 +16,15 @@ loadDotEnv({ path: path.join(projectRoot, ".env.local"), override: false });
 loadDotEnv({ path: path.join(projectRoot, ".env"), override: false });
 
 async function main() {
-  const { AppProviders, AppRoutes, createAppQueryClient } = await import("../src/App");
+  // Load only env + seo first so we can skip without pulling in App (and thus Supabase).
   const {
     PUBLIC_SEO_ROUTES,
     renderStaticSeoTags,
     requireSiteUrlForBuild,
     resolveSeoMetadata,
   } = await import("../src/lib/seo");
+  const { appEnv } = await import("../src/lib/env");
+
   let siteUrl: string;
   try {
     siteUrl = requireSiteUrlForBuild();
@@ -31,6 +33,16 @@ async function main() {
     console.warn((error as Error).message);
     return;
   }
+
+  if (!appEnv.supabaseUrl?.trim() || !appEnv.supabaseAnonKey?.trim()) {
+    console.warn("Skipping SEO postbuild. Missing Supabase config.");
+    console.warn(
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify (and VITE_SITE_URL) to enable pre-render."
+    );
+    return;
+  }
+
+  const { AppProviders, AppRoutes, createAppQueryClient } = await import("../src/App");
   const template = await fs.readFile(distIndexPath, "utf8");
 
   for (const route of PUBLIC_SEO_ROUTES) {
