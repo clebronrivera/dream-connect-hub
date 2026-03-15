@@ -166,14 +166,29 @@ export function buildCanonicalUrl(
   return origin ? `${origin}${normalizedPath}` : normalizedPath;
 }
 
+export function normalizePublicAssetUrl(rawUrl?: string): string | undefined {
+  const url = rawUrl?.trim();
+  if (!url) return undefined;
+
+  const dashboardMatch = url.match(
+    /^https:\/\/supabase\.com\/dashboard\/project\/([^/]+)\/(storage\/v1\/object\/public\/.+)$/i
+  );
+  if (dashboardMatch) {
+    const [, projectRef, publicPath] = dashboardMatch;
+    return `https://${projectRef}.supabase.co/${publicPath}`;
+  }
+
+  return url;
+}
+
 export function resolveSocialImageUrl(env: SeoEnvOverrides = appEnv): string | undefined {
-  const explicitBanner = env.bannerImageUrl?.trim();
+  const explicitBanner = normalizePublicAssetUrl(env.bannerImageUrl);
   if (explicitBanner) return explicitBanner;
 
   const supabaseUrl = env.supabaseUrl?.trim().replace(/\/$/, "");
   if (!supabaseUrl) return undefined;
 
-  return `${supabaseUrl}/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg`;
+  return `${supabaseUrl}/storage/v1/object/public/site-assets/banner-puppies.png.jpeg`;
 }
 
 export function getSeoRoute(pageId: SeoPageId): SeoRouteConfig {

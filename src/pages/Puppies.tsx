@@ -33,16 +33,36 @@ import {
   Copy,
   Download,
 } from "lucide-react";
-import { supabase, Puppy } from "@/lib/supabase";
+import type { Puppy } from "@/lib/supabase";
 import { appEnv } from "@/lib/env";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { normalizeBreedToCanonical } from "@/lib/breed-utils";
 import { useToast } from "@/hooks/use-toast";
 
 const FAVORITES_KEY = "puppy-heaven-favorites";
+const MISSING_SUPABASE_CONFIG_MESSAGE =
+  "Puppies cannot load because Supabase client settings are missing. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to the site environment, then redeploy.";
+const PUPPIES_RLS_MESSAGE =
+  "Puppies cannot load because Supabase is blocking public read access. Check the puppies table SELECT policy / RLS settings for the anon role.";
+
+function isPublicReadPolicyError(message: string, code?: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    code === "42501" ||
+    normalized.includes("row-level security") ||
+    normalized.includes("permission denied") ||
+    normalized.includes("not allowed") ||
+    normalized.includes("not authorized")
+  );
+}
 
 // Fetch only Available puppies for public/customer list
 async function fetchPuppies(): Promise<Puppy[]> {
+  if (!appEnv.supabaseUrl || !appEnv.supabaseAnonKey) {
+    throw new Error(MISSING_SUPABASE_CONFIG_MESSAGE);
+  }
+
+  const { supabase } = await import("@/lib/supabase");
   const { data, error } = await supabase
     .from("puppies")
     .select("*")
@@ -52,7 +72,10 @@ async function fetchPuppies(): Promise<Puppy[]> {
 
   if (error) {
     console.error("Error fetching puppies from Supabase:", error);
-    throw new Error(`Failed to load puppies: ${error.message}`);
+    if (isPublicReadPolicyError(error.message, error.code)) {
+      throw new Error(PUPPIES_RLS_MESSAGE);
+    }
+    throw new Error(`Puppies could not be loaded from Supabase: ${error.message}`);
   }
 
   return data || [];
@@ -138,6 +161,11 @@ export default function Puppies() {
   const [sortBy, setSortBy] = useState<SortOption>("name");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [favorites, toggleFavorite] = useFavorites();
+  const { data: puppies, isLoading, isError, error } = useQuery({
+    queryKey: ["puppies"],
+    queryFn: fetchPuppies,
+    retry: 2,
+  });
 
   useEffect(() => {
     if (breedFromUrl) setBreedFilter(breedFromUrl);
@@ -151,12 +179,6 @@ export default function Puppies() {
     );
     if (puppy) setDetailPuppy(puppy);
   }, [puppyIdFromUrl, puppies]);
-
-  const { data: puppies, isLoading, isError, error } = useQuery({
-    queryKey: ["puppies"],
-    queryFn: fetchPuppies,
-    retry: 2,
-  });
 
   const filteredAndSorted = useMemo(() => {
     if (!puppies) return [];
@@ -493,11 +515,10 @@ export default function Puppies() {
         ) : isError ? (
           <div className="bg-muted/50 rounded-lg p-6 text-center">
             <p className="text-sm text-muted-foreground mb-4">
-              Unable to load puppies at this time. Please try again later or contact us directly.
+              {error instanceof Error
+                ? error.message
+                : "Unable to load puppies right now. Please check the site configuration and Supabase access."}
             </p>
-            {appEnv.isDev && error && error instanceof Error && (
-              <p className="text-xs text-muted-foreground mb-4 font-mono break-all">Error: {error.message}</p>
-            )}
             <Button asChild>
               <Link to="/contact">Contact Us</Link>
             </Button>

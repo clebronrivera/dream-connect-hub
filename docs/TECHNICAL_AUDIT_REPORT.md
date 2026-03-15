@@ -47,7 +47,7 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 ### Environment and backend
 
 - **Supabase** is configured only via env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. No hardcoded project URL or anon key in app code.
-- **Banner and storage URLs** (Index, Breeds) are derived from `VITE_SUPABASE_URL` or `VITE_BANNER_IMAGE_URL`.
+- **Banner and storage URLs** (Index, Breeds) are derived from `VITE_SUPABASE_URL` or `VITE_BANNER_IMAGE_URL`. Banner overrides must use a public asset URL, not a Supabase dashboard URL, and the default banner object path is `site-assets/banner-puppies.png.jpeg`.
 - **Profiles** are the single source of truth for admin; storage policies and scripts reference `profiles`, not `user_roles`.
 - **Notification scripts and docs** use project ref from env (e.g. `VITE_SUPABASE_URL` or `SUPABASE_PROJECT_REF`), not a hardcoded ref.
 
@@ -67,6 +67,8 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 ### Performance and hygiene
 
 - **QueryClient** has a default `staleTime` (e.g. 1 minute) to reduce refetches on tab focus.
+- **Homepage banner resolution** uses the corrected default storage object path and shares the same resolver for hero and SEO/social image output.
+- **Puppies page errors** now surface explicit Supabase diagnostics for missing client env vars and blocked public read access (RLS/policy), instead of a generic failure message.
 - **Dead code removed:** legacy admin `leads` pages, `ConsultationDetailDialog`, `types/leads`, and unused UI components (chart, command, drawer, carousel, calendar).
 - **.gitignore** includes `supabase/.temp/` to avoid commit noise.
 - **README** describes the real project (setup, env, deploy, DB); **PLAN_GOLDENDOODLE** doc has a note about description-generation state.
@@ -123,7 +125,7 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 | Purpose | Location |
 |--------|----------|
 | Notification setup (env-driven URLs) | `docs/NOTIFICATIONS.md` |
-| Project setup and deploy | `README.md` |
+| Project setup, deploy, and Netlify troubleshooting | `README.md` |
 | Goldendoodle plan (with audit note) | `docs/PLAN_GOLDENDOODLE_NAMES_DESCRIPTIONS.md` |
 | Ignore Supabase CLI temp files | `.gitignore` (supabase/.temp/) |
 | QueryClient default options | `src/App.tsx` |
