@@ -88,13 +88,11 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- User Roles Table
-CREATE TABLE IF NOT EXISTS user_roles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'admin',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id)
+-- Profiles table (source of truth for admin; auth uses profiles.role)
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'public' CHECK (role IN ('admin', 'public')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Enable Row Level Security (RLS)
@@ -102,7 +100,7 @@ ALTER TABLE puppy_inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consultation_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Allow public INSERT (form submissions)
 CREATE POLICY IF NOT EXISTS "Allow public insert on puppy_inquiries"

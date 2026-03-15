@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase, Puppy } from "@/lib/supabase";
+import { appEnv } from "@/lib/env";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { normalizeBreedToCanonical } from "@/lib/breed-utils";
 
@@ -235,6 +237,7 @@ export default function Puppies() {
 
   return (
     <Layout>
+      <Seo pageId="puppies" />
       {/* Breadcrumb / Navigation */}
       <section className="border-b bg-muted/30">
         <div className="container py-3">
@@ -418,7 +421,7 @@ export default function Puppies() {
             <p className="text-sm text-muted-foreground mb-4">
               Unable to load puppies at this time. Please try again later or contact us directly.
             </p>
-            {import.meta.env.DEV && error && error instanceof Error && (
+            {appEnv.isDev && error && error instanceof Error && (
               <p className="text-xs text-muted-foreground mb-4 font-mono break-all">Error: {error.message}</p>
             )}
             <Button asChild>

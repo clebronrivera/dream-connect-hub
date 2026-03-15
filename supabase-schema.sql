@@ -79,21 +79,31 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- User Roles Table (for admin authentication)
-CREATE TABLE IF NOT EXISTS user_roles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'admin',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id)
+-- Profiles table (source of truth for admin; app uses profiles.role)
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'public' CHECK (role IN ('admin', 'public')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Business events: admin-only log of milestones (SEO, marketing, etc.) to correlate with traffic
+CREATE TABLE IF NOT EXISTS business_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_date DATE NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_business_events_event_date ON business_events(event_date DESC);
+CREATE INDEX IF NOT EXISTS idx_business_events_created_at ON business_events(created_at DESC);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE puppy_inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consultation_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE business_events ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Allow public INSERT (form submissions), but only admins can SELECT
 -- Public can insert (submit forms)
@@ -117,6 +127,17 @@ CREATE POLICY "Allow public insert on contact_messages"
   TO anon, authenticated
   WITH CHECK (true);
 
+-- Business events: admin-only (no public access)
+CREATE POLICY "business_events_admin_select" ON business_events FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'));
+CREATE POLICY "business_events_admin_insert" ON business_events FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'));
+CREATE POLICY "business_events_admin_update" ON business_events FOR UPDATE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'));
+CREATE POLICY "business_events_admin_delete" ON business_events FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'));
+
 -- Only admins can read (will be set up after admin users are created)
 -- For now, you can manually grant access or create policies after setting up admin auth
 -- Example policy (uncomment and adjust after admin setup):
@@ -125,9 +146,9 @@ CREATE POLICY "Allow public insert on contact_messages"
 --   TO authenticated
 --   USING (
 --     EXISTS (
---       SELECT 1 FROM user_roles
---       WHERE user_roles.user_id = auth.uid()
---       AND user_roles.role = 'admin'
+--       SELECT 1 FROM profiles
+--       WHERE profiles.user_id = auth.uid()
+--       AND profiles.role = 'admin'
 --     )
 --   );
 

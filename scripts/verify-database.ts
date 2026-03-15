@@ -34,7 +34,7 @@ const requiredTables = [
   'consultation_requests',
   'product_inquiries',
   'puppy_inquiries',
-  'user_roles',
+  'profiles',
 ];
 
 const tableSchemas: Record<string, string[]> = {
@@ -42,7 +42,7 @@ const tableSchemas: Record<string, string[]> = {
   consultation_requests: ['id', 'pet_name', 'pet_type', 'breed', 'age', 'behavioral_concerns', 'goals', 'preferred_contact', 'name', 'email', 'phone', 'status', 'created_at'],
   product_inquiries: ['id', 'product_name', 'name', 'email', 'phone', 'message', 'status', 'created_at'],
   puppy_inquiries: ['id', 'puppy_id', 'puppy_name', 'name', 'email', 'phone', 'message', 'status', 'created_at'],
-  user_roles: ['id', 'user_id', 'role', 'created_at'],
+  profiles: ['user_id', 'role', 'created_at'],
 };
 
 async function verifyDatabase() {

@@ -1,13 +1,21 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { appEnv } from '@/lib/env';
 
-const supabaseUrl = 'https://xwudsqswlfpoljuhbphr.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3dWRzcXN3bGZwb2xqdWhicGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1ODg4MDAsImV4cCI6MjA4NjE2NDgwMH0.2buIbr5YHMw1dAJREDJYw8le0ww8P2KKWNPtOGVW_og';
+const supabaseUrl = appEnv.supabaseUrl;
+const supabaseAnonKey = appEnv.supabaseAnonKey;
+const isBrowser = typeof window !== 'undefined';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase config. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local (see .env.example).'
+  );
+}
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
+    persistSession: isBrowser,
+    autoRefreshToken: isBrowser,
+    detectSessionInUrl: isBrowser,
   },
 });
 
@@ -118,6 +126,28 @@ export interface ContactMessage {
   created_at?: string;
 }
 
+/** Adult breeding dog (Sire or Dam) used for upcoming litters. */
+export type BreedingDogRole = 'Sire' | 'Dam';
+
+export interface BreedingDog {
+  id?: string;
+  name: string;
+  role: BreedingDogRole;
+  breed: string;
+  composition: string;
+  color: string;
+  photo_path?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Embedded breeding dog (e.g. dam/sire) when fetching upcoming_litters with join. */
+export interface UpcomingLitterParent {
+  id: string;
+  name: string;
+  photo_path?: string | null;
+}
+
 export interface UpcomingLitter {
   id?: string;
   breed: string;
@@ -130,6 +160,8 @@ export interface UpcomingLitter {
   cta_contact_link?: string | null;
   is_active: boolean;
   sort_order: number;
+  dam_id?: string | null;
+  sire_id?: string | null;
   dam_name?: string | null;
   sire_name?: string | null;
   dam_breed?: string | null;
@@ -137,8 +169,14 @@ export interface UpcomingLitter {
   display_breed?: string | null;
   dam_photo_path?: string | null;
   sire_photo_path?: string | null;
+  /** Fetched via join from breeding_dogs when present; use for dam/sire photo (single source of truth). */
+  dam?: UpcomingLitterParent | null;
+  sire?: UpcomingLitterParent | null;
   example_puppy_image_paths?: string[] | null;
   breeding_date?: string | null;
+  expected_whelping_date?: string | null;
+  min_expected_puppies?: number | null;
+  max_expected_puppies?: number | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -19,18 +19,19 @@ From the project root:
 ```bash
 # Install Supabase CLI if needed: https://supabase.com/docs/guides/cli
 supabase login
+# Use your project ref from .env.local (VITE_SUPABASE_URL: https://YOUR_PROJECT_REF.supabase.co)
 supabase link --project-ref YOUR_PROJECT_REF   # if not already linked
 supabase functions deploy notify-puppy-inquiry
 supabase functions deploy notify-contact-message
 ```
 
-Set the required secret (and optional ones) in the Supabase Dashboard or via CLI:
+Set the required secrets (and optional ones) in the Supabase Dashboard or via CLI:
 
 ```bash
 # Required: Resend API key
 supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
 
-# Optional: where to send notifications (default: Dreampuppies22@gmail.com).
+# Required: where to send notifications.
 # For multiple addresses, use a comma-separated list (no spaces or with spaces, both work):
 supabase secrets set NOTIFY_EMAIL="you@example.com, teammate@example.com"
 
@@ -48,14 +49,15 @@ Create **two** webhooks in [Supabase Dashboard](https://supabase.com/dashboard) 
 - **Table**: `puppy_inquiries`
 - **Events**: **Insert**
 - **Type**: HTTP Request
-- **URL**: `https://xwudsqswlfpoljuhbphr.supabase.co/functions/v1/notify-puppy-inquiry`
+- **URL**: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/notify-puppy-inquiry`  
+  (Use the same project ref as in your `VITE_SUPABASE_URL` from `.env.local`.)
 
 **Webhook 2 – Contact Us messages**
 - **Name**: e.g. `Notify on contact message`
 - **Table**: `contact_messages`
 - **Events**: **Insert**
 - **Type**: HTTP Request
-- **URL**: `https://xwudsqswlfpoljuhbphr.supabase.co/functions/v1/notify-contact-message`
+- **URL**: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/notify-contact-message`
 
 After this, new puppy inquiries and Contact Us submissions will trigger the respective Edge Function and send an email to all addresses in `NOTIFY_EMAIL`.
 

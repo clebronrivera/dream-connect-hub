@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -409,6 +410,7 @@ export default function Consultation() {
 
   return (
     <Layout>
+      <Seo pageId="consultation" />
       <section className="bg-primary py-16">
         <div className="container text-center">
           <Video className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />

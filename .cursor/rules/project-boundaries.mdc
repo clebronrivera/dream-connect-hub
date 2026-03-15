@@ -1,0 +1,25 @@
+---
+description: Project scope — this workspace is the Puppy Heaven website only. Do not mix in other projects.
+alwaysApply: true
+---
+
+# Project boundaries
+
+## The only folder in scope
+
+- **Absolute path:** `/Users/lebron/Documents/Dream Connect/dream-connect-hub/dream-connect-hub`
+- **Workspace root:** That folder is the repo root. All work (read, write, search, run commands) must stay **inside** this folder.
+- **Do not** read, write, or reference files or paths outside this tree. Do not assume code or config from sibling folders (e.g. other projects in `Dream Connect` or `dream-connect-hub`) unless the user explicitly points to them.
+
+## What this project is
+
+- **Project name:** Puppy Heaven (Dream Connect Hub)
+- **What it is:** The puppy website — available puppies, upcoming litters, pet consultation, contact, breeds. Family-operated; Supabase backend; Vite + React + TypeScript.
+- Key code lives under: `src/` (pages, components, lib), `supabase/` (migrations), `docs/`, config at root (`package.json`, `vite.config.*`, etc.).
+
+## Stay inside these parameters
+
+- Only edit, create, or delete files under the workspace root above.
+- Only run terminal commands from that directory (e.g. `npm run dev`, `npm run build`) or with paths that resolve inside it.
+- When testing in a browser, use this app only: run `npm run dev` from this repo and open the URL it prints. If the port is taken, use e.g. `npm run dev -- --port 5174` and open that URL.
+- Do not reference or mix in other codebases or apps (e.g. Florida Family Resource Guide or anything outside this folder).

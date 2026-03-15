@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { format, parseISO, isValid } from "date-fns";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,23 +23,14 @@ import {
 } from "@/components/UpcomingLitterInquiryForm";
 import { JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT } from "@/lib/inquiry-subjects";
 import { getBirthWindow, getGoHomeWindow } from "@/lib/litter-timeline";
+import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
+import { insertContactMessage, upcomingLitterPayloadToRow } from "@/lib/contact-messages";
 
 const DEFAULT_DEPOSIT_AMOUNT = 300;
 
 /** Single breed shown for the litter (display_breed; fallback to breed or generic). */
 function getDisplayBreed(litter: UpcomingLitter): string {
   return (litter.display_breed || litter.breed || "Upcoming Litter").trim() || "Upcoming Litter";
-}
-
-async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
-  const { data, error } = await supabase
-    .from("upcoming_litters")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as UpcomingLitter[];
 }
 
 function getPlaceholderImageUrl(path: string | null | undefined): string {
@@ -58,27 +50,16 @@ export default function UpcomingLitters() {
   const [reserveSubmitting, setReserveSubmitting] = useState(false);
 
   const { data: litters, isLoading, error } = useQuery({
-    queryKey: ["upcoming-litters-public"],
+    queryKey: UPCOMING_LITTERS_ACTIVE_QUERY_KEY,
     queryFn: fetchActiveUpcomingLitters,
   });
 
   const handleInquirySubmit = async (payload: UpcomingLitterInquiryPayload) => {
     setReserveSubmitting(true);
     try {
-      const { error: err } = await supabase.from("contact_messages").insert([
-        {
-          name: payload.name,
-          email: payload.email,
-          phone: payload.phone || null,
-          city: payload.city || null,
-          state: payload.state || null,
-          subject: payload.subject,
-          message: payload.message,
-          upcoming_litter_id: payload.upcoming_litter_id,
-          upcoming_litter_label: payload.upcoming_litter_label,
-          interest_options: payload.interest_options?.length ? payload.interest_options : null,
-        },
-      ]);
+      const { error: err } = await insertContactMessage(
+        upcomingLitterPayloadToRow(payload)
+      );
       if (err) throw err;
       toast({
         title: "Submitted",
@@ -98,6 +79,7 @@ export default function UpcomingLitters() {
 
   return (
     <Layout>
+      <Seo pageId="upcomingLitters" />
       <section className="bg-primary py-16">
         <div className="container text-center">
           <Calendar className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
@@ -129,8 +111,11 @@ export default function UpcomingLitters() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {litters.map((litter) => {
               const imageUrl = getPlaceholderImageUrl(litter.placeholder_image_path);
-              const damHeroImage = litter.dam_photo_path ? getStoragePublicUrl(litter.dam_photo_path) : imageUrl;
-              const sireHeroImage = litter.sire_photo_path ? getStoragePublicUrl(litter.sire_photo_path) : imageUrl;
+              // Prefer breeding dog's photo (single source of truth), fallback to litter's stored path
+              const damPhotoPath = litter.dam?.photo_path ?? litter.dam_photo_path;
+              const sirePhotoPath = litter.sire?.photo_path ?? litter.sire_photo_path;
+              const damHeroImage = damPhotoPath ? getStoragePublicUrl(damPhotoPath) : imageUrl;
+              const sireHeroImage = sirePhotoPath ? getStoragePublicUrl(sirePhotoPath) : imageUrl;
               const damLabel = [litter.dam_name, litter.dam_breed].filter(Boolean).join(" • ");
               const sireLabel = [litter.sire_name, litter.sire_breed].filter(Boolean).join(" • ");
               const birthWindow = getBirthWindow(litter.breeding_date);
@@ -156,7 +141,7 @@ export default function UpcomingLitters() {
                         alt={`${litter.dam_name || "Dam"} photo`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.png";
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
                         }}
                       />
                       <Badge className="absolute bottom-3 left-3" variant="outline">
@@ -169,7 +154,7 @@ export default function UpcomingLitters() {
                         alt={`${litter.sire_name || "Sire"} photo`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.png";
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
                         }}
                       />
                       <Badge className="absolute bottom-3 left-3" variant="outline">
@@ -213,13 +198,13 @@ export default function UpcomingLitters() {
                       {birthWindow ? (
                         <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 flex-shrink-0" />
-                          Estimated birth window: {format(birthWindow.earliest, 'MMM d')} – {format(birthWindow.latest, 'MMM d')}
+                          Estimated due (birth) window: {format(birthWindow.earliest, 'MMM d')} – {format(birthWindow.latest, 'MMM d')} (approx.)
                         </p>
                       ) : null}
                       {goHomeWindow ? (
                         <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 flex-shrink-0" />
-                          Estimated go-home window: {format(goHomeWindow.earliest, 'MMM d')} – {format(goHomeWindow.latest, 'MMM d')}
+                          Estimated go-home window: {format(goHomeWindow.earliest, 'MMM d')} – {format(goHomeWindow.latest, 'MMM d')} (8 weeks after due, approx.)
                         </p>
                       ) : null}
                       <p>Deposit amount: ${depositAmount}.</p>

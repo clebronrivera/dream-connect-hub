@@ -3,11 +3,10 @@
 // Uses same secrets as notify-puppy-inquiry: RESEND_API_KEY, NOTIFY_EMAIL, RESEND_FROM.
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const NOTIFY_EMAILS = (Deno.env.get("NOTIFY_EMAIL") ?? "Dreampuppies22@gmail.com")
+const NOTIFY_EMAILS = (Deno.env.get("NOTIFY_EMAIL") ?? "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
-const TO_EMAILS = NOTIFY_EMAILS.length > 0 ? NOTIFY_EMAILS : ["Dreampuppies22@gmail.com"];
 const RESEND_FROM =
   Deno.env.get("RESEND_FROM") ?? "Dream Connect <onboarding@resend.dev>";
 const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";
@@ -110,6 +109,14 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 
+  if (NOTIFY_EMAILS.length === 0) {
+    console.error("NOTIFY_EMAIL is not set");
+    return new Response(
+      JSON.stringify({ error: "Notification not configured (missing NOTIFY_EMAIL)" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   let payload: WebhookPayload;
   try {
     payload = (await req.json()) as WebhookPayload;
@@ -148,7 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
     },
     body: JSON.stringify({
       from: resendFrom,
-      to: TO_EMAILS,
+      to: NOTIFY_EMAILS,
       subject,
       html,
     }),

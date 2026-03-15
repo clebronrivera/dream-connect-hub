@@ -4,17 +4,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ContactMessageInboxList } from '@/components/admin/ContactMessageInboxList';
 import { PuppyInquiryInboxList } from '@/components/admin/PuppyInquiryInboxList';
-import type { StatusFilter } from './leads/LeadsList';
-import { SUBJECT_UPCOMING_LITTER } from '@/lib/inquiry-subjects';
+import type { StatusFilter } from '@/lib/inquiry-subjects';
+import {
+  SUBJECT_UPCOMING_LITTER,
+  SLUG_PUPPY_INQUIRY,
+  SLUG_UPCOMING_LITTER,
+  SLUG_CONTACT_MESSAGE,
+} from '@/lib/inquiry-subjects';
 import { Dog, Mail, CalendarHeart, LayoutGrid } from 'lucide-react';
 
 const TAB_IDS = ['all-inquiries', 'puppy-inquiries', 'upcoming-litter', 'contact-messages'] as const;
 
 /** Map URL source param from dashboard to tab id */
 const SOURCE_TO_TAB: Record<string, (typeof TAB_IDS)[number]> = {
-  'puppy-inquiry': 'puppy-inquiries',
-  'upcoming-litter': 'upcoming-litter',
-  'contact-message': 'contact-messages',
+  [SLUG_PUPPY_INQUIRY]: 'puppy-inquiries',
+  [SLUG_UPCOMING_LITTER]: 'upcoming-litter',
+  [SLUG_CONTACT_MESSAGE]: 'contact-messages',
 };
 
 function getTabFromHash(): string {
@@ -122,7 +127,7 @@ export default function Inquiries() {
             <PuppyInquiryInboxList
               statusFilter={statusFilter}
               showStatusFilter={false}
-              initialOpenId={openSource === 'puppy-inquiry' ? openId : undefined}
+              initialOpenId={openSource === SLUG_PUPPY_INQUIRY ? openId : undefined}
             />
           </TabsContent>
 
@@ -130,7 +135,7 @@ export default function Inquiries() {
             <ContactMessageInboxList
               subjectFilter={SUBJECT_UPCOMING_LITTER}
               statusFilter={statusFilter}
-              initialOpenId={openSource === 'upcoming-litter' ? openId : undefined}
+              initialOpenId={openSource === SLUG_UPCOMING_LITTER ? openId : undefined}
             />
           </TabsContent>
 

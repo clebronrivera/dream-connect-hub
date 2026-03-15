@@ -79,11 +79,11 @@ export default function PuppiesList() {
       header: 'Photo',
       cell: (puppy: Puppy) => (
         <img
-          src={puppy.primary_photo || '/placeholder.png'}
+          src={puppy.primary_photo || '/placeholder.svg'}
           alt={puppy.name}
           className="h-12 w-12 rounded-full object-cover"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/placeholder.png';
+            (e.target as HTMLImageElement).src = '/placeholder.svg';
           }}
         />
       ),

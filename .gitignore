@@ -20,6 +20,9 @@ puppy-images
 public/banner-puppies.png
 public/banner*.png
 
+# Supabase CLI generated temp files
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

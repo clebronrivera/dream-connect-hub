@@ -16,6 +16,7 @@ import {
   Dog,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,9 +25,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { appEnv } from "@/lib/env";
 
 const SUPABASE_STORAGE_BASE =
-  "https://xwudsqswlfpoljuhbphr.supabase.co/storage/v1/object/public/site-assets";
+  (appEnv.supabaseUrl ?? "").replace(/\/$/, "") +
+  "/storage/v1/object/public/site-assets";
 
 interface BreedStats {
   intelligence: number;
@@ -389,6 +392,7 @@ export default function Breeds() {
 
   return (
     <Layout>
+      <Seo pageId="breeds" />
       <div className="min-h-screen">
         {/* Header Section */}
         <header className="container py-12 md:py-16 text-center">

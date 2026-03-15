@@ -74,7 +74,7 @@ async function verifySupabaseTables() {
     'consultation_requests',
     'product_inquiries',
     'puppy_inquiries',
-    'user_roles',
+    'profiles',
   ];
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {

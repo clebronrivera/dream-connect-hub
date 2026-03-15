@@ -10,7 +10,7 @@
  *   │   └── photo_2.jpg
  *   └── ...
  *
- * Requires .env.local: VITE_AIRTABLE_API_KEY, VITE_AIRTABLE_BASE_ID, VITE_AIRTABLE_TABLE_PUPPIES
+ * Requires .env.local: AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_PUPPIES
  */
 
 import dotenv from 'dotenv';
@@ -23,15 +23,28 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: join(__dirname, '..', '.env.local') });
 
-const airtableApiKey = process.env.VITE_AIRTABLE_API_KEY;
-const airtableBaseId = process.env.VITE_AIRTABLE_BASE_ID;
-const airtableTablePuppies = process.env.VITE_AIRTABLE_TABLE_PUPPIES || 'Available Puppies';
+const legacyEnvUsed = Boolean(
+  (!process.env.AIRTABLE_API_KEY && process.env.VITE_AIRTABLE_API_KEY) ||
+  (!process.env.AIRTABLE_BASE_ID && process.env.VITE_AIRTABLE_BASE_ID) ||
+  (!process.env.AIRTABLE_TABLE_PUPPIES && process.env.VITE_AIRTABLE_TABLE_PUPPIES)
+);
+
+const airtableApiKey = process.env.AIRTABLE_API_KEY || process.env.VITE_AIRTABLE_API_KEY;
+const airtableBaseId = process.env.AIRTABLE_BASE_ID || process.env.VITE_AIRTABLE_BASE_ID;
+const airtableTablePuppies =
+  process.env.AIRTABLE_TABLE_PUPPIES ||
+  process.env.VITE_AIRTABLE_TABLE_PUPPIES ||
+  'Available Puppies';
 
 const OUT_DIR = join(__dirname, '..', 'puppy-images');
 
 if (!airtableApiKey || !airtableBaseId) {
-  console.error('❌ Missing .env.local: VITE_AIRTABLE_API_KEY, VITE_AIRTABLE_BASE_ID');
+  console.error('❌ Missing .env.local: AIRTABLE_API_KEY, AIRTABLE_BASE_ID');
   process.exit(1);
+}
+
+if (legacyEnvUsed) {
+  console.warn('⚠️  Using legacy VITE_AIRTABLE_* variables. Rename them to AIRTABLE_* to avoid accidental frontend exposure.');
 }
 
 function slug(str) {

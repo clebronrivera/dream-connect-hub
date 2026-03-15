@@ -1,16 +1,26 @@
-# Run these migrations in order
+# Database migrations
+
+## Preferred: Supabase CLI
+
+1. **Link to your project** (one-time):
+
+   ```bash
+   supabase link --project-ref YOUR_PROJECT_REF
+   ```
+
+2. **Apply migrations**:
+
+   ```bash
+   supabase db push
+   ```
+
+   Or: `npm run db:push`
+
+**Prerequisites:** Base tables must exist. Run `supabase-schema.sql` (or `npm run setup:database`) first if starting from scratch.
+
+## Manual fallback
 
 1. Open your **Supabase project** → SQL Editor.
-2. Run each migration file in order (copy/paste full contents and run):
-   - **`20250208000000_consultation_puppy_flows.sql`** – consultation/puppy flows, form tables, RLS
-   - **`20250208100000_puppy_photos_storage.sql`** – `puppy-photos` storage bucket and RLS
-   - **`20250209100000_admin_dashboard_setup.sql`** – admin dashboard (profiles, etc.)
-   - **`20250209120000_products_kits_inventory.sql`** – products, kits, inventory
-3. Create an admin user: Supabase Auth → Users → Add user, then add a row to **`profiles`** with `user_id` = that user’s UUID and `role` = `'admin'`.
-
-After the migrations:
-
-- **consultation_requests** and **puppy_inquiries** use status **active | inactive**.
-- **contact_messages** uses **active | inactive** and has **admin_notes**.
-- Only users with **profiles.role = 'admin'** can access `/admin`.
-- Public sees only puppies with **status = 'Available'**.
+2. Run `supabase-schema.sql` first (creates base tables).
+3. Run each migration file in **timestamp order** (oldest first).
+4. Create an admin user: Supabase Auth → Users → Add user, then add a row to **`profiles`** with `user_id` = that UUID and `role` = `'admin'`.
