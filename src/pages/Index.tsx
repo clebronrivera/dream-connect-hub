@@ -4,6 +4,7 @@ import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { appEnv } from "@/lib/env";
+import { resolveSocialImageUrl } from "@/lib/seo";
 import { Dog, Heart, MapPin, Phone, Mail, Users, CheckCircle2 } from "lucide-react";
 
 const services = [
@@ -42,12 +43,10 @@ export default function Index() {
       <Seo pageId="home" />
       {/* Hero Section — banner from env or hardcoded Supabase URL (Lovable has no env); fallback to red */}
       {(() => {
-        const baseUrl = appEnv.supabaseUrl ?? '';
-        const defaultBanner = baseUrl
-          ? `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg`
-          : '';
-        const bannerUrl =
-          appEnv.bannerImageUrl?.trim() || defaultBanner;
+        const bannerUrl = resolveSocialImageUrl({
+          supabaseUrl: appEnv.supabaseUrl,
+          bannerImageUrl: appEnv.bannerImageUrl,
+        }) ?? "";
         const useImage = Boolean(bannerUrl);
         return (
           <section

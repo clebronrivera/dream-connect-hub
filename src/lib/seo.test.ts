@@ -6,6 +6,7 @@ import {
   buildCanonicalUrl,
   getPageTitle,
   normalizeCanonicalPath,
+  normalizePublicAssetUrl,
   resolveSocialImageUrl,
 } from "@/lib/seo";
 
@@ -44,7 +45,17 @@ describe("seo helpers", () => {
         supabaseUrl: "https://project.supabase.co/",
       })
     ).toBe(
-      "https://project.supabase.co/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg"
+      "https://project.supabase.co/storage/v1/object/public/site-assets/banner-puppies.png.jpeg"
+    );
+  });
+
+  it("normalizes Supabase dashboard asset urls to public storage urls", () => {
+    expect(
+      normalizePublicAssetUrl(
+        "https://supabase.com/dashboard/project/xwudsqswlfpoljuhbphr/storage/v1/object/public/site-assets/banner-puppies.png.jpeg"
+      )
+    ).toBe(
+      "https://xwudsqswlfpoljuhbphr.supabase.co/storage/v1/object/public/site-assets/banner-puppies.png.jpeg"
     );
   });
 

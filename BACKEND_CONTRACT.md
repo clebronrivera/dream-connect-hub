@@ -639,7 +639,7 @@ Inconsistency flag:
 - What is stored:
   - Hero/banner and breed page static images
 - Read/display path construction:
-  - Index fallback: `${VITE_SUPABASE_URL}/storage/v1/object/public/site-assets/banner-puppies.pn.jpeg` (`src/pages/Index.tsx`)
+  - Index fallback: `${VITE_SUPABASE_URL}/storage/v1/object/public/site-assets/banner-puppies.png.jpeg` (`src/pages/Index.tsx`)
   - Breeds page base: `${VITE_SUPABASE_URL}/storage/v1/object/public/site-assets/...` (`src/pages/Breeds.tsx`)
 - Upload files in repo:
   - No frontend uploader in current codebase
