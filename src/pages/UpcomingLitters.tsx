@@ -111,9 +111,11 @@ export default function UpcomingLitters() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {litters.map((litter) => {
               const imageUrl = getPlaceholderImageUrl(litter.placeholder_image_path);
-              // Prefer breeding dog's photo (single source of truth), fallback to litter's stored path
-              const damPhotoPath = litter.dam?.photo_path ?? litter.dam_photo_path;
-              const sirePhotoPath = litter.sire?.photo_path ?? litter.sire_photo_path;
+              // Photo comes from the selected dam/sire in breeding_dogs (joined by dam_id/sire_id). Fallback to legacy denormalized path, then placeholder.
+              const dam = Array.isArray(litter.dam) ? (litter.dam as { photo_path?: string | null }[])[0] : litter.dam;
+              const sire = Array.isArray(litter.sire) ? (litter.sire as { photo_path?: string | null }[])[0] : litter.sire;
+              const damPhotoPath = dam?.photo_path ?? litter.dam_photo_path;
+              const sirePhotoPath = sire?.photo_path ?? litter.sire_photo_path;
               const damHeroImage = damPhotoPath ? getStoragePublicUrl(damPhotoPath) : imageUrl;
               const sireHeroImage = sirePhotoPath ? getStoragePublicUrl(sirePhotoPath) : imageUrl;
               const damLabel = [litter.dam_name, litter.dam_breed].filter(Boolean).join(" • ");
@@ -210,15 +212,21 @@ export default function UpcomingLitters() {
                       <p>Deposit amount: ${depositAmount}.</p>
                     </div>
                     {(litter.example_puppy_image_paths?.length ?? 0) > 0 && (
-                      <div className="flex gap-2 flex-wrap">
-                        {litter.example_puppy_image_paths!.slice(0, 3).map((path, i) => (
-                          <img
-                            key={path}
-                            src={getStoragePublicUrl(path)}
-                            alt={`Example puppy ${i + 1}`}
-                            className="h-16 w-16 rounded object-cover flex-shrink-0"
-                          />
-                        ))}
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">Past puppies from our lines</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {litter.example_puppy_image_paths!.slice(0, 3).map((path, i) => (
+                            <img
+                              key={path}
+                              src={getStoragePublicUrl(path)}
+                              alt={`Past puppy ${i + 1}`}
+                              className="h-16 w-16 rounded object-cover flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
                     )}
                   </CardContent>

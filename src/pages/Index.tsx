@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
+import { AvailablePuppiesMarquee } from "@/components/AvailablePuppiesMarquee";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { appEnv } from "@/lib/env";
-import { resolveSocialImageUrl } from "@/lib/seo";
 import { Dog, Heart, MapPin, Phone, Mail, Users, CheckCircle2 } from "lucide-react";
+
+/** Local Puppy Heaven banner (from public folder); used as hero background behind "Welcome to Puppy Heaven". */
+const HERO_BANNER_URL = "/puppy-heaven-banner.jpg";
 
 const services = [
   {
@@ -37,47 +40,62 @@ const trustPoints = [
 
 export default function Index() {
   const featuredService = services[0];
+  const [bannerLoaded, setBannerLoaded] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
+  const useBannerImage = bannerLoaded && !bannerError;
 
   return (
     <Layout>
       <Seo pageId="home" />
-      {/* Hero Section — banner from env or hardcoded Supabase URL (Lovable has no env); fallback to red */}
-      {(() => {
-        const bannerUrl = resolveSocialImageUrl({
-          supabaseUrl: appEnv.supabaseUrl,
-          bannerImageUrl: appEnv.bannerImageUrl,
-        }) ?? "";
-        const useImage = Boolean(bannerUrl);
-        return (
-          <section
-            className={`relative py-20 lg:py-32 min-h-[28rem] ${useImage ? "bg-cover bg-center bg-no-repeat" : "bg-primary"}`}
-            style={useImage ? { backgroundImage: `url(${bannerUrl})` } : undefined}
-          >
-            {useImage && (
+      {/* Hidden img to detect banner load/error; fallback to primary (red) if image doesn't load */}
+      <img
+        src={HERO_BANNER_URL}
+        alt=""
+        className="hidden"
+        onLoad={() => setBannerLoaded(true)}
+        onError={() => setBannerError(true)}
+      />
+      {/* Hero Section — Puppy Heaven banner behind "Welcome to Puppy Heaven", or primary color fallback */}
+      <section className="relative min-h-[28rem] py-20 lg:py-32 flex flex-col justify-center">
+        <div className="absolute inset-0 z-0 bg-primary" aria-hidden>
+          {useBannerImage && (
+            <>
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${HERO_BANNER_URL})` }}
+              />
               <div className="absolute inset-0 bg-black/50" aria-hidden />
-            )}
-            <div className="container relative z-10">
-              <div className="max-w-3xl mx-auto text-center">
-                <Dog className={`h-16 w-16 mx-auto mb-6 ${useImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`} />
-                <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 ${useImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`}>
-                  Welcome to Puppy Heaven
-                </h1>
-                <p className={`text-lg md:text-xl mb-8 ${useImage ? "text-white/90 drop-shadow-sm" : "text-primary-foreground/80"}`}>
-                  Your trusted partner for finding the perfect puppy and everything your furry friend needs to thrive.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" variant="secondary" className="text-black" asChild>
-                    <Link to="/puppies">
-                      <Dog className="h-5 w-5 mr-2" />
-                      Browse Puppies
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+            </>
+          )}
+        </div>
+        <div className="container relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <Dog
+              className={`h-16 w-16 mx-auto mb-6 ${useBannerImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`}
+            />
+            <h1
+              className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 ${useBannerImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`}
+            >
+              Welcome to Puppy Heaven
+            </h1>
+            <p
+              className={`text-lg md:text-xl mb-8 ${useBannerImage ? "text-white/90 drop-shadow-sm" : "text-primary-foreground/80"}`}
+            >
+              Your trusted partner for finding the perfect puppy and everything your furry friend needs to thrive.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" variant="secondary" className="text-black" asChild>
+                <Link to="/puppies">
+                  <Dog className="h-5 w-5 mr-2" />
+                  Browse Puppies
+                </Link>
+              </Button>
             </div>
-          </section>
-        );
-      })()}
+          </div>
+        </div>
+      </section>
+
+      <AvailablePuppiesMarquee />
 
       {/* Services Section */}
       <section className="container py-16">

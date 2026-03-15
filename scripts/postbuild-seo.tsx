@@ -42,7 +42,8 @@ async function main() {
     return;
   }
 
-  const { AppProviders, AppRoutes, createAppQueryClient } = await import("../src/App");
+  const { AppProviders, AppRoutes } = await import("../src/App");
+  const { createAppQueryClient } = await import("../src/lib/query-client");
   const template = await fs.readFile(distIndexPath, "utf8");
 
   for (const route of PUBLIC_SEO_ROUTES) {
@@ -66,7 +67,7 @@ async function main() {
 type RenderModules = {
   AppProviders: typeof import("../src/App").AppProviders;
   AppRoutes: typeof import("../src/App").AppRoutes;
-  createAppQueryClient: typeof import("../src/App").createAppQueryClient;
+  createAppQueryClient: typeof import("../src/lib/query-client").createAppQueryClient;
 };
 
 function renderRouteHtml(
@@ -150,6 +151,15 @@ Sitemap: ${siteUrl}/sitemap.xml
 }
 
 main().catch((error) => {
+  const msg = (error && (error as Error).message) || String(error);
+  if (msg.includes("Missing Supabase config") || msg.includes("VITE_SUPABASE")) {
+    console.warn("Skipping SEO postbuild. Missing Supabase config.");
+    console.warn(
+      "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify (and VITE_SITE_URL) to enable pre-render."
+    );
+    process.exitCode = 0;
+    return;
+  }
   console.error("SEO postbuild failed.");
   console.error(error);
   process.exitCode = 1;

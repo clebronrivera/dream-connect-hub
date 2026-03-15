@@ -55,9 +55,11 @@ Family-operated puppy website: available puppies, upcoming litters, pet consulta
 
 To receive emails when someone submits a puppy inquiry or contact message, see [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md). Setup uses Supabase Edge Functions, database webhooks, and Resend (free tier).
 
-## Technical audit report
+## Documentation and change tracking
 
-A technical report with audit outcomes, implementation summary, and a file map is in **[docs/TECHNICAL_AUDIT_REPORT.md](docs/TECHNICAL_AUDIT_REPORT.md)**. Use it to see what was changed, where everything lives, and how the system is wired after the refactor.
+- **[CHANGELOG.md](CHANGELOG.md)** – **Changes, fixes, additions, and known issues** by date. Use this to see what was done recently and what was fixed.
+- **[docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** – Index of all project docs: where to find change history, setup, notifications, migrations, and feature guides.
+- **[docs/TECHNICAL_AUDIT_REPORT.md](docs/TECHNICAL_AUDIT_REPORT.md)** – Audit outcomes, implementation summary, and file map from the refactor. Use it to see where everything lives and how the system is wired.
 
 ## Database
 

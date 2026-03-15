@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createAppQueryClient } from "@/lib/query-client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -32,16 +33,6 @@ const KitsList = lazy(() => import("./pages/admin/inventory/KitsList"));
 const KitForm = lazy(() => import("./pages/admin/inventory/KitForm"));
 const Inquiries = lazy(() => import("./pages/admin/Inquiries"));
 const BusinessModes = lazy(() => import("./pages/admin/BusinessModes"));
-
-export function createAppQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000, // 1 minute - reduces refetch on tab focus for admin/dashboard
-      },
-    },
-  });
-}
 
 type AppProvidersProps = {
   children: ReactNode;
