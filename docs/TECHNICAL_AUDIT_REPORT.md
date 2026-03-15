@@ -124,11 +124,13 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 
 | Purpose | Location |
 |--------|----------|
+| **Change tracking (changes, fixes, additions, problems)** | **`CHANGELOG.md`** |
+| **Index of all documentation** | **`docs/DOCUMENTATION_INDEX.md`** |
 | Notification setup (env-driven URLs) | `docs/NOTIFICATIONS.md` |
 | Project setup, deploy, and Netlify troubleshooting | `README.md` |
 | Goldendoodle plan (with audit note) | `docs/PLAN_GOLDENDOODLE_NAMES_DESCRIPTIONS.md` |
 | Ignore Supabase CLI temp files | `.gitignore` (supabase/.temp/) |
-| QueryClient default options | `src/App.tsx` |
+| QueryClient factory (shared by App and SEO postbuild) | `src/lib/query-client.ts` |
 
 ### Removed (no longer in repo)
 
@@ -152,6 +154,7 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 
 ## 6. What to do next (optional)
 
+- **Ongoing changes:** Record new work (additions, fixes, mistakes, problems) in **[CHANGELOG.md](../CHANGELOG.md)**. See **[docs/DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** for the full doc index.
 - **PuppyForm / UpcomingLitterForm:** Still large; can be split by concern (photos, pricing, timeline, submit mapping) in a later refactor.
 - **Consultation and product inquiries:** Still only reflected in dashboard counts; no dedicated admin inbox routes yet.
 - **Validation:** Puppy interest uses Zod; other forms mostly HTML required. Consider centralizing validation for other intakes.
@@ -170,6 +173,8 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 | Change Supabase URL/key or env | `.env.local` and `src/lib/supabase.ts` |
 | Change shared admin detail dialog layout | `src/components/admin/InquiryDetailShared.tsx` and `src/lib/date-utils.ts` |
 | Understand notification setup | `docs/NOTIFICATIONS.md` and `scripts/setup-puppy-inquiry-notifications.sh` |
+| See recent changes, fixes, and known issues | `CHANGELOG.md` |
+| See index of all docs | `docs/DOCUMENTATION_INDEX.md` |
 | Onboard a developer | `README.md` and this report |
 
 ---

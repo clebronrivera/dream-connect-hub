@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -72,7 +72,7 @@ export function ContactMessageInboxList({
     },
   });
 
-  const messages = data?.rows ?? [];
+  const messages = useMemo(() => data?.rows ?? [], [data?.rows]);
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentIndex = selectedId ? messages.findIndex((m) => m.id === selectedId) : -1;

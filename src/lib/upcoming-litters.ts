@@ -4,7 +4,7 @@ import type { UpcomingLitter } from "@/lib/supabase";
 /** Shared query key for active upcoming litters (public + contact page). */
 export const UPCOMING_LITTERS_ACTIVE_QUERY_KEY = ["upcoming-litters-active"] as const;
 
-/** Fetch active upcoming litters with dam/sire from breeding_dogs so their photos are used. */
+/** Fetch active upcoming litters with dam/sire from breeding_dogs so card photos use the selected dam/sire's photo_path. */
 export async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
   const { data, error } = await supabase
     .from("upcoming_litters")

@@ -70,7 +70,7 @@ export function ContactMessageDetailDialog({
       setAdminNotes(message.admin_notes ?? '');
       setFollowedUpAt(message.followed_up_at ? toDatetimeLocal(message.followed_up_at) : '');
     }
-  }, [message?.id, message?.status, message?.admin_notes, message?.followed_up_at]);
+  }, [message]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates: { status?: string; admin_notes?: string; followed_up_at?: string | null }) => {

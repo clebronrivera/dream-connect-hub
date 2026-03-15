@@ -70,7 +70,7 @@ export function PuppyInquiryDetailDialog({
       setAdminNotes(inquiry.admin_notes ?? '');
       setFollowedUpAt(inquiry.followed_up_at ? toDatetimeLocal(inquiry.followed_up_at) : '');
     }
-  }, [inquiry?.id, inquiry?.status, inquiry?.admin_notes, inquiry?.followed_up_at]);
+  }, [inquiry]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates: { status?: string; admin_notes?: string; followed_up_at?: string | null }) => {

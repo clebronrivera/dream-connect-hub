@@ -14,8 +14,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
-import { Loader2, Eye } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Loader2, Eye, Upload, X } from 'lucide-react';
+import { uploadPuppyPhoto } from '@/lib/puppy-photos';
+
+function getStoragePublicUrl(path: string): string {
+  return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
+}
 
 const schema = z.object({
   dam_id: z.string().optional(),
@@ -105,6 +110,22 @@ export default function UpcomingLitterForm() {
   const selectedDam = damId ? dams.find((d) => d.id === damId) : null;
   const selectedSire = sireId ? sires.find((s) => s.id === sireId) : null;
 
+  /** Past dogs from this line: up to 3 images. Each slot is existing path or new file. */
+  type ExamplePuppySlot = { path?: string; file?: File };
+  const [examplePuppySlots, setExamplePuppySlots] = useState<ExamplePuppySlot[]>([]);
+  const examplePuppyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [filePreviewUrls, setFilePreviewUrls] = useState<(string | null)[]>([]);
+  useEffect(() => {
+    const urls: (string | null)[] = examplePuppySlots.map((s) =>
+      s.file ? URL.createObjectURL(s.file) : null
+    );
+    setFilePreviewUrls((prev) => {
+      prev.forEach((u) => u && URL.revokeObjectURL(u));
+      return urls;
+    });
+    return () => urls.forEach((u) => u && URL.revokeObjectURL(u));
+  }, [examplePuppySlots]);
+
   useEffect(() => {
     const computed = getDueLabelFromBreedingDate(breedingDate);
     if (computed) form.setValue('due_label', computed);
@@ -139,10 +160,12 @@ export default function UpcomingLitterForm() {
         min_expected_puppies: row.min_expected_puppies ?? undefined,
         max_expected_puppies: row.max_expected_puppies ?? undefined,
       });
+      const paths = row.example_puppy_image_paths ?? [];
+      setExamplePuppySlots(paths.slice(0, 3).map((path) => ({ path })));
     }
   }, [row, form]);
 
-  const buildPayload = (data: FormValues) => {
+  const buildPayload = (data: FormValues, examplePuppyPaths: string[] | null) => {
     const due_label = getDueLabelFromBreedingDate(data.breeding_date) || data.due_label || null;
     const expected_whelping_date = getExpectedWhelpingDate(data.breeding_date) || data.expected_whelping_date || null;
     const dam = data.dam_id ? dams.find((d) => d.id === data.dam_id) : null;
@@ -173,13 +196,20 @@ export default function UpcomingLitterForm() {
       breeding_date: data.breeding_date || null,
       dam_photo_path: null,
       sire_photo_path: null,
-      example_puppy_image_paths: null,
+      example_puppy_image_paths: examplePuppyPaths && examplePuppyPaths.length > 0 ? examplePuppyPaths : null,
     };
   };
 
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const payload = buildPayload(data);
+      const paths: string[] = [];
+      for (const slot of examplePuppySlots) {
+        if (slot.file) {
+          const { path } = await uploadPuppyPhoto(slot.file);
+          paths.push(path);
+        } else if (slot.path) paths.push(slot.path);
+      }
+      const payload = buildPayload(data, paths.length ? paths : null);
       const { error } = await supabase.from('upcoming_litters').insert(payload);
       if (error) throw error;
     },
@@ -194,7 +224,14 @@ export default function UpcomingLitterForm() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const payload = buildPayload(data);
+      const paths: string[] = [];
+      for (const slot of examplePuppySlots) {
+        if (slot.file) {
+          const { path } = await uploadPuppyPhoto(slot.file);
+          paths.push(path);
+        } else if (slot.path) paths.push(slot.path);
+      }
+      const payload = buildPayload(data, paths.length ? paths : null);
       const { error } = await supabase
         .from('upcoming_litters')
         .update(payload)
@@ -439,6 +476,87 @@ export default function UpcomingLitterForm() {
                 </FormItem>
               )}
             />
+          </div>
+
+          <div className="space-y-4 rounded-lg border p-4">
+            <h3 className="font-medium">Past dogs from this line (up to 3 images)</h3>
+            <p className="text-sm text-muted-foreground">
+              Optional. These appear on the public Upcoming Litters page only when at least one image is added. If none are uploaded, that section is not shown.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {examplePuppySlots.map((slot, index) => (
+                <div key={index} className="flex flex-col items-start gap-2">
+                  <input
+                    ref={(el) => { examplePuppyInputRefs.current[index] = el; }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setExamplePuppySlots((prev) => {
+                        const next = [...prev];
+                        next[index] = { file };
+                        return next;
+                      });
+                    }}
+                  />
+                  {(slot.file || slot.path) && (
+                    <>
+                      <img
+                        src={slot.file ? (filePreviewUrls[index] ?? '') : getStoragePublicUrl(slot.path!)}
+                        alt={`Past dog ${index + 1}`}
+                        className="h-24 w-24 rounded-lg object-cover border"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => examplePuppyInputRefs.current[index]?.click()}
+                        >
+                          <Upload className="h-4 w-4 mr-1" />
+                          Change
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setExamplePuppySlots((prev) => prev.filter((_, i) => i !== index));
+                            examplePuppyInputRefs.current = examplePuppyInputRefs.current.filter((_, i) => i !== index);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                  {!slot.file && !slot.path && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => examplePuppyInputRefs.current[index]?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-1" />
+                      Add image
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {examplePuppySlots.length < 3 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExamplePuppySlots((prev) => (prev.length < 3 ? [...prev, {}] : prev))}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Add image ({examplePuppySlots.length}/3)
+                </Button>
+              )}
+            </div>
           </div>
 
           <FormField
