@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "health:check": "npm run lint && npm run test -- --run && npm run build",
     "postbuild": "tsx --tsconfig tsconfig.app.json scripts/postbuild-seo.tsx",
     "lint": "eslint .",
     "preview": "vite preview",

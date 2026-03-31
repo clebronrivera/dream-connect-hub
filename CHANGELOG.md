@@ -6,6 +6,23 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-03-31
+
+### Added
+
+- **Development tracking workflow**
+  - Added `docs/DEVELOPMENT_TRACKING.md` with a standard process to run health checks, update logs, commit, and push each change.
+  - Added `docs/DEVELOPMENT_LOG.md` as a chronological delivery log for quick project-progress tracking.
+  - Added `npm run health:check` script to run lint + tests + build in one command before shipping.
+
+### Fixed
+
+- **Puppy inquiry communications consent handling**
+  - Updated `src/components/PuppyInterestForm.tsx` to preserve tri-state consent values by storing `consentCommunications` as `true`, `false`, or `null` (unspecified), instead of converting unspecified to `false`.
+  - Updated consent section heading text from `Stay Connected *` to `Stay Connected (Optional)` to match schema behavior and avoid required-field confusion.
+
+---
+
 ## 2025-03-15
 
 ### Added

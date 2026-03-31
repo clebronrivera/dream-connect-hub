@@ -9,6 +9,8 @@ Quick reference for where to find **changes, mistakes, additions, and problems**
 | Document | Purpose |
 |---------|--------|
 | **[CHANGELOG.md](../CHANGELOG.md)** | **Primary place for change tracking.** Records what was added, changed, fixed, and any known issues, by date. Use this to see recent work and problems that were fixed. |
+| **[docs/DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** | Chronological delivery log of shipped updates for quick review of recent development progress. |
+| **[docs/DEVELOPMENT_TRACKING.md](DEVELOPMENT_TRACKING.md)** | Standard process for tracking, health-checking, committing, and pushing every change. |
 | **[docs/TECHNICAL_AUDIT_REPORT.md](TECHNICAL_AUDIT_REPORT.md)** | Audit outcomes, implementation summary, and file map from the Deep Technical Audit. Describes what was refactored, where things live, and how the system is wired. Use for historical context and “where to find what.” |
 
 ---
