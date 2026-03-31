@@ -47,7 +47,11 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 ### Environment and backend
 
 - **Supabase** is configured only via env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. No hardcoded project URL or anon key in app code.
-- **Banner and storage URLs** (Index, Breeds) are derived from `VITE_SUPABASE_URL` or `VITE_BANNER_IMAGE_URL`. Banner overrides must use a public asset URL, not a Supabase dashboard URL, and the default banner object path is `site-assets/banner-puppies.png.jpeg`.
+- **Banner and storage URLs**:
+  - Homepage hero uses the local public asset `/puppy-heaven-banner.jpg`.
+  - SEO/social banner uses `VITE_BANNER_IMAGE_URL` when provided; otherwise it resolves to `/puppy-heaven-banner.jpg` on the site origin.
+  - Breeds page images still derive from `VITE_SUPABASE_URL` storage paths.
+  - Banner overrides must use a public asset URL, not a Supabase dashboard URL.
 - **Profiles** are the single source of truth for admin; storage policies and scripts reference `profiles`, not `user_roles`.
 - **Notification scripts and docs** use project ref from env (e.g. `VITE_SUPABASE_URL` or `SUPABASE_PROJECT_REF`), not a hardcoded ref.
 
@@ -67,7 +71,9 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 ### Performance and hygiene
 
 - **QueryClient** has a default `staleTime` (e.g. 1 minute) to reduce refetches on tab focus.
-- **Homepage banner resolution** uses the corrected default storage object path and shares the same resolver for hero and SEO/social image output.
+- **Homepage banner debugging** is now simpler:
+  - If the visible hero is broken, inspect `/puppy-heaven-banner.jpg`.
+  - If DevTools shows a failing banner request but the hero looks fine, inspect SEO/social metadata (`og:image`, `twitter:image`) and `VITE_BANNER_IMAGE_URL`.
 - **Puppies page errors** now surface explicit Supabase diagnostics for missing client env vars and blocked public read access (RLS/policy), instead of a generic failure message.
 - **Dead code removed:** legacy admin `leads` pages, `ConsultationDetailDialog`, `types/leads`, and unused UI components (chart, command, drawer, carousel, calendar).
 - **.gitignore** includes `supabase/.temp/` to avoid commit noise.

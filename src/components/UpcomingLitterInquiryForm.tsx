@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,7 @@ import type { UpcomingLitter } from "@/lib/supabase";
 import { formatBirthWindow, formatGoHomeWindow } from "@/lib/litter-timeline";
 import { SUBJECT_UPCOMING_LITTER } from "@/lib/inquiry-subjects";
 import { US_STATES } from "@/data/statesData";
-
-const DEPOSIT_NOTE =
-  "A $300 non-refundable deposit places you on the reservation list in the order received. Families will be given the opportunity to select a puppy based on that reservation order. A detailed deposit agreement and receipt will be sent with full terms and next steps.";
+import { normalizeSupportedLanguage } from "@/i18n";
 
 export const INTEREST_OPTION_DEPOSIT =
   "I want to reserve a puppy with a $300 non-refundable deposit";
@@ -22,8 +21,8 @@ export const INTEREST_OPTION_UPDATES =
 export const INTEREST_OPTION_WAITLIST_PREVIEW =
   "I want to join the waitlist for the first preview of the puppies with the interest of possibly putting a deposit in.";
 
-function getLitterLabel(litter: UpcomingLitter): string {
-  const breed = (litter.display_breed || litter.breed || "Upcoming Litter").trim();
+function getLitterLabel(litter: UpcomingLitter, fallbackLabel: string): string {
+  const breed = (litter.display_breed || litter.breed || fallbackLabel).trim();
   return litter.due_label ? `${breed}, ${litter.due_label}` : breed;
 }
 
@@ -42,7 +41,6 @@ export interface UpcomingLitterInquiryPayload {
 
 interface UpcomingLitterInquiryFormProps {
   litters: UpcomingLitter[];
-  /** When opened from a specific litter card, preselect this litter. */
   initialLitterId?: string | null;
   onSubmit: (payload: UpcomingLitterInquiryPayload) => Promise<void>;
   isSubmitting: boolean;
@@ -54,8 +52,9 @@ export function UpcomingLitterInquiryForm({
   initialLitterId,
   onSubmit,
   isSubmitting,
-  submitLabel = "Submit",
+  submitLabel,
 }: UpcomingLitterInquiryFormProps) {
+  const { t, i18n } = useTranslation();
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -65,21 +64,25 @@ export function UpcomingLitterInquiryForm({
   const [depositChecked, setDepositChecked] = useState(false);
   const [updatesChecked, setUpdatesChecked] = useState(false);
   const [waitlistPreviewChecked, setWaitlistPreviewChecked] = useState(false);
+  const currentLanguage =
+    normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? "en";
+  const resolvedSubmitLabel =
+    submitLabel ?? t("upcomingLitters.waitlistCta");
 
   useEffect(() => {
-    if (initialLitterId && litters.some((l) => l.id === initialLitterId)) {
+    if (initialLitterId && litters.some((litter) => litter.id === initialLitterId)) {
       setSelectedLitterId(initialLitterId);
     }
   }, [initialLitterId, litters]);
 
   const selectedLitter = selectedLitterId
-    ? litters.find((l) => l.id === selectedLitterId)
+    ? litters.find((litter) => litter.id === selectedLitterId)
     : null;
   const birthWindowText = selectedLitter
-    ? formatBirthWindow(selectedLitter.breeding_date)
+    ? formatBirthWindow(selectedLitter.breeding_date, currentLanguage)
     : null;
   const goHomeWindowText = selectedLitter
-    ? formatGoHomeWindow(selectedLitter.breeding_date)
+    ? formatGoHomeWindow(selectedLitter.breeding_date, currentLanguage)
     : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,10 +100,12 @@ export function UpcomingLitterInquiryForm({
       state: state.trim(),
       subject: SUBJECT_UPCOMING_LITTER,
       message: selectedLitter
-        ? `Upcoming litter inquiry: ${getLitterLabel(selectedLitter)}`
+        ? `Upcoming litter inquiry: ${getLitterLabel(selectedLitter, t("upcomingLitters.labels.upcomingLitter"))}`
         : "Upcoming litter inquiry",
       upcoming_litter_id: selectedLitterId,
-      upcoming_litter_label: selectedLitter ? getLitterLabel(selectedLitter) : null,
+      upcoming_litter_label: selectedLitter
+        ? getLitterLabel(selectedLitter, t("upcomingLitters.labels.upcomingLitter"))
+        : null,
       interest_options: interestOptions,
     };
     await onSubmit(payload);
@@ -110,49 +115,49 @@ export function UpcomingLitterInquiryForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="upcoming-litter-name">Name *</Label>
+          <Label htmlFor="upcoming-litter-name">{t("forms.upcomingLitter.fields.name")}</Label>
           <Input
             id="upcoming-litter-name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t("forms.upcomingLitter.placeholders.name")}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="upcoming-litter-email">Email *</Label>
+          <Label htmlFor="upcoming-litter-email">{t("forms.upcomingLitter.fields.email")}</Label>
           <Input
             id="upcoming-litter-email"
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
+            placeholder={t("forms.upcomingLitter.placeholders.email")}
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="upcoming-litter-city">City *</Label>
+          <Label htmlFor="upcoming-litter-city">{t("forms.upcomingLitter.fields.city")}</Label>
           <Input
             id="upcoming-litter-city"
             required
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="City"
+            placeholder={t("forms.upcomingLitter.placeholders.city")}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="upcoming-litter-state">State *</Label>
+          <Label htmlFor="upcoming-litter-state">{t("forms.upcomingLitter.fields.state")}</Label>
           <Select required value={state || ""} onValueChange={setState}>
             <SelectTrigger id="upcoming-litter-state">
-              <SelectValue placeholder="Select state" />
+              <SelectValue placeholder={t("common.selectState")} />
             </SelectTrigger>
             <SelectContent>
-              {US_STATES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
+              {US_STATES.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {t(`states.${option.value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -161,30 +166,30 @@ export function UpcomingLitterInquiryForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="upcoming-litter-phone">Phone number</Label>
+        <Label htmlFor="upcoming-litter-phone">{t("forms.upcomingLitter.fields.phone")}</Label>
         <Input
           id="upcoming-litter-phone"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="(555) 123-4567"
+          placeholder={t("forms.upcomingLitter.placeholders.phone")}
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Upcoming litter *</Label>
+        <Label>{t("forms.upcomingLitter.fields.litter")}</Label>
         <Select
           value={selectedLitterId ?? ""}
-          onValueChange={(v) => setSelectedLitterId(v || null)}
+          onValueChange={(value) => setSelectedLitterId(value || null)}
           required
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a litter" />
+            <SelectValue placeholder={t("forms.upcomingLitter.fields.selectLitter")} />
           </SelectTrigger>
           <SelectContent>
-            {litters.map((l) => (
-              <SelectItem key={l.id!} value={l.id!}>
-                {getLitterLabel(l)}
+            {litters.map((litter) => (
+              <SelectItem key={litter.id!} value={litter.id!}>
+                {getLitterLabel(litter, t("upcomingLitters.labels.upcomingLitter"))}
               </SelectItem>
             ))}
           </SelectContent>
@@ -196,69 +201,73 @@ export function UpcomingLitterInquiryForm({
           {birthWindowText && (
             <p className="flex items-center gap-2">
               <Calendar className="h-4 w-4 flex-shrink-0" />
-              Estimated birth window: {birthWindowText}
+              {t("forms.upcomingLitter.fields.estimatedBirth", {
+                value: birthWindowText,
+              })}
             </p>
           )}
           {goHomeWindowText && (
             <p className="flex items-center gap-2">
               <Calendar className="h-4 w-4 flex-shrink-0" />
-              Estimated go-home window: {goHomeWindowText}
+              {t("forms.upcomingLitter.fields.estimatedGoHome", {
+                value: goHomeWindowText,
+              })}
             </p>
           )}
         </div>
       )}
 
       <div className="space-y-3">
-        <Label>Check all that apply</Label>
+        <Label>{t("forms.upcomingLitter.fields.checkAll")}</Label>
         <div className="space-y-3">
           <div className="flex items-start space-x-2">
             <Checkbox
               id="upcoming-litter-deposit"
               checked={depositChecked}
-              onCheckedChange={(c) => setDepositChecked(c === true)}
+              onCheckedChange={(checked) => setDepositChecked(checked === true)}
             />
             <label
               htmlFor="upcoming-litter-deposit"
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              {INTEREST_OPTION_DEPOSIT}
+              {t("forms.upcomingLitter.options.reserve")}
             </label>
           </div>
           <div className="flex items-start space-x-2">
             <Checkbox
               id="upcoming-litter-updates"
               checked={updatesChecked}
-              onCheckedChange={(c) => setUpdatesChecked(c === true)}
+              onCheckedChange={(checked) => setUpdatesChecked(checked === true)}
             />
             <label
               htmlFor="upcoming-litter-updates"
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              {INTEREST_OPTION_UPDATES}
+              {t("forms.upcomingLitter.options.updates")}
             </label>
           </div>
           <div className="flex items-start space-x-2">
             <Checkbox
               id="upcoming-litter-waitlist-preview"
               checked={waitlistPreviewChecked}
-              onCheckedChange={(c) => setWaitlistPreviewChecked(c === true)}
+              onCheckedChange={(checked) => setWaitlistPreviewChecked(checked === true)}
             />
             <label
               htmlFor="upcoming-litter-waitlist-preview"
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              {INTEREST_OPTION_WAITLIST_PREVIEW}
+              {t("forms.upcomingLitter.options.preview")}
             </label>
           </div>
         </div>
       </div>
 
       <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-        {DEPOSIT_NOTE}
+        {t("forms.upcomingLitter.depositNote")}
       </div>
 
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Submitting…" : submitLabel}
+        {isSubmitting ? t("forms.upcomingLitter.submitting") : resolvedSubmitLabel}
       </Button>
     </form>
   );

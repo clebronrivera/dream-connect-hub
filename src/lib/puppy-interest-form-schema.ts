@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { z } from "zod";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -5,65 +6,88 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneDigitsOnly = (v: string) => v.replace(/\D/g, "");
 const usPhoneValid = (v: string) => phoneDigitsOnly(v).length === 10;
 
-export const puppyInterestFormSchema = z
-  .object({
-    firstName: z
-      .string()
-      .min(1, "First name is required")
-      .max(50)
-      .regex(/^[a-zA-Z\s\-']+$/, "Letters only"),
-    lastName: z
-      .string()
-      .min(1, "Last name is required")
-      .max(50)
-      .regex(/^[a-zA-Z\s\-']+$/, "Letters only"),
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .regex(emailRegex, "Please enter a valid email address"),
-    phone: z
-      .string()
-      .min(1, "Phone is required")
-      .refine(usPhoneValid, "Please enter a valid US phone number (10 digits)"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "Please select a state"),
+export function createPuppyInterestFormSchema(t: TFunction) {
+  return z
+    .object({
+      firstName: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.firstNameRequired"))
+        .max(50)
+        .regex(/^[a-zA-Z\s\-']+$/, t("forms.puppyInterest.validation.lettersOnly")),
+      lastName: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.lastNameRequired"))
+        .max(50)
+        .regex(/^[a-zA-Z\s\-']+$/, t("forms.puppyInterest.validation.lettersOnly")),
+      email: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.emailRequired"))
+        .regex(emailRegex, t("forms.puppyInterest.validation.validEmail")),
+      phone: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.phoneRequired"))
+        .refine(
+          usPhoneValid,
+          t("forms.puppyInterest.validation.validPhone")
+        ),
+      city: z.string().min(1, t("forms.puppyInterest.validation.cityRequired")),
+      state: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.selectState")),
 
-    interestedSpecific: z.enum(["yes", "no"]),
-    selectedPuppyId: z.string().optional(),
-    sizePreference: z.string().min(1, "Please select a size preference"),
-    breedPreference: z
-      .array(z.string())
-      .refine((arr) => arr && arr.length > 0, "Please select at least one breed or No Preference"),
-    genderPreference: z.string().optional(),
-    timeline: z.string().min(1, "Please select when you're looking to bring a puppy home"),
+      interestedSpecific: z.enum(["yes", "no"]),
+      selectedPuppyId: z.string().optional(),
+      sizePreference: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.selectSize")),
+      breedPreference: z
+        .array(z.string())
+        .refine(
+          (arr) => arr && arr.length > 0,
+          t("forms.puppyInterest.validation.selectBreed")
+        ),
+      genderPreference: z.string().optional(),
+      timeline: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.selectTimeline")),
 
-    experience: z.string().min(1, "Please select your experience level"),
-    howHeard: z.string().min(1, "Please select how you heard about us"),
-    howHeardOther: z.string().optional(),
-    viewingPreference: z.string().optional(),
+      experience: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.selectExperience")),
+      howHeard: z
+        .string()
+        .min(1, t("forms.puppyInterest.validation.selectHowHeard")),
+      howHeardOther: z.string().optional(),
+      viewingPreference: z.string().optional(),
 
-    wantsAiTraining: z.boolean().optional(),
-    consentCommunications: z.boolean({
-      required_error: "Please select a communication preference.",
-    }),
-  })
-  .refine(
-    (data) => {
-      if (data.interestedSpecific !== "yes") return true;
-      return !!data.selectedPuppyId?.trim();
-    },
-    { message: "Please select a puppy", path: ["selectedPuppyId"] }
-  )
-  .refine(
-    (data) => {
-      if (data.howHeard !== "referred" && data.howHeard !== "other") return true;
-      if (data.howHeard === "other") return true; // "Other" has optional specify field
-      return true;
-    },
-    { path: ["howHeardOther"] }
-  );
+      wantsAiTraining: z.boolean().optional(),
+      consentCommunications: z.boolean({
+        required_error: t("forms.puppyInterest.validation.selectConsent"),
+      }),
+    })
+    .refine(
+      (data) => {
+        if (data.interestedSpecific !== "yes") return true;
+        return !!data.selectedPuppyId?.trim();
+      },
+      {
+        message: t("forms.puppyInterest.validation.selectPuppy"),
+        path: ["selectedPuppyId"],
+      }
+    )
+    .refine(
+      (data) => {
+        if (data.howHeard !== "referred" && data.howHeard !== "other") return true;
+        if (data.howHeard === "other") return true;
+        return true;
+      },
+      { path: ["howHeardOther"] }
+    );
+}
 
-export type PuppyInterestFormValues = z.infer<typeof puppyInterestFormSchema>;
+export type PuppyInterestFormValues = z.infer<
+  ReturnType<typeof createPuppyInterestFormSchema>
+>;
 
 /** Format US phone as (123) 456-7890 */
 export function formatUSPhone(value: string): string {

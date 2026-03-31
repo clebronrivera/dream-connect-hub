@@ -37,6 +37,7 @@ Quick reference for where to find **changes, mistakes, additions, and problems**
 ## When to update what
 
 - **Code or behavior change, or a fix:** Add an entry to **[CHANGELOG.md](../CHANGELOG.md)** (date, Added/Changed/Fixed/Known issues).
+- **Behavioral debugging notes that would save time later:** Prefer adding them to **[CHANGELOG.md](../CHANGELOG.md)** and, if the behavior is part of a long-lived contract, mirror the final rule in **[BACKEND_CONTRACT.md](../BACKEND_CONTRACT.md)** or **[README.md](../README.md)**.
 - **New doc or major restructure:** Add it here in the right section and, if relevant, mention it in the README or CHANGELOG.
 - **Audit or refactor that changes architecture:** Update **[TECHNICAL_AUDIT_REPORT.md](TECHNICAL_AUDIT_REPORT.md)** (or add a note there pointing to CHANGELOG for ongoing changes).
 

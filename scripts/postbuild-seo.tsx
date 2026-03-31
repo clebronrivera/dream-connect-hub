@@ -16,6 +16,7 @@ loadDotEnv({ path: path.join(projectRoot, ".env.local"), override: false });
 loadDotEnv({ path: path.join(projectRoot, ".env"), override: false });
 
 async function main() {
+  await import("../src/i18n");
   // Load only env + seo first so we can skip without pulling in App (and thus Supabase).
   const {
     PUBLIC_SEO_ROUTES,
