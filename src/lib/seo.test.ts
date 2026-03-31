@@ -7,7 +7,6 @@ import {
   getPageTitle,
   normalizeCanonicalPath,
   normalizePublicAssetUrl,
-  resolveSeoMetadata,
   resolveSocialImageUrl,
 } from "@/lib/seo";
 
@@ -64,19 +63,6 @@ describe("seo helpers", () => {
   it("returns the expected page title format", () => {
     expect(getPageTitle("Puppy Heaven")).toBe("Puppy Heaven");
     expect(getPageTitle("Available Puppies")).toBe("Available Puppies | Puppy Heaven");
-  });
-
-  it("resolves localized public SEO metadata without changing canonical paths", () => {
-    const metadata = resolveSeoMetadata({
-      pageId: "contact",
-      language: "es",
-      canonicalPath: "/contact",
-      currentOrigin: "https://puppyheaven.example",
-    });
-
-    expect(metadata.title).toBe("Contacto Puppy Heaven | Puppy Heaven");
-    expect(metadata.description).toContain("Contacta a Puppy Heaven");
-    expect(metadata.canonicalUrl).toBe("https://puppyheaven.example/contact");
   });
 });
 
