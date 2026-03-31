@@ -132,7 +132,8 @@ export function PuppyInterestForm({
       howHeardOther: values.howHeardOther,
       viewingPreference: values.viewingPreference,
       wantsAiTraining: values.wantsAiTraining === true,
-      consentCommunications: values.consentCommunications === true,
+      // Preserve tri-state consent: true, false, or unspecified (null).
+      consentCommunications: values.consentCommunications ?? null,
     };
 
     const row = {
@@ -625,7 +626,7 @@ export function PuppyInterestForm({
         {/* 6. Communications Consent (hidden for now) */}
         {SHOW_STAY_CONNECTED_SECTION && (
           <div className={sectionClass}>
-            <h3 className={sectionTitleClass}>Stay Connected *</h3>
+            <h3 className={sectionTitleClass}>Stay Connected (Optional)</h3>
             <FormField
               control={form.control}
               name="consentCommunications"
