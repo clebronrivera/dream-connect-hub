@@ -28,6 +28,9 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ### Fixed
 
+- **Homepage banner / SEO image 400**
+  - The visible homepage hero already used the local asset `/puppy-heaven-banner.jpg`, but SEO/social metadata was still defaulting to a Supabase `site-assets` URL that returned `400` in the browser.
+  - Default social image resolution in `src/lib/seo.ts` now uses the same local banner image (resolved from `VITE_SITE_URL` or current origin), so `og:image` / `twitter:image` no longer request the broken Supabase banner path unless `VITE_BANNER_IMAGE_URL` explicitly overrides it.
 - **ESLint (health check)**
   - **App.tsx:** Removed export of `createAppQueryClient`; import from `@/lib/query-client` to satisfy react-refresh/only-export-components.
   - **ContactMessageDetailDialog.tsx:** `useEffect` dependency array set to `[message]` to satisfy react-hooks/exhaustive-deps.

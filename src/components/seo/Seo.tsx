@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { resolveSeoMetadata, type SeoPageId } from "@/lib/seo";
 
 type SeoProps = {
@@ -13,6 +14,7 @@ type SeoProps = {
 
 export function Seo({ pageId, title, description, canonicalPath, robots, imageUrl }: SeoProps) {
   const location = useLocation();
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     const metadata = resolveSeoMetadata({
@@ -22,6 +24,10 @@ export function Seo({ pageId, title, description, canonicalPath, robots, imageUr
       canonicalPath: canonicalPath ?? location.pathname,
       robots,
       imageUrl,
+      language:
+        i18n.resolvedLanguage === "pt" || i18n.resolvedLanguage === "es"
+          ? i18n.resolvedLanguage
+          : "en",
     });
 
     document.title = metadata.title;
@@ -47,7 +53,16 @@ export function Seo({ pageId, title, description, canonicalPath, robots, imageUr
       removeTag(`meta[property="og:image"]`);
       removeTag(`meta[name="twitter:image"]`);
     }
-  }, [canonicalPath, description, imageUrl, location.pathname, pageId, robots, title]);
+  }, [
+    canonicalPath,
+    description,
+    i18n.resolvedLanguage,
+    imageUrl,
+    location.pathname,
+    pageId,
+    robots,
+    title,
+  ]);
 
   return null;
 }

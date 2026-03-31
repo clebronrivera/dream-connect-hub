@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 import {
   Form,
   FormControl,
@@ -12,15 +13,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, Puppy } from "@/lib/supabase";
+import { supabase, type Puppy } from "@/lib/supabase";
 import {
-  puppyInterestFormSchema,
+  createPuppyInterestFormSchema,
   type PuppyInterestFormValues,
   formatUSPhone,
 } from "@/lib/puppy-interest-form-schema";
@@ -38,19 +38,12 @@ import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { cn } from "@/lib/utils";
 
 export interface PuppyInterestFormProps {
-  /** When provided, form is shown in a specific context (e.g. pre-selected puppy from card) */
   initialPuppyId?: string;
-  /** Pre-selected puppy for display (e.g. name/photo in modal header) */
   preSelectedPuppy?: Puppy | null;
-  /** List of available puppies for the "specific puppy" selector */
   puppies?: Puppy[];
-  /** Called after successful submit (e.g. close modal) */
   onSuccess?: () => void;
-  /** Submit button label */
   submitLabel?: string;
-  /** Optional class for the form container */
   className?: string;
-  /** Show compact layout (e.g. inside modal) */
   compact?: boolean;
 }
 
@@ -69,19 +62,30 @@ const defaultValues: Partial<PuppyInterestFormValues> = {
 const SHOW_AI_TRAINING_SECTION = false;
 const SHOW_STAY_CONNECTED_SECTION = true;
 
+function translateWeeks(t: ReturnType<typeof useTranslation>["t"], weeks: number | null) {
+  if (weeks == null) return "";
+  return ` • ${t("common.week", { count: weeks })}`;
+}
+
 export function PuppyInterestForm({
   initialPuppyId,
   preSelectedPuppy,
   puppies = [],
   onSuccess,
-  submitLabel = "Submit Puppy Inquiry",
+  submitLabel,
   className,
   compact = false,
 }: PuppyInterestFormProps) {
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
+  const schema = useMemo(
+    () => createPuppyInterestFormSchema(t),
+    [i18n.resolvedLanguage, t]
+  );
+  const resolvedSubmitLabel = submitLabel ?? t("forms.puppyInterest.submit");
 
   const form = useForm<PuppyInterestFormValues>({
-    resolver: zodResolver(puppyInterestFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       ...defaultValues,
       interestedSpecific: initialPuppyId ? "yes" : "no",
@@ -97,10 +101,9 @@ export function PuppyInterestForm({
   );
 
   useEffect(() => {
-    if (initialPuppyId) {
-      form.setValue("interestedSpecific", "yes");
-      form.setValue("selectedPuppyId", initialPuppyId);
-    }
+    if (!initialPuppyId) return;
+    form.setValue("interestedSpecific", "yes");
+    form.setValue("selectedPuppyId", initialPuppyId);
   }, [initialPuppyId, form]);
 
   const onSubmit = async (values: PuppyInterestFormValues) => {
@@ -158,17 +161,19 @@ export function PuppyInterestForm({
     try {
       const { error } = await supabase.from("puppy_inquiries").insert([row]);
       if (error) throw error;
+
       toast({
-        title: "Interest Received!",
-        description: "We'll get back to you soon.",
+        title: t("forms.puppyInterest.successTitle"),
+        description: t("forms.puppyInterest.successDescription"),
       });
+
       form.reset({ ...defaultValues, consentCommunications: undefined });
       onSuccess?.();
     } catch (err) {
       console.error(err);
       toast({
-        title: "Error",
-        description: "Failed to submit. Please try again.",
+        title: t("forms.puppyInterest.errorTitle"),
+        description: t("forms.puppyInterest.errorDescription"),
         variant: "destructive",
       });
     }
@@ -180,18 +185,19 @@ export function PuppyInterestForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={cn("space-y-6", className)}>
-        {/* 1. Personal Information */}
         <div className={sectionClass}>
-          <h3 className={sectionTitleClass}>Personal Information</h3>
+          <h3 className={sectionTitleClass}>
+            {t("forms.puppyInterest.sections.personalInformation")}
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>First Name *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.firstName")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="First name" {...field} />
+                    <Input placeholder={t("forms.puppyInterest.placeholders.firstName")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -202,9 +208,9 @@ export function PuppyInterestForm({
               name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Last Name *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.lastName")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Last name" {...field} />
+                    <Input placeholder={t("forms.puppyInterest.placeholders.lastName")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -217,9 +223,9 @@ export function PuppyInterestForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.email")}</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="your@email.com" {...field} />
+                    <Input type="email" placeholder={t("forms.puppyInterest.placeholders.email")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -230,16 +236,13 @@ export function PuppyInterestForm({
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.phone")}</FormLabel>
                   <FormControl>
                     <Input
                       type="tel"
-                      placeholder="(123) 456-7890"
+                      placeholder={t("forms.puppyInterest.placeholders.phone")}
                       {...field}
-                      onChange={(e) => {
-                        const formatted = formatUSPhone(e.target.value);
-                        field.onChange(formatted);
-                      }}
+                      onChange={(e) => field.onChange(formatUSPhone(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -253,9 +256,9 @@ export function PuppyInterestForm({
               name="city"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>City *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.city")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="City" {...field} />
+                    <Input placeholder={t("forms.puppyInterest.placeholders.city")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -266,17 +269,17 @@ export function PuppyInterestForm({
               name="state"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>State *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.state")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select State" />
+                        <SelectValue placeholder={t("forms.puppyInterest.placeholders.state")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {US_STATES.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
+                      {US_STATES.map((state) => (
+                        <SelectItem key={state.value} value={state.value}>
+                          {t(`states.${state.value}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -288,15 +291,16 @@ export function PuppyInterestForm({
           </div>
         </div>
 
-        {/* 2. Puppy Preferences */}
         <div className={sectionClass}>
-          <h3 className={sectionTitleClass}>Puppy Preferences</h3>
+          <h3 className={sectionTitleClass}>
+            {t("forms.puppyInterest.sections.puppyPreferences")}
+          </h3>
           <FormField
             control={form.control}
             name="interestedSpecific"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Are you interested in a specific puppy? *</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.specificPuppy")}</FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
@@ -306,13 +310,13 @@ export function PuppyInterestForm({
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="yes" id="specific-yes" />
                       <label htmlFor="specific-yes" className="cursor-pointer text-sm">
-                        Yes (select specific puppy)
+                        {t("forms.puppyInterest.fields.specificYes")}
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="no" id="specific-no" />
                       <label htmlFor="specific-no" className="cursor-pointer text-sm">
-                        Not sure yet (I want recommendations)
+                        {t("forms.puppyInterest.fields.specificNo")}
                       </label>
                     </div>
                   </RadioGroup>
@@ -328,26 +332,31 @@ export function PuppyInterestForm({
               name="selectedPuppyId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Select Puppy *</FormLabel>
+                  <FormLabel>{t("forms.puppyInterest.fields.selectPuppy")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose a puppy" />
+                        <SelectValue placeholder={t("forms.puppyInterest.fields.selectPuppyPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {puppies.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name || "Unnamed"} — {p.breed}
+                      {puppies.map((puppy) => (
+                        <SelectItem key={puppy.id} value={String(puppy.id)}>
+                          {puppy.name || t("puppies.unnamed")} — {puppy.breed}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {selectedPuppy && (
                     <p className="text-sm text-muted-foreground">
-                      {selectedPuppy.breed} • {selectedPuppy.gender || "—"} • {selectedPuppy.color || "—"}
-                      {getDisplayAgeWeeks(selectedPuppy) != null &&
-                        ` • ${getDisplayAgeWeeks(selectedPuppy)} weeks`}
+                      {t("forms.puppyInterest.selectedPuppySummary", {
+                        breed: selectedPuppy.breed,
+                        gender: selectedPuppy.gender
+                          ? t(`dogFields.gender.${selectedPuppy.gender}`)
+                          : "—",
+                        color: selectedPuppy.color || "—",
+                        weeks: translateWeeks(t, getDisplayAgeWeeks(selectedPuppy)),
+                      })}
                     </p>
                   )}
                   <FormMessage />
@@ -361,17 +370,17 @@ export function PuppyInterestForm({
             name="sizePreference"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type/Size Preference *</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.typeSizePreference")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select size" />
+                      <SelectValue placeholder={t("forms.puppyInterest.placeholders.size")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {SIZE_PREFERENCE_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                    {SIZE_PREFERENCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -386,36 +395,39 @@ export function PuppyInterestForm({
             name="breedPreference"
             render={() => (
               <FormItem>
-                <FormLabel>Breed Preference *</FormLabel>
-                <FormDescription>Select one or more breeds</FormDescription>
+                <FormLabel>{t("forms.puppyInterest.fields.breedPreference")}</FormLabel>
+                <FormDescription>{t("forms.puppyInterest.fields.breedPreferenceHelp")}</FormDescription>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                  {BREED_PREFERENCE_OPTIONS.map((opt) => (
+                  {BREED_PREFERENCE_OPTIONS.map((option) => (
                     <FormField
-                      key={opt.value}
+                      key={option.value}
                       control={form.control}
                       name="breedPreference"
                       render={({ field }) => {
                         const isChecked =
-                          field.value?.includes(opt.value) ||
-                          (opt.value === "No Preference" && field.value?.length === 0);
+                          field.value?.includes(option.value) ||
+                          (option.value === "No Preference" && field.value?.length === 0);
                         return (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
                               <Checkbox
                                 checked={isChecked}
                                 onCheckedChange={(checked) => {
-                                  if (opt.value === "No Preference") {
+                                  if (option.value === "No Preference") {
                                     field.onChange(checked ? ["No Preference"] : []);
                                     return;
                                   }
+
                                   const next = checked
-                                    ? [...(field.value || []).filter((v) => v !== "No Preference"), opt.value]
-                                    : (field.value || []).filter((v) => v !== opt.value);
+                                    ? [...(field.value || []).filter((value) => value !== "No Preference"), option.value]
+                                    : (field.value || []).filter((value) => value !== option.value);
                                   field.onChange(next);
                                 }}
                               />
                             </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">{opt.label}</FormLabel>
+                            <FormLabel className="font-normal cursor-pointer">
+                              {t(option.labelKey)}
+                            </FormLabel>
                           </FormItem>
                         );
                       }}
@@ -432,17 +444,17 @@ export function PuppyInterestForm({
             name="genderPreference"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Gender Preference</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.genderPreference")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || "No Preference"}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="No Preference" />
+                      <SelectValue placeholder={t("forms.puppyInterest.options.gender.noPreference")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {GENDER_PREFERENCE_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                    {GENDER_PREFERENCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -457,17 +469,17 @@ export function PuppyInterestForm({
             name="timeline"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>When are you looking to bring a puppy home? *</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.timeline")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t("forms.puppyInterest.placeholders.select")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {TIMELINE_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                    {TIMELINE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -478,25 +490,26 @@ export function PuppyInterestForm({
           />
         </div>
 
-        {/* 3. Experience & Background */}
         <div className={sectionClass}>
-          <h3 className={sectionTitleClass}>Experience & Background</h3>
+          <h3 className={sectionTitleClass}>
+            {t("forms.puppyInterest.sections.experienceBackground")}
+          </h3>
           <FormField
             control={form.control}
             name="experience"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Do you have puppy experience? *</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.experience")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t("forms.puppyInterest.placeholders.select")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {EXPERIENCE_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                    {EXPERIENCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -510,17 +523,17 @@ export function PuppyInterestForm({
             name="howHeard"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>How did you hear about us? *</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.howHeard")}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t("forms.puppyInterest.placeholders.select")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {HOW_HEARD_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                    {HOW_HEARD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -536,10 +549,19 @@ export function PuppyInterestForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {howHeard === "referred" ? "Friend's name (optional)" : "Please specify"}
+                    {howHeard === "referred"
+                      ? t("forms.puppyInterest.fields.referredName")
+                      : t("forms.puppyInterest.fields.specify")}
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder={howHeard === "referred" ? "Friend's name" : "Specify"} {...field} />
+                    <Input
+                      placeholder={
+                        howHeard === "referred"
+                          ? t("forms.puppyInterest.placeholders.friendName")
+                          : t("forms.puppyInterest.placeholders.specify")
+                      }
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -548,26 +570,27 @@ export function PuppyInterestForm({
           )}
         </div>
 
-        {/* 4. Viewing Preference (Optional) */}
         <div className={sectionClass}>
-          <h3 className={sectionTitleClass}>Viewing Preference (Optional)</h3>
+          <h3 className={sectionTitleClass}>
+            {t("forms.puppyInterest.sections.viewingPreference")}
+          </h3>
           <FormField
             control={form.control}
             name="viewingPreference"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Would you be interested in meeting your puppy?</FormLabel>
+                <FormLabel>{t("forms.puppyInterest.fields.viewingPreference")}</FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
                     value={field.value || ""}
                     className="flex flex-col gap-2"
                   >
-                    {VIEWING_PREFERENCE_OPTIONS.map((o) => (
-                      <div key={o.value} className="flex items-center space-x-2">
-                        <RadioGroupItem value={o.value} id={`view-${o.value}`} />
-                        <label htmlFor={`view-${o.value}`} className="cursor-pointer text-sm">
-                          {o.label}
+                    {VIEWING_PREFERENCE_OPTIONS.map((option) => (
+                      <div key={option.value} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option.value} id={`view-${option.value}`} />
+                        <label htmlFor={`view-${option.value}`} className="cursor-pointer text-sm">
+                          {t(option.labelKey)}
                         </label>
                       </div>
                     ))}
@@ -579,26 +602,27 @@ export function PuppyInterestForm({
           />
         </div>
 
-        {/* 5. AI Training Resources (hidden for now) */}
         {SHOW_AI_TRAINING_SECTION && (
           <div className={sectionClass}>
-            <h3 className={sectionTitleClass}>Training Resources</h3>
+            <h3 className={sectionTitleClass}>
+              {t("forms.puppyInterest.sections.trainingResources")}
+            </h3>
             <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
               <div className="flex gap-3">
                 <GraduationCap className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">NEW! AI-Powered Training Schedules</p>
-                  <p>
-                    Using AI technology, we can create personalized training visuals and schedules for YOUR
-                    puppy, including:
+                  <p className="font-medium text-foreground">
+                    {t("forms.puppyInterest.fields.aiTrainingTitle")}
                   </p>
+                  <p>{t("forms.puppyInterest.fields.aiTrainingLead")}</p>
                   <ul className="list-disc list-inside ml-2 space-y-0.5">
-                    <li>Feeding schedules</li>
-                    <li>Potty training timeline</li>
-                    <li>Crate training guide</li>
-                    <li>Walking/exercise plan</li>
+                    {(t("forms.puppyInterest.fields.aiTrainingItems", {
+                      returnObjects: true,
+                    }) as string[]).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
                   </ul>
-                  <p className="pt-1">You'll receive a follow-up email with a questionnaire.</p>
+                  <p className="pt-1">{t("forms.puppyInterest.fields.aiTrainingFollowup")}</p>
                 </div>
               </div>
               <FormField
@@ -607,13 +631,10 @@ export function PuppyInterestForm({
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-2 space-y-0">
                     <FormControl>
-                      <Checkbox
-                        checked={field.value === true}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
                     </FormControl>
                     <FormLabel className="font-normal cursor-pointer text-sm">
-                      Yes, I'm interested in receiving personalized training resources
+                      {t("forms.puppyInterest.fields.aiTrainingCheckbox")}
                     </FormLabel>
                   </FormItem>
                 )}
@@ -622,10 +643,11 @@ export function PuppyInterestForm({
           </div>
         )}
 
-        {/* 6. Communications Consent (hidden for now) */}
         {SHOW_STAY_CONNECTED_SECTION && (
           <div className={sectionClass}>
-            <h3 className={sectionTitleClass}>Stay Connected *</h3>
+            <h3 className={sectionTitleClass}>
+              {t("forms.puppyInterest.sections.stayConnected")} *
+            </h3>
             <FormField
               control={form.control}
               name="consentCommunications"
@@ -647,24 +669,21 @@ export function PuppyInterestForm({
                         <RadioGroupItem value="all" id="consent-all" className="mt-1" />
                         <div className="text-sm leading-relaxed space-y-1">
                           <FormLabel htmlFor="consent-all" className="font-normal cursor-pointer">
-                            I consent to receive communications from Puppy Heaven LLC regarding:
+                            {t("forms.puppyInterest.fields.consent")}
                           </FormLabel>
-                          <ul className="list-disc list-inside text-muted-foreground ml-4">
-                            <li>New available puppies</li>
-                            <li>Special promotions and offers</li>
-                            <li>Helpful puppy care information</li>
-                            <li>Updates about my inquiry</li>
-                          </ul>
                           <p className="text-muted-foreground pt-1">
-                            We respect your privacy. You can unsubscribe anytime.
+                            {t("forms.puppyInterest.consentDescription")}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-start space-x-2">
                         <RadioGroupItem value="inquiry-only" id="consent-inquiry-only" className="mt-1" />
-                        <FormLabel htmlFor="consent-inquiry-only" className="font-normal cursor-pointer text-sm">
-                          No, please only email me regarding this inquiry.
+                        <FormLabel
+                          htmlFor="consent-inquiry-only"
+                          className="font-normal cursor-pointer text-sm"
+                        >
+                          {t("forms.puppyInterest.fields.stayConnectedLabel")}
                         </FormLabel>
                       </div>
                     </RadioGroup>
@@ -677,42 +696,39 @@ export function PuppyInterestForm({
         )}
 
         {!SHOW_STAY_CONNECTED_SECTION && (
-          <>
-            {/* Compact inquiry-only follow-up option */}
-            <FormField
-              control={form.control}
-              name="consentCommunications"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-2 space-y-0">
-                  <FormControl>
-                    <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-0.5">
-                    <FormLabel className="font-normal cursor-pointer text-sm">
-                      Email me regarding this inquiry.
-                    </FormLabel>
-                    <FormDescription className="text-xs">
-                      Optional follow-up updates for this submission only.
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-          </>
+          <FormField
+            control={form.control}
+            name="consentCommunications"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
+                </FormControl>
+                <div className="space-y-0.5">
+                  <FormLabel className="font-normal cursor-pointer text-sm">
+                    {t("forms.puppyInterest.fields.stayConnectedLabel")}
+                  </FormLabel>
+                  <FormDescription className="text-xs">
+                    {t("forms.puppyInterest.consentDescription")}
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
         )}
 
         <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Sending...
+              {t("common.sending")}
             </>
           ) : (
-            submitLabel
+            resolvedSubmitLabel
           )}
         </Button>
         <p className="text-xs text-muted-foreground">
-          Required fields marked *. We respect your privacy and will never share your information.
+          {t("forms.puppyInterest.privacyNote")}
         </p>
       </form>
     </Form>

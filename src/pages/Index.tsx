@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { AvailablePuppiesMarquee } from "@/components/AvailablePuppiesMarquee";
@@ -7,47 +8,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Dog, Heart, MapPin, Phone, Mail, Users, CheckCircle2 } from "lucide-react";
 
-/** Local Puppy Heaven banner (from public folder); used as hero background behind "Welcome to Puppy Heaven". */
 const HERO_BANNER_URL = "/puppy-heaven-banner.jpg";
 
-const services = [
-  {
-    icon: Dog,
-    title: "Available Puppies",
-    description: "Find your perfect furry companion from our selection of healthy, happy puppies raised with love.",
-    cta: "Browse Puppies",
-    link: "/puppies",
-  },
-];
-
-const trustPoints = [
-  {
-    icon: Users,
-    title: "Family Operated",
-    description: "Dedicated to pets and their families since day one",
-  },
-  {
-    icon: MapPin,
-    title: "Serving FL & NC",
-    description: "Proudly serving Florida and North Carolina",
-  },
-  {
-    icon: Heart,
-    title: "Raised with Love",
-    description: "Every puppy receives personal care and attention",
-  },
-];
-
 export default function Index() {
-  const featuredService = services[0];
+  const { t } = useTranslation();
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [bannerError, setBannerError] = useState(false);
   const useBannerImage = bannerLoaded && !bannerError;
 
+  const trustPoints = [
+    {
+      icon: Users,
+      title: t("home.trust.points.familyOperated.title"),
+      description: t("home.trust.points.familyOperated.description"),
+    },
+    {
+      icon: MapPin,
+      title: t("home.trust.points.serving.title"),
+      description: t("home.trust.points.serving.description"),
+    },
+    {
+      icon: Heart,
+      title: t("home.trust.points.raisedWithLove.title"),
+      description: t("home.trust.points.raisedWithLove.description"),
+    },
+  ];
+
   return (
     <Layout>
       <Seo pageId="home" />
-      {/* Hidden img to detect banner load/error; fallback to primary (red) if image doesn't load */}
       <img
         src={HERO_BANNER_URL}
         alt=""
@@ -55,7 +44,7 @@ export default function Index() {
         onLoad={() => setBannerLoaded(true)}
         onError={() => setBannerError(true)}
       />
-      {/* Hero Section — Puppy Heaven banner behind "Welcome to Puppy Heaven", or primary color fallback */}
+
       <section className="relative min-h-[28rem] py-20 lg:py-32 flex flex-col justify-center">
         <div className="absolute inset-0 z-0 bg-primary" aria-hidden>
           {useBannerImage && (
@@ -76,18 +65,18 @@ export default function Index() {
             <h1
               className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 ${useBannerImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`}
             >
-              Welcome to Puppy Heaven
+              {t("home.hero.title")}
             </h1>
             <p
               className={`text-lg md:text-xl mb-8 ${useBannerImage ? "text-white/90 drop-shadow-sm" : "text-primary-foreground/80"}`}
             >
-              Your trusted partner for finding the perfect puppy and everything your furry friend needs to thrive.
+              {t("home.hero.description")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="secondary" className="text-black" asChild>
                 <Link to="/puppies">
                   <Dog className="h-5 w-5 mr-2" />
-                  Browse Puppies
+                  {t("home.hero.browsePuppies")}
                 </Link>
               </Button>
             </div>
@@ -97,13 +86,12 @@ export default function Index() {
 
       <AvailablePuppiesMarquee />
 
-      {/* Services Section */}
       <section className="container py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-4">
-          Our Services
+          {t("home.services.title")}
         </h2>
         <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-          From finding your perfect companion to ongoing support, we're here for every step of your pet journey.
+          {t("home.services.description")}
         </p>
         <div className="mx-auto max-w-5xl">
           <Card className="overflow-hidden border-primary/20 shadow-sm hover:shadow-lg transition-shadow">
@@ -111,40 +99,40 @@ export default function Index() {
               <div className="p-8 md:p-10">
                 <CardHeader className="p-0 mb-6">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <featuredService.icon className="h-8 w-8 text-primary" />
+                    <Dog className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl md:text-3xl">{featuredService.title}</CardTitle>
+                  <CardTitle className="text-2xl md:text-3xl">
+                    {t("home.services.featured.title")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <CardDescription className="text-base mb-6 max-w-xl">
-                    {featuredService.description}
+                    {t("home.services.featured.description")}
                   </CardDescription>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button size="lg" asChild>
-                      <Link to={featuredService.link}>{featuredService.cta}</Link>
+                      <Link to="/puppies">{t("home.services.featured.cta")}</Link>
                     </Button>
                     <Button size="lg" variant="outline" asChild>
-                      <Link to="/contact">Ask About Availability</Link>
+                      <Link to="/contact">{t("home.services.featured.secondaryCta")}</Link>
                     </Button>
                   </div>
                 </CardContent>
               </div>
 
               <div className="bg-muted/40 border-t md:border-t-0 md:border-l p-8 md:p-10">
-                <h3 className="text-lg font-semibold text-foreground mb-4">What to expect</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">
+                  {t("home.services.expectationsTitle")}
+                </h3>
                 <div className="space-y-3 text-muted-foreground">
-                  <p className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    Healthy, socialized puppies raised with daily care and attention.
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    Detailed listings with current photos and helpful notes.
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    Friendly support to help you find the right fit for your home.
-                  </p>
+                  {(t("home.services.expectations", {
+                    returnObjects: true,
+                  }) as string[]).map((item) => (
+                    <p key={item} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                      {item}
+                    </p>
+                  ))}
                 </div>
               </div>
             </div>
@@ -152,15 +140,14 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Trust Section */}
       <section className="bg-muted/30 py-16">
         <div className="container">
           <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-12">
-            Why Choose Puppy Heaven?
+            {t("home.trust.title")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {trustPoints.map((point, index) => (
-              <div key={index} className="text-center">
+            {trustPoints.map((point) => (
+              <div key={point.title} className="text-center">
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <point.icon className="h-7 w-7 text-primary" />
                 </div>
@@ -172,26 +159,24 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Contact CTA */}
       <section className="container py-16">
         <Card className="bg-primary text-primary-foreground">
           <CardContent className="py-12">
             <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4">Ready to Start Your Journey?</h2>
+              <h2 className="text-3xl font-bold mb-4">{t("home.cta.title")}</h2>
               <p className="text-primary-foreground/80 mb-8">
-                Whether you're looking for a new puppy, need pet advice, or want to stock up on supplies, 
-                we're here to help. Reach out today!
+                {t("home.cta.description")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <a 
-                  href="tel:321-697-8864" 
+                <a
+                  href="tel:321-697-8864"
                   className="flex items-center gap-2 justify-center text-primary-foreground hover:underline"
                 >
                   <Phone className="h-5 w-5" />
                   321-697-8864
                 </a>
-                <a 
-                  href="mailto:Dreampuppies22@gmail.com" 
+                <a
+                  href="mailto:Dreampuppies22@gmail.com"
                   className="flex items-center gap-2 justify-center text-primary-foreground hover:underline"
                 >
                   <Mail className="h-5 w-5" />
@@ -199,7 +184,7 @@ export default function Index() {
                 </a>
               </div>
               <Button variant="secondary" size="lg" asChild>
-                <Link to="/contact">Contact Us</Link>
+                <Link to="/contact">{t("layout.footer.contactUs")}</Link>
               </Button>
             </div>
           </CardContent>
