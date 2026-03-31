@@ -20,6 +20,24 @@ This document defines the default workflow for tracking code changes in Puppy He
 5. Commit with a clear message explaining intent.
 6. Push to GitHub.
 
+## Fast path (recommended)
+
+Use one command to do the full workflow:
+
+- `npm run ship -- "your commit message"`
+
+This command will:
+
+- run `npm run health:check`
+- append a delivery note to `docs/DEVELOPMENT_LOG.md`
+- stage all changes
+- commit with your message
+- push current branch to `origin`
+
+Optional bypass (for emergency or docs-only changes):
+
+- `npm run ship:skip-health -- "your commit message"`
+
 ## Commit message guideline
 
 Use this format:

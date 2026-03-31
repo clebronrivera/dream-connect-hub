@@ -14,6 +14,7 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
   - Added `docs/DEVELOPMENT_TRACKING.md` with a standard process to run health checks, update logs, commit, and push each change.
   - Added `docs/DEVELOPMENT_LOG.md` as a chronological delivery log for quick project-progress tracking.
   - Added `npm run health:check` script to run lint + tests + build in one command before shipping.
+  - Added `npm run ship -- "message"` and `npm run ship:skip-health -- "message"` to automate track + commit + push flow.
 
 ### Fixed
 
