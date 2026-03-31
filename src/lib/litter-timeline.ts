@@ -1,4 +1,5 @@
 import { addDays, format, parseISO, isValid } from "date-fns";
+import { enUS, es, ptBR } from "date-fns/locale";
 
 /** Average dog pregnancy in days (breeding date → due/birth). */
 export const BIRTH_DAYS_AVG = 63;
@@ -7,6 +8,27 @@ const BIRTH_DAYS_RANGE = 3;
 /** Weeks until puppies are ready to go home after due/birth date. */
 export const GO_HOME_WEEKS_AFTER_DUE = 8;
 const GO_HOME_DAYS = GO_HOME_WEEKS_AFTER_DUE * 7;
+
+export type TimelineLanguage = "en" | "pt" | "es";
+
+function getTimelineLocale(language: TimelineLanguage) {
+  switch (language) {
+    case "pt":
+      return ptBR;
+    case "es":
+      return es;
+    case "en":
+    default:
+      return enUS;
+  }
+}
+
+export function formatTimelineDate(
+  date: Date,
+  language: TimelineLanguage = "en"
+) {
+  return format(date, "MMM d", { locale: getTimelineLocale(language) });
+}
 
 /**
  * Due (birth) window from breeding date: average 63 days, ~1 week approximation range.
@@ -42,10 +64,13 @@ export function getGoHomeWindow(
   };
 }
 
-export function formatBirthWindow(breedingDateStr: string | null | undefined): string {
+export function formatBirthWindow(
+  breedingDateStr: string | null | undefined,
+  language: TimelineLanguage = "en"
+): string {
   const w = getBirthWindow(breedingDateStr);
   if (!w) return "—";
-  return `${format(w.earliest, "MMM d")} – ${format(w.latest, "MMM d")}`;
+  return `${formatTimelineDate(w.earliest, language)} – ${formatTimelineDate(w.latest, language)}`;
 }
 
 /** Due label from breeding date: "Due approx. MMM d – MMM d, yyyy" (1-week range). */
@@ -54,13 +79,16 @@ export function getDueLabelFromBreedingDate(
 ): string | null {
   const w = getBirthWindow(breedingDateStr);
   if (!w) return null;
-  return `Due approx. ${format(w.earliest, "MMM d")} – ${format(w.latest, "MMM d")}, ${format(w.earliest, "yyyy")}`;
+  return `Due approx. ${formatTimelineDate(w.earliest)} – ${formatTimelineDate(w.latest)}, ${format(w.earliest, "yyyy")}`;
 }
 
-export function formatGoHomeWindow(breedingDateStr: string | null | undefined): string {
+export function formatGoHomeWindow(
+  breedingDateStr: string | null | undefined,
+  language: TimelineLanguage = "en"
+): string {
   const w = getGoHomeWindow(breedingDateStr);
   if (!w) return "—";
-  return `${format(w.earliest, "MMM d")} – ${format(w.latest, "MMM d")}`;
+  return `${formatTimelineDate(w.earliest, language)} – ${formatTimelineDate(w.latest, language)}`;
 }
 
 /** Expected whelping (due) date: breeding date + 63 days. Returns ISO date string or null. */
