@@ -1,7 +1,4 @@
 import { appEnv } from "@/lib/env";
-import en from "@/i18n/resources/en";
-import pt from "@/i18n/resources/pt";
-import es from "@/i18n/resources/es";
 
 export const SITE_NAME = "Puppy Heaven";
 export const SITE_AUTHOR = "Puppy Heaven Dream Enterprises";
@@ -116,20 +113,6 @@ export const PUBLIC_ROUTE_PAGE_IDS = [
 
 export const PUBLIC_SEO_ROUTES = PUBLIC_ROUTE_PAGE_IDS.map((pageId) => SEO_ROUTE_CONFIG[pageId]);
 
-/** Public marketing + 404: eligible for runtime Spanish title/description in `Seo` (not admin). */
-export const SEO_TRANSLATABLE_PUBLIC_PAGE_IDS: ReadonlySet<SeoPageId> = new Set([
-  ...PUBLIC_ROUTE_PAGE_IDS,
-  "notFound",
-]);
-
-type SeoLanguage = "en" | "pt" | "es";
-
-const SEO_TRANSLATIONS = {
-  en: en.seo.routes,
-  pt: pt.seo.routes,
-  es: es.seo.routes,
-} as const;
-
 export type SeoEnvOverrides = {
   siteUrl?: string;
   supabaseUrl?: string;
@@ -220,31 +203,9 @@ type ResolveSeoMetadataOptions = {
   canonicalPath?: string;
   robots?: string;
   imageUrl?: string;
-  language?: SeoLanguage;
   currentOrigin?: string;
   env?: SeoEnvOverrides;
 };
-
-function getTranslatedRouteMeta(
-  pageId: SeoPageId | undefined,
-  language: SeoLanguage
-) {
-  if (!pageId || !SEO_TRANSLATABLE_PUBLIC_PAGE_IDS.has(pageId)) return undefined;
-
-  switch (pageId) {
-    case "home":
-    case "puppies":
-    case "consultation":
-    case "essentials":
-    case "contact":
-    case "upcomingLitters":
-    case "breeds":
-    case "notFound":
-      return SEO_TRANSLATIONS[language][pageId];
-    default:
-      return undefined;
-  }
-}
 
 export function resolveSeoMetadata({
   pageId,
@@ -253,17 +214,13 @@ export function resolveSeoMetadata({
   canonicalPath,
   robots,
   imageUrl,
-  language = "en",
   currentOrigin,
   env = appEnv,
 }: ResolveSeoMetadataOptions): ResolvedSeoMetadata {
   const routeMeta = pageId ? getSeoRoute(pageId) : undefined;
-  const translatedRouteMeta = getTranslatedRouteMeta(pageId, language);
-  const resolvedTitle =
-    title ?? translatedRouteMeta?.title ?? routeMeta?.title ?? SITE_NAME;
+  const resolvedTitle = title ?? routeMeta?.title ?? SITE_NAME;
   const resolvedDescription =
     description ??
-    translatedRouteMeta?.description ??
     routeMeta?.description ??
     "Your trusted partner for finding the perfect puppy, expert pet consultation, and everything your furry friend needs to thrive.";
   const resolvedRobots = robots ?? routeMeta?.robots ?? DEFAULT_ROBOTS;
