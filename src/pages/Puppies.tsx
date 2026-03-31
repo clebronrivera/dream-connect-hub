@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,7 +105,6 @@ type SizeFilter = "all" | "small" | "medium" | "large";
 type SortOption = "name" | "breed" | "price-low" | "price-high";
 
 export default function Puppies() {
-  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { id: puppyIdFromUrl } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -217,17 +215,6 @@ export default function Puppies() {
     return null;
   };
 
-  const translateStatus = (status: Puppy["status"] | "Unknown" | undefined) =>
-    t(`dogFields.status.${status ?? "Unknown"}`);
-
-  const translateGender = (gender: Puppy["gender"] | undefined) =>
-    gender ? t(`dogFields.gender.${gender}`) : undefined;
-
-  const translateSize = (size: SizeFilter | Exclude<SizeFilter, "all"> | null) => {
-    if (!size) return null;
-    return t(`common.${size}`);
-  };
-
   const getShareUrl = useCallback((puppy: Puppy) => {
     const id = puppy.id ?? puppy.puppy_id;
     if (!id) return `${window.location.origin}/puppies`;
@@ -248,15 +235,12 @@ export default function Puppies() {
       const url = getShareUrl(puppy);
       try {
         await navigator.clipboard.writeText(url);
-        toast({
-          title: t("puppies.share.copiedTitle"),
-          description: t("puppies.share.copiedDescription"),
-        });
+        toast({ title: "Link copied", description: "Paste it in Instagram, Facebook, or anywhere to share." });
       } catch {
-        window.prompt(t("puppies.share.copyPrompt"), url);
+        window.prompt("Copy this link:", url);
       }
     },
-    [getShareUrl, t, toast]
+    [getShareUrl, toast]
   );
 
   const handleDownloadImage = useCallback((puppy: Puppy) => {
@@ -274,10 +258,7 @@ export default function Puppies() {
 
   const handleNativeShare = useCallback(async (puppy: Puppy) => {
     const url = getShareUrl(puppy);
-    const text = t("puppies.share.text", {
-      name: puppy.name || t("puppies.share.fallbackName"),
-      breed: puppy.breed,
-    });
+    const text = `Check out ${puppy.name || "this puppy"} — ${puppy.breed} at Puppy Heaven!`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -293,7 +274,7 @@ export default function Puppies() {
     } else {
       navigator.clipboard?.writeText(url);
     }
-  }, [getShareUrl, t]);
+  }, [getShareUrl]);
 
   // Per-puppy SEO when viewing a shared link (/puppies/:id) so Facebook/Instagram show the puppy image
   const puppyForSeo =
@@ -305,17 +286,10 @@ export default function Puppies() {
     <Layout>
       <Seo
         pageId="puppies"
-        title={puppyForSeo ? `${puppyForSeo.name ?? t("puppies.seo.unnamed")} — ${puppyForSeo.breed}` : undefined}
+        title={puppyForSeo ? `${puppyForSeo.name ?? "Puppy"} — ${puppyForSeo.breed}` : undefined}
         description={
           puppyForSeo
-            ? t("puppies.seo.description", {
-                breed: puppyForSeo.breed,
-                gender: puppyForSeo.gender
-                  ? t("puppies.seo.genderPrefix", {
-                      gender: translateGender(puppyForSeo.gender),
-                    })
-                  : "",
-              })
+            ? `${puppyForSeo.breed}${puppyForSeo.gender ? ` • ${puppyForSeo.gender}` : ""}. Available at Puppy Heaven.`
             : undefined
         }
         canonicalPath={puppyForSeo ? `/puppies/${puppyForSeo.id}` : undefined}
@@ -328,12 +302,12 @@ export default function Puppies() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/">{t("common.home")}</Link>
+                  <Link to="/">Home</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{t("puppies.breadcrumb.current")}</BreadcrumbPage>
+                <BreadcrumbPage>Available Puppies</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -341,7 +315,7 @@ export default function Puppies() {
             <Button variant="ghost" size="sm" asChild>
               <Link to="/">
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                {t("puppies.breadcrumb.backToSite")}
+                Back to Site
               </Link>
             </Button>
           </div>
@@ -352,14 +326,12 @@ export default function Puppies() {
       <section className="bg-primary py-16">
         <div className="container text-center">
           <Dog className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">
-            {t("puppies.hero.title")}
-          </h1>
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Available Puppies</h1>
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-            {t("puppies.hero.description")}
+            Find your perfect furry companion. All our puppies are health-checked, vaccinated, and raised with love.
           </p>
           <Button size="lg" variant="secondary" className="mt-6 text-foreground" asChild>
-            <Link to="/contact">{t("puppies.hero.cta")}</Link>
+            <Link to="/contact">Inquire About a Puppy</Link>
           </Button>
         </div>
       </section>
@@ -370,8 +342,9 @@ export default function Puppies() {
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <span className="font-semibold">{t("puppies.disclaimer.title")}</span>{" "}
-              {t("puppies.disclaimer.description")}
+              <span className="font-semibold">Please Note:</span> The names displayed for each puppy are for
+              communication and identification purposes only. Puppies are not trained to respond to these names,
+              allowing you the joy of naming your new family member yourself.
             </p>
           </div>
         </div>
@@ -386,48 +359,48 @@ export default function Puppies() {
                 <CollapsibleTrigger asChild>
                   <Button variant="outline" size="sm">
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
-                    {t("puppies.filters.button")}
+                    Filters
                     <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
                   </Button>
                 </CollapsibleTrigger>
                 <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                   <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder={t("puppies.filters.sortBy")} />
+                    <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="name">{t("puppies.filters.sorts.name")}</SelectItem>
-                    <SelectItem value="breed">{t("puppies.filters.sorts.breed")}</SelectItem>
-                    <SelectItem value="price-low">{t("puppies.filters.sorts.priceLow")}</SelectItem>
-                    <SelectItem value="price-high">{t("puppies.filters.sorts.priceHigh")}</SelectItem>
+                    <SelectItem value="name">Name A–Z</SelectItem>
+                    <SelectItem value="breed">Breed</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <CollapsibleContent>
                 <div className="flex flex-wrap gap-4 mt-4 p-4 rounded-lg bg-muted/50">
                   <div className="space-y-2">
-                    <Label className="text-xs">{t("puppies.filters.category")}</Label>
+                    <Label className="text-xs">Category</Label>
                     <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}>
                       <SelectTrigger className="w-[140px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">{t("puppies.filters.categories.all")}</SelectItem>
-                        <SelectItem value="poodle-doodle">{t("puppies.filters.categories.poodleDoodle")}</SelectItem>
-                        <SelectItem value="small-toy">{t("puppies.filters.categories.smallToy")}</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="poodle-doodle">Poodle & Doodle</SelectItem>
+                        <SelectItem value="small-toy">Small</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">{t("puppies.filters.size")}</Label>
+                    <Label className="text-xs">Size</Label>
                     <Select value={sizeFilter} onValueChange={(v) => setSizeFilter(v as SizeFilter)}>
                       <SelectTrigger className="w-[120px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">{t("puppies.filters.sizes.all")}</SelectItem>
-                        <SelectItem value="small">{t("puppies.filters.sizes.small")}</SelectItem>
-                        <SelectItem value="medium">{t("puppies.filters.sizes.medium")}</SelectItem>
-                        <SelectItem value="large">{t("puppies.filters.sizes.large")}</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -437,19 +410,19 @@ export default function Puppies() {
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
                 <X className="h-4 w-4 mr-1" />
-                {t("common.clearFilters")}
+                Clear filters
               </Button>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {t("common.puppy", { count: filteredAndSorted.length })}
+            {filteredAndSorted.length} {filteredAndSorted.length === 1 ? "puppy" : "puppies"}
           </p>
         </div>
         {hasActiveFilters && (
           <div className="flex gap-2 mt-2 flex-wrap">
             {breedFilter && (
               <Badge variant="secondary" className="gap-1">
-                {t("puppies.filters.breedBadge", { breed: breedFilter })}
+                Breed: {breedFilter}
                 <button
                   type="button"
                   onClick={() => {
@@ -457,7 +430,7 @@ export default function Puppies() {
                     setSearchParams({}, { replace: true });
                   }}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={t("puppies.filters.removeBreedFilter")}
+                  aria-label="Remove breed filter"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -465,14 +438,12 @@ export default function Puppies() {
             )}
             {categoryFilter !== "all" && (
               <Badge variant="secondary" className="gap-1">
-                {categoryFilter === "poodle-doodle"
-                  ? t("puppies.filters.categories.poodleDoodle")
-                  : t("puppies.filters.categories.smallToy")}
+                {categoryFilter === "poodle-doodle" ? "Poodle & Doodle" : "Small"}
                 <button
                   type="button"
                   onClick={() => setCategoryFilter("all")}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={t("puppies.filters.removeFilter")}
+                  aria-label="Remove filter"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -480,12 +451,12 @@ export default function Puppies() {
             )}
             {sizeFilter !== "all" && (
               <Badge variant="secondary" className="gap-1 capitalize">
-                {translateSize(sizeFilter)}
+                {sizeFilter}
                 <button
                   type="button"
                   onClick={() => setSizeFilter("all")}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={t("puppies.filters.removeFilter")}
+                  aria-label="Remove filter"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -500,17 +471,17 @@ export default function Puppies() {
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">{t("puppies.loading")}</span>
+            <span className="ml-2 text-muted-foreground">Loading puppies...</span>
           </div>
         ) : isError ? (
           <div className="bg-muted/50 rounded-lg p-6 text-center">
             <p className="text-sm text-muted-foreground mb-4">
               {error instanceof Error
                 ? error.message
-                : t("puppies.errorFallback")}
+                : "Unable to load puppies right now. Please check the site configuration and Supabase access."}
             </p>
             <Button asChild>
-              <Link to="/contact">{t("common.contactUs")}</Link>
+              <Link to="/contact">Contact Us</Link>
             </Button>
           </div>
         ) : filteredAndSorted.length > 0 ? (
@@ -539,7 +510,7 @@ export default function Puppies() {
                     {imageUrl ? (
                       <img
                         src={imageUrl}
-                        alt={puppy.name || t("puppies.seo.unnamed")}
+                        alt={puppy.name || "Puppy"}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
@@ -550,9 +521,7 @@ export default function Puppies() {
                     <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                       {puppy.discount_active && puppy.discount_amount != null && Number(puppy.discount_amount) > 0 && (
                         <Badge className="bg-primary text-primary-foreground text-xs shrink-0">
-                          {t("puppies.card.off", {
-                            amount: Number(puppy.discount_amount).toLocaleString(),
-                          })}
+                          ${Number(puppy.discount_amount).toLocaleString()} OFF
                         </Badge>
                       )}
                       <div className="flex gap-2">
@@ -561,11 +530,11 @@ export default function Puppies() {
                             isAvailable ? "bg-primary/90 text-primary-foreground" : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {translateStatus(status)}
+                          {status}
                         </span>
                         {sizeCat && (
                           <Badge variant="secondary" className="capitalize text-xs">
-                            {translateSize(sizeCat)}
+                            {sizeCat}
                           </Badge>
                         )}
                       </div>
@@ -578,9 +547,7 @@ export default function Puppies() {
                           toggleFavorite(id);
                         }}
                         className="p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
-                        aria-label={
-                          isFav ? t("common.removeFromFavorites") : t("common.addToFavorites")
-                        }
+                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
                       >
                         <Heart
                           className={`h-5 w-5 transition-colors ${isFav ? "fill-primary text-primary" : "text-muted-foreground"}`}
@@ -594,7 +561,7 @@ export default function Puppies() {
                           setShareDialogOpen(true);
                         }}
                         className="p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
-                        aria-label={t("puppies.card.share")}
+                        aria-label="Share on Facebook or Instagram"
                       >
                         <Share2 className="h-5 w-5 text-muted-foreground" />
                       </button>
@@ -609,15 +576,12 @@ export default function Puppies() {
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">{puppy.name || t("puppies.unnamed")}</CardTitle>
+                      <CardTitle className="text-xl">{puppy.name || "Unnamed"}</CardTitle>
                     </div>
                     <CardDescription>
-                      {puppy.breed || t("puppies.unknownBreed")}
-                      {puppy.gender && ` • ${translateGender(puppy.gender)}`}
-                      {(() => {
-                        const weeks = getDisplayAgeWeeks(puppy);
-                        return weeks != null && ` • ${t("common.week", { count: weeks })}`;
-                      })()}
+                      {puppy.breed || "Unknown Breed"}
+                      {puppy.gender && ` • ${puppy.gender}`}
+                      {(() => { const w = getDisplayAgeWeeks(puppy); return w != null && ` • ${w} weeks`; })()}
                     </CardDescription>
                     {puppy.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{puppy.description}</p>
@@ -643,11 +607,11 @@ export default function Puppies() {
                           )}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">{t("puppies.priceOnRequest")}</span>
+                        <span className="text-muted-foreground">Price on request</span>
                       )}
                       <Button onClick={() => openInterestForm(puppy.id)}>
                         <Heart className="h-4 w-4 mr-2" />
-                        {t("common.sendInterest")}
+                        Send Interest
                       </Button>
                     </div>
                     {puppy.discount_note && (
@@ -661,17 +625,17 @@ export default function Puppies() {
         ) : (
           <div className="bg-muted/50 rounded-lg p-12 text-center">
             <Dog className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">{t("puppies.noMatches.title")}</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No puppies match your filters</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              {t("puppies.noMatches.description")}
+              Try adjusting your filters or clear them to see all available puppies.
             </p>
             <Button variant="outline" onClick={clearFilters}>
-              {t("common.clearFilters")}
+              Clear Filters
             </Button>
-            <p className="text-sm text-muted-foreground mt-4">{t("puppies.noMatches.noPuppies")}</p>
+            <p className="text-sm text-muted-foreground mt-4">No puppies available at all?</p>
             <Button variant="link" onClick={() => openInterestForm()}>
               <Heart className="h-4 w-4 mr-2" />
-              {t("puppies.noMatches.recommendations")}
+              Send Interest (get recommendations)
             </Button>
           </div>
         )}
@@ -689,20 +653,15 @@ export default function Puppies() {
                   <div className="flex gap-4 items-start">
                     {img && (
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0">
-                        <img src={img} alt={prePuppy.name || t("puppies.seo.unnamed")} className="w-full h-full object-cover" />
+                        <img src={img} alt={prePuppy.name || "Puppy"} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div>
-                      <DialogTitle>
-                        {t("puppies.interestDialog.sendInterestFor", {
-                          name: prePuppy.name || t("puppies.unnamed"),
-                        })}
-                      </DialogTitle>
+                      <DialogTitle>Send Interest — {prePuppy.name || "Unnamed"}</DialogTitle>
                       <DialogDescription>
                         {prePuppy.breed}
-                        {prePuppy.gender && ` • ${translateGender(prePuppy.gender)}`}
-                        {getDisplayAgeWeeks(prePuppy) != null &&
-                          ` • ${t("common.week", { count: getDisplayAgeWeeks(prePuppy) })}`}
+                        {prePuppy.gender && ` • ${prePuppy.gender}`}
+                        {getDisplayAgeWeeks(prePuppy) != null && ` • ${getDisplayAgeWeeks(prePuppy)} weeks`}
                       </DialogDescription>
                     </div>
                   </div>
@@ -710,8 +669,8 @@ export default function Puppies() {
               })()}
               {!interestFormPuppyId && (
                 <>
-                  <DialogTitle>{t("puppies.interestDialog.title")}</DialogTitle>
-                  <DialogDescription>{t("puppies.interestDialog.description")}</DialogDescription>
+                  <DialogTitle>Puppy Interest Form</DialogTitle>
+                  <DialogDescription>Tell us about yourself and your puppy preferences.</DialogDescription>
                 </>
               )}
             </DialogHeader>
@@ -726,7 +685,7 @@ export default function Puppies() {
               }
               puppies={puppies || []}
               onSuccess={() => setInterestFormOpen(false)}
-              submitLabel={t("common.sendInterest")}
+              submitLabel="Send Interest"
               compact
             />
           </DialogContent>
@@ -749,15 +708,12 @@ export default function Puppies() {
                 <DialogHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <DialogTitle className="text-2xl">{detailPuppy.name || t("puppies.unnamed")}</DialogTitle>
+                      <DialogTitle className="text-2xl">{detailPuppy.name || "Unnamed"}</DialogTitle>
                       <DialogDescription>
-                        {detailPuppy.breed || t("puppies.unknownBreed")}
-                        {detailPuppy.gender && ` • ${translateGender(detailPuppy.gender)}`}
+                        {detailPuppy.breed || "Unknown Breed"}
+                        {detailPuppy.gender && ` • ${detailPuppy.gender}`}
                         {detailPuppy.color && ` • ${detailPuppy.color}`}
-                        {(() => {
-                          const weeks = getDisplayAgeWeeks(detailPuppy);
-                          return weeks != null && ` • ${t("common.week", { count: weeks })}`;
-                        })()}
+                        {(() => { const w = getDisplayAgeWeeks(detailPuppy); return w != null && ` • ${w} weeks`; })()}
                       </DialogDescription>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -765,7 +721,7 @@ export default function Puppies() {
                         variant="outline"
                         size="icon"
                         onClick={() => setShareDialogOpen(true)}
-                        aria-label={t("puppies.detail.share")}
+                        aria-label="Share"
                       >
                         <Share2 className="h-4 w-4" />
                       </Button>
@@ -773,11 +729,7 @@ export default function Puppies() {
                         variant="outline"
                         size="icon"
                         onClick={() => toggleFavorite(String(detailPuppy.id))}
-                        aria-label={
-                          favorites.has(String(detailPuppy.id))
-                            ? t("common.removeFromFavorites")
-                            : t("common.addToFavorites")
-                        }
+                        aria-label={favorites.has(String(detailPuppy.id)) ? "Remove from favorites" : "Add to favorites"}
                       >
                         <Heart
                           className={`h-4 w-4 ${favorites.has(String(detailPuppy.id)) ? "fill-primary text-primary" : ""}`}
@@ -791,7 +743,7 @@ export default function Puppies() {
                     {getPuppyImage(detailPuppy) ? (
                       <img
                         src={getPuppyImage(detailPuppy)!}
-                        alt={detailPuppy.name || t("puppies.seo.unnamed")}
+                        alt={detailPuppy.name || "Puppy"}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -801,13 +753,13 @@ export default function Puppies() {
                     )}
                     <div className="absolute bottom-2 left-2 flex gap-2">
                       {getSizeCategory(detailPuppy) && (
-                        <Badge>{translateSize(getSizeCategory(detailPuppy))}</Badge>
+                        <Badge>{getSizeCategory(detailPuppy)}</Badge>
                       )}
                       {isPoodleOrDoodle(detailPuppy.breed || "") && (
-                        <Badge variant="secondary">{t("puppies.detail.poodleDoodle")}</Badge>
+                        <Badge variant="secondary">Poodle & Doodle</Badge>
                       )}
                       {isSmallBreed(detailPuppy.breed || "") && (
-                        <Badge variant="secondary">{t("puppies.detail.small")}</Badge>
+                        <Badge variant="secondary">Small</Badge>
                       )}
                     </div>
                   </div>
@@ -817,8 +769,8 @@ export default function Puppies() {
                     )}
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t("dogFields.healthCertificate")}</span>
-                        <span>{t("common.yes")}</span>
+                        <span className="text-muted-foreground">Health Certificate</span>
+                        <span>Yes</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                         <div
@@ -827,8 +779,8 @@ export default function Puppies() {
                         />
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t("dogFields.vaccinations")}</span>
-                        <span>{t("dogFields.firstRoundIncluded")}</span>
+                        <span className="text-muted-foreground">Vaccinations</span>
+                        <span>First round included</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                         <div
@@ -837,8 +789,8 @@ export default function Puppies() {
                         />
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{t("dogFields.microchipped")}</span>
-                        <span>{detailPuppy.microchipped ? t("common.yes") : t("common.no")}</span>
+                        <span className="text-muted-foreground">Microchipped</span>
+                        <span>{detailPuppy.microchipped ? "Yes" : "No"}</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                         <div
@@ -864,9 +816,7 @@ export default function Puppies() {
                               </span>
                               {detailPuppy.discount_amount != null && Number(detailPuppy.discount_amount) > 0 && (
                                 <Badge variant="secondary" className="text-xs">
-                                  {t("puppies.card.off", {
-                                    amount: Number(detailPuppy.discount_amount).toLocaleString(),
-                                  })}
+                                  ${Number(detailPuppy.discount_amount).toLocaleString()} OFF
                                 </Badge>
                               )}
                             </>
@@ -877,14 +827,14 @@ export default function Puppies() {
                           )}
                         </p>
                       ) : (
-                        <p className="text-muted-foreground mb-2">{t("puppies.priceOnRequest")}</p>
+                        <p className="text-muted-foreground mb-2">Price on request</p>
                       )}
                       <Button className="w-full" onClick={() => openInterestForm(detailPuppy.id)}>
                         <Heart className="h-4 w-4 mr-2" />
-                        {t("common.sendInterest")}
+                        Send Interest
                       </Button>
                       <Button variant="outline" className="w-full mt-2" asChild>
-                        <Link to="/contact">{t("common.contactUs")}</Link>
+                        <Link to="/contact">Contact Us</Link>
                       </Button>
                     </div>
                   </div>
@@ -909,11 +859,10 @@ export default function Puppies() {
             >
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>{t("puppies.share.dialogTitle")}</DialogTitle>
+                  <DialogTitle>Share this puppy</DialogTitle>
                   <DialogDescription>
-                    {t("puppies.share.dialogDescription", {
-                      name: puppyToShare?.name ?? t("puppies.share.fallbackName"),
-                    })}
+                    Share {puppyToShare?.name ?? "this puppy"} on Facebook, copy the link for Instagram or stories, or
+                    download the photo to post.
                   </DialogDescription>
                 </DialogHeader>
                 {puppyToShare && (
@@ -928,7 +877,7 @@ export default function Puppies() {
                       }}
                     >
                       <Facebook className="h-5 w-5" />
-                      {t("puppies.share.facebook")}
+                      Share on Facebook
                     </Button>
                     <Button
                       variant="outline"
@@ -940,7 +889,7 @@ export default function Puppies() {
                       }}
                     >
                       <Copy className="h-5 w-5" />
-                      {t("puppies.share.instagram")}
+                      Copy link (paste in Instagram story or bio)
                     </Button>
                     {getPuppyImage(puppyToShare) && (
                       <Button
@@ -953,7 +902,7 @@ export default function Puppies() {
                         }}
                       >
                         <Download className="h-5 w-5" />
-                        {t("puppies.share.download")}
+                        Download photo (post to Instagram manually)
                       </Button>
                     )}
                     {typeof navigator !== "undefined" && navigator.share && (
@@ -967,7 +916,7 @@ export default function Puppies() {
                         }}
                       >
                         <Share2 className="h-5 w-5" />
-                        {t("puppies.share.native")}
+                        Share with your app
                       </Button>
                     )}
                   </div>
