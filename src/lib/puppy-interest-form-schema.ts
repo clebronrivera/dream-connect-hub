@@ -43,9 +43,7 @@ export const puppyInterestFormSchema = z
     viewingPreference: z.string().optional(),
 
     wantsAiTraining: z.boolean().optional(),
-    consentCommunications: z.boolean({
-      required_error: "Please select a communication preference.",
-    }),
+    consentCommunications: z.boolean().optional(),
   })
   .refine(
     (data) => {
