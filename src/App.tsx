@@ -1,6 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
-import { useTranslation } from "react-i18next";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -57,10 +56,8 @@ export function AppProviders({ children, queryClient }: AppProvidersProps) {
 }
 
 export function AppRoutes() {
-  const { t } = useTranslation();
-
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">{t("common.loading")}</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading…</div>}>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />

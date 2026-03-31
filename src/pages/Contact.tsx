@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,9 +27,8 @@ import {
 } from "@/lib/contact-messages";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function isValidUuid(value: string | null): value is string {
-  return !!value && UUID_REGEX.test(value);
+function isValidUuid(s: string | null): s is string {
+  return !!s && UUID_REGEX.test(s);
 }
 
 async function fetchAvailablePuppies(): Promise<Puppy[]> {
@@ -45,7 +43,6 @@ async function fetchAvailablePuppies(): Promise<Puppy[]> {
 }
 
 export default function Contact() {
-  const { t } = useTranslation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,35 +62,32 @@ export default function Contact() {
   useEffect(() => {
     const subjectFromUrl = searchParams.get("subject");
     if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
-    if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER) {
+    if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER)
       setSubject(SUBJECT_UPCOMING_LITTER);
-    }
   }, [searchParams]);
 
+  // Preselect litter from ?litter= id when on Upcoming Litter subject (e.g. from /contact?subject=upcoming-litter&litter=uuid)
   useEffect(() => {
     const litterParam = searchParams.get("litter");
     if (!isValidUuid(litterParam) || !upcomingLitters?.length) return;
-    if (upcomingLitters.some((litter) => litter.id === litterParam)) {
-      setUpcomingLitterId(litterParam);
-    }
+    const found = upcomingLitters.some((l) => l.id === litterParam);
+    if (found) setUpcomingLitterId(litterParam);
   }, [searchParams, upcomingLitters]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-
+    
     const formData = new FormData(e.currentTarget);
-    const selectedLitter = upcomingLitterId && upcomingLitters?.find((litter) => litter.id === upcomingLitterId);
+    const selectedLitter = upcomingLitterId && upcomingLitters?.find((l) => l.id === upcomingLitterId);
     const data = {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
-      phone: (formData.get("phone") as string) || undefined,
+      phone: formData.get("phone") as string || undefined,
       subject: subject || (formData.get("subject") as string),
       message: formData.get("message") as string,
       upcoming_litter_id: upcomingLitterId || null,
-      upcoming_litter_label: selectedLitter
-        ? `${selectedLitter.display_breed || selectedLitter.breed}${selectedLitter.due_label ? `, ${selectedLitter.due_label}` : ""}`
-        : null,
+      upcoming_litter_label: selectedLitter ? `${selectedLitter.display_breed || selectedLitter.breed}${selectedLitter.due_label ? `, ${selectedLitter.due_label}` : ''}` : null,
     };
 
     try {
@@ -101,18 +95,18 @@ export default function Contact() {
       if (error) throw error;
 
       toast({
-        title: t("contact.form.successTitle"),
-        description: t("contact.form.successDescription"),
+        title: "Message Sent!",
+        description: "We'll get back to you as soon as possible.",
       });
-
+      
       (e.target as HTMLFormElement).reset();
       setSubject("");
       setUpcomingLitterId(null);
     } catch (error) {
       console.error("Error submitting contact form:", error);
       toast({
-        title: t("contact.form.errorTitle"),
-        description: t("contact.form.errorDescription"),
+        title: "Error",
+        description: "Failed to send message. Please try again or contact us directly.",
         variant: "destructive",
       });
     } finally {
@@ -120,36 +114,23 @@ export default function Contact() {
     }
   };
 
-  const cardTitle =
-    subject === SUBJECT_PUPPY_INQUIRY
-      ? t("contact.form.title.puppyInquiry")
-      : subject === SUBJECT_UPCOMING_LITTER
-        ? t("contact.form.title.upcomingLitter")
-        : t("contact.form.title.default");
-  const cardDescription =
-    subject === SUBJECT_PUPPY_INQUIRY
-      ? t("contact.form.description.puppyInquiry")
-      : subject === SUBJECT_UPCOMING_LITTER
-        ? t("contact.form.description.upcomingLitter")
-        : t("contact.form.description.default");
-
   return (
     <Layout>
       <Seo pageId="contact" />
+      {/* Hero Section */}
       <section className="bg-primary py-16">
         <div className="container text-center">
           <Mail className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">
-            {t("contact.hero.title")}
-          </h1>
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Contact Us</h1>
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-            {t("contact.hero.description")}
+            Have questions? We'd love to hear from you. Reach out and we'll respond as soon as we can.
           </p>
         </div>
       </section>
 
       <section className="container py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Contact Info Cards */}
           <div className="space-y-6">
             <Card>
               <CardContent className="pt-6">
@@ -158,9 +139,9 @@ export default function Contact() {
                     <Phone className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">{t("contact.cards.phone")}</h3>
-                    <a
-                      href="tel:321-697-8864"
+                    <h3 className="font-semibold text-foreground">Phone</h3>
+                    <a 
+                      href="tel:321-697-8864" 
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                       321-697-8864
@@ -177,9 +158,9 @@ export default function Contact() {
                     <Mail className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">{t("contact.cards.email")}</h3>
-                    <a
-                      href="mailto:Dreampuppies22@gmail.com"
+                    <h3 className="font-semibold text-foreground">Email</h3>
+                    <a 
+                      href="mailto:Dreampuppies22@gmail.com" 
                       className="text-muted-foreground hover:text-foreground transition-colors break-all"
                     >
                       Dreampuppies22@gmail.com
@@ -196,36 +177,45 @@ export default function Contact() {
                     <MapPin className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">{t("contact.cards.serviceAreas")}</h3>
-                    <p className="text-muted-foreground">{t("states.FL")}</p>
-                    <p className="text-muted-foreground">{t("states.NC")}</p>
+                    <h3 className="font-semibold text-foreground">Service Areas</h3>
+                    <p className="text-muted-foreground">Florida</p>
+                    <p className="text-muted-foreground">North Carolina</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
+          {/* Contact Form */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>{cardTitle}</CardTitle>
-              <CardDescription>{cardDescription}</CardDescription>
+              <CardTitle>
+                {subject === SUBJECT_PUPPY_INQUIRY
+                  ? "Puppy Interest Form"
+                  : subject === SUBJECT_UPCOMING_LITTER
+                    ? "Upcoming Litter"
+                    : "Send us a Message"}
+              </CardTitle>
+              <CardDescription>
+                {subject === SUBJECT_PUPPY_INQUIRY
+                  ? "Tell us about yourself and your puppy preferences. We'll get back to you soon."
+                  : subject === SUBJECT_UPCOMING_LITTER
+                    ? "Join the waitlist or inquire about a deposit for an upcoming litter. We'll follow up with next steps."
+                    : "Fill out the form below and we'll get back to you as soon as possible."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 mb-6">
-                <Label>{t("contact.form.subjectLabel")}</Label>
+                <Label>Subject *</Label>
                 <Select value={subject} onValueChange={setSubject}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t("contact.form.subjectPlaceholder")} />
+                    <SelectValue placeholder="Select a subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={SUBJECT_PUPPY_INQUIRY}>
-                      {t("contact.form.subjects.puppyInquiry")}
-                    </SelectItem>
-                    <SelectItem value={SUBJECT_UPCOMING_LITTER}>
-                      {t("contact.form.subjects.upcomingLitter")}
-                    </SelectItem>
-                    <SelectItem value="general">{t("contact.form.subjects.general")}</SelectItem>
-                    <SelectItem value="other">{t("contact.form.subjects.other")}</SelectItem>
+                    <SelectItem value={SUBJECT_PUPPY_INQUIRY}>Puppy Inquiry</SelectItem>
+                    <SelectItem value={SUBJECT_UPCOMING_LITTER}>Upcoming Litter</SelectItem>
+                    <SelectItem value="general">General Question</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -233,14 +223,14 @@ export default function Contact() {
               {subject === SUBJECT_PUPPY_INQUIRY ? (
                 <PuppyInterestForm
                   puppies={puppies ?? []}
-                  submitLabel={t("forms.puppyInterest.submit")}
+                  submitLabel="Submit Puppy Inquiry"
                 />
               ) : subject === SUBJECT_UPCOMING_LITTER ? (
                 <UpcomingLitterInquiryForm
                   litters={upcomingLitters ?? []}
                   initialLitterId={upcomingLitterId}
                   isSubmitting={isSubmitting}
-                  submitLabel={t("contact.form.sendMessage")}
+                  submitLabel="Send Message"
                   onSubmit={async (payload) => {
                     setIsSubmitting(true);
                     try {
@@ -249,16 +239,16 @@ export default function Contact() {
                       );
                       if (error) throw error;
                       toast({
-                        title: t("contact.form.successTitle"),
-                        description: t("contact.form.successDescription"),
+                        title: "Message Sent!",
+                        description: "We'll get back to you as soon as possible.",
                       });
                       setSubject("");
                       setUpcomingLitterId(null);
                     } catch (err) {
                       console.error("Error submitting upcoming litter inquiry:", err);
                       toast({
-                        title: t("contact.form.errorTitle"),
-                        description: t("contact.form.errorDescription"),
+                        title: "Error",
+                        description: "Failed to send. Please try again or contact us directly.",
                         variant: "destructive",
                       });
                     } finally {
@@ -268,62 +258,46 @@ export default function Contact() {
                 />
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">{t("common.name")} *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        placeholder={t("common.namePlaceholder")}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">{t("common.email")} *</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder={t("common.emailPlaceholder")}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">{t("common.phone")}</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        placeholder={t("common.phonePlaceholder")}
-                      />
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="message">{t("common.message")} *</Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      placeholder={t("contact.form.placeholders.message")}
-                      rows={5}
-                      required
-                    />
+                    <Label htmlFor="name">Name *</Label>
+                    <Input id="name" name="name" placeholder="Your name" required />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input id="email" name="email" type="email" placeholder="your@email.com" required />
+                  </div>
+                </div>
 
-                  <Button type="submit" size="lg" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      t("common.sending")
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        {t("contact.form.sendMessage")}
-                      </>
-                    )}
-                  </Button>
-                </form>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" name="phone" type="tel" placeholder="(123) 456-7890" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message *</Label>
+                  <Textarea 
+                    id="message" 
+                    name="message" 
+                    placeholder="How can we help you?"
+                    rows={5}
+                    required 
+                  />
+                </div>
+
+                <Button type="submit" size="lg" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    "Sending..."
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Message
+                    </>
+                  )}
+                </Button>
+              </form>
               )}
             </CardContent>
           </Card>

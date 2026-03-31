@@ -274,14 +274,8 @@ export default function PuppyForm() {
         return result;
       }
     },
-    onSuccess: (_data, _variables, _context) => {
-      // Invalidate so list and profile show updated data (e.g. status Sold, discount, final price)
-      queryClient.invalidateQueries({ queryKey: ['admin-puppies'] });
-      queryClient.invalidateQueries({ queryKey: ['puppies'] });
-      if (isEdit && id) {
-        queryClient.invalidateQueries({ queryKey: ['puppy', id] });
-      }
-      toast({
+    onSuccess: () => {
+      toast({ 
         title: `Puppy ${isEdit ? 'updated' : 'created'} successfully`,
         description: `The puppy has been ${isEdit ? 'updated' : 'added'} to the database.`,
       });

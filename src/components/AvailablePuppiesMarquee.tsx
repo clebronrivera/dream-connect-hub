@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
 import type { Puppy } from "@/lib/supabase";
 import { Dog, Loader2 } from "lucide-react";
@@ -12,7 +11,6 @@ function getPuppyImage(puppy: Puppy): string | null {
 }
 
 function PuppyCard({ puppy }: { puppy: Puppy }) {
-  const { t } = useTranslation();
   const imgUrl = getPuppyImage(puppy);
   const id = puppy.id ?? puppy.puppy_id;
   const to = id ? `/puppies/${id}` : "/puppies";
@@ -26,7 +24,7 @@ function PuppyCard({ puppy }: { puppy: Puppy }) {
         {imgUrl ? (
           <img
             src={imgUrl}
-            alt={puppy.name || t("marquee.unnamedPuppy")}
+            alt={puppy.name || "Puppy"}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -37,7 +35,7 @@ function PuppyCard({ puppy }: { puppy: Puppy }) {
       </div>
       <div className="w-full min-w-0 text-center">
         <p className="truncate text-sm font-medium text-foreground">
-          {puppy.name || t("marquee.unnamedPuppy")}
+          {puppy.name || "Puppy"}
         </p>
         <p className="truncate text-xs text-muted-foreground">{puppy.breed}</p>
       </div>
@@ -46,7 +44,6 @@ function PuppyCard({ puppy }: { puppy: Puppy }) {
 }
 
 export function AvailablePuppiesMarquee() {
-  const { t } = useTranslation();
   const { data: puppies = [], isLoading, isError } = useQuery({
     queryKey: ["puppies"],
     queryFn: fetchAvailablePuppies,
@@ -71,10 +68,7 @@ export function AvailablePuppiesMarquee() {
   const items = [...puppies, ...puppies];
 
   return (
-    <section
-      className="border-y bg-muted/30 py-6 overflow-hidden"
-      aria-label={t("marquee.ariaLabel")}
-    >
+    <section className="border-y bg-muted/30 py-6 overflow-hidden" aria-label="Available puppies">
       <div className="flex gap-4 animate-marquee w-max">
         {items.map((puppy, index) => (
           <PuppyCard key={`${puppy.id ?? puppy.puppy_id}-${index}`} puppy={puppy} />
