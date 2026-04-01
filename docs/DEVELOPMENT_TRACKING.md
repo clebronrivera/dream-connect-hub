@@ -57,3 +57,13 @@ Example:
 - [ ] Commit created
 - [ ] Branch pushed to GitHub
 
+## Post-migration verification (after moving Supabase calls to services)
+
+When migrating pages from direct `supabase.from()` calls to service functions:
+
+1. **Remove the value import** (`import { supabase }`) and add service imports.
+2. **Replace every `supabase.from()`** call in the file — not just mutations, but also `useQuery` queryFn bodies.
+3. **Verify with grep:** `grep -rn 'supabase\.' src/pages/` — every match must either import `supabase` directly (e.g. for storage URLs) or call a service function.
+
+**Why:** TypeScript does not flag a missing value import if the variable name exists as an ambient export from another module in the bundle. A file can use `import type { Foo } from '@/lib/supabase'` (type-only) and still reference `supabase.from()` without a compile error. The variable is `undefined` at runtime, crashing React. This caused a production blank page on 2026-04-01.
+

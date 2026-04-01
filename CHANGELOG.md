@@ -6,6 +6,18 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-04-01 — Hotfix
+
+### Fixed
+
+- **Blank page on production** — `UpcomingLittersList.tsx` and `BreedingDogsList.tsx` still referenced `supabase.from()` in their `queryFn` after the `supabase` import was removed in Phase 5 service layer migration. The variable resolved to `undefined` at runtime, crashing React before any route could render. TypeScript did not catch this because `supabase` existed as a re-export in the bundled module scope — the name was ambient but not actually imported into the file. Fixed by adding `fetchAdminUpcomingLitters` and `fetchAdminBreedingDogs` to the service layer and wiring both list pages to use them.
+
+### Lesson learned
+
+- **Type-only imports mask missing value imports.** When a file has `import type { Foo } from '@/lib/supabase'` and also uses `supabase.from()`, removing the value import while keeping the type import does not produce a TypeScript error if the variable name `supabase` is available as an ambient module export. Runtime crash, no compile error. **Mitigation:** after any service layer migration, run `grep -rn 'supabase\.' src/pages/` and verify every match either imports `supabase` or uses it through a service function. Add smoke tests for admin list pages to catch this class of error at test time.
+
+---
+
 ## 2026-04-01 (Phase 7)
 
 ### Changed
