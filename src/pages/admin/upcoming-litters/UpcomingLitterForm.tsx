@@ -5,6 +5,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase, type UpcomingLitter, type BreedingDog } from '@/lib/supabase';
+import {
+  createUpcomingLitter,
+  updateUpcomingLitter,
+} from '@/lib/admin/upcoming-litters-service';
 import { getBirthWindow, getGoHomeWindow, getDueLabelFromBreedingDate, getExpectedWhelpingDate } from '@/lib/litter-timeline';
 import { getDisplayBreedFromParentBreeds } from '@/lib/breed-utils';
 import { Button } from '@/components/ui/button';
@@ -218,8 +222,7 @@ export default function UpcomingLitterForm() {
         } else if (slot.path) paths.push(slot.path);
       }
       const payload = buildPayload(data, paths.length ? paths : null);
-      const { error } = await supabase.from('upcoming_litters').insert(payload);
-      if (error) throw error;
+      await createUpcomingLitter(payload as Record<string, unknown>);
     },
     onSuccess: () => {
       toast({ title: 'Upcoming litter added' });
@@ -240,11 +243,7 @@ export default function UpcomingLitterForm() {
         } else if (slot.path) paths.push(slot.path);
       }
       const payload = buildPayload(data, paths.length ? paths : null);
-      const { error } = await supabase
-        .from('upcoming_litters')
-        .update(payload)
-        .eq('id', id!);
-      if (error) throw error;
+      await updateUpcomingLitter(id!, payload as Record<string, unknown>);
     },
     onSuccess: () => {
       toast({ title: 'Upcoming litter updated' });

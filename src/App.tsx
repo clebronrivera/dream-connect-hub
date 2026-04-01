@@ -7,17 +7,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppQueryClient } from "@/lib/query-client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { GoogleTranslateRuntime } from "@/components/i18n/GoogleTranslateRuntime";
 
-import Index from "./pages/Index";
-import Puppies from "./pages/Puppies";
-import Consultation from "./pages/Consultation";
-import Essentials from "./pages/Essentials";
-import Contact from "./pages/Contact";
-import UpcomingLitters from "./pages/UpcomingLitters";
-import Breeds from "./pages/Breeds";
-import NotFound from "./pages/NotFound";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+const Index = lazy(() => import("./pages/Index"));
+const Puppies = lazy(() => import("./pages/Puppies"));
+const Consultation = lazy(() => import("./pages/Consultation"));
+const Essentials = lazy(() => import("./pages/Essentials"));
+const Contact = lazy(() => import("./pages/Contact"));
+const UpcomingLitters = lazy(() => import("./pages/UpcomingLitters"));
+const Breeds = lazy(() => import("./pages/Breeds"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/admin/Login"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const PuppiesList = lazy(() => import("./pages/admin/puppies/PuppiesList"));
@@ -43,13 +46,16 @@ export function AppProviders({ children, queryClient }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            {children}
-          </TooltipProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <GoogleTranslateRuntime />
+              {children}
+            </TooltipProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -57,8 +63,9 @@ export function AppProviders({ children, queryClient }: AppProvidersProps) {
 
 export function AppRoutes() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading…</div>}>
-      <Routes>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading…</div>}>
+        <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/puppies" element={<Puppies />} />
@@ -99,8 +106,9 @@ export function AppRoutes() {
 
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

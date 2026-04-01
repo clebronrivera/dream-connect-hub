@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { fetchAdminProduct, updateProduct, createProduct } from '@/lib/admin/inventory-service';
 import { replaceProductPhoto } from '@/lib/product-photos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Image as ImageIcon, Upload, X } from 'lucide-react';
-import type { Product } from '@/lib/supabase';
 import { PRODUCT_CATEGORIES } from '@/lib/supabase';
 
 const productSchema = z.object({
@@ -65,16 +64,9 @@ export default function ProductForm() {
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
     queryFn: async () => {
-      if (!id) return null;
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
+      const data = await fetchAdminProduct(id!);
       if (data?.photo) setPhotoPreview(data.photo);
-      return data as Product;
+      return data;
     },
     enabled: isEdit,
   });
@@ -131,24 +123,9 @@ export default function ProductForm() {
       };
 
       if (isEdit && id) {
-        const { data: updated, error } = await supabase
-          .from('products')
-          .update(payload)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return updated;
+        return updateProduct(id, payload);
       } else {
-        const { data: created, error } = await supabase
-          .from('products')
-          .insert([payload])
-          .select()
-          .single();
-
-        if (error) throw error;
-        return created;
+        return createProduct(payload);
       }
     },
     onSuccess: () => {

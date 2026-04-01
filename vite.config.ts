@@ -19,9 +19,6 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom"],
   },
-  build: {
-    chunkSizeWarningLimit: 1000,
-  },
   // Force cache busting
   optimizeDeps: {
     force: true,

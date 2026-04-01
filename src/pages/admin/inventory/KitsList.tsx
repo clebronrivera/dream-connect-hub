@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { deleteKit } from '@/lib/admin/inventory-service';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
@@ -38,9 +38,7 @@ export default function KitsList() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('kits').delete().eq('id', id);
-
-      if (error) throw error;
+      await deleteKit(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-kits'] });

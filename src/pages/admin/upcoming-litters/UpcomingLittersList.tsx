@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, type UpcomingLitter } from '@/lib/supabase';
+import type { UpcomingLitter } from '@/lib/supabase';
+import { deleteUpcomingLitter } from '@/lib/admin/upcoming-litters-service';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -37,8 +38,7 @@ export default function UpcomingLittersList() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('upcoming_litters').delete().eq('id', id);
-      if (error) throw error;
+      await deleteUpcomingLitter(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-upcoming-litters'] });

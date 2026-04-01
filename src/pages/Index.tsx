@@ -6,40 +6,37 @@ import { AvailablePuppiesMarquee } from "@/components/AvailablePuppiesMarquee";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dog, Heart, MapPin, Phone, Mail, Users, CheckCircle2 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /** Local Puppy Heaven banner (from public folder); used as hero background behind "Welcome to Puppy Heaven". */
 const HERO_BANNER_URL = "/puppy-heaven-banner.jpg";
 
-const services = [
-  {
-    icon: Dog,
-    title: "Available Puppies",
-    description: "Find your perfect furry companion from our selection of healthy, happy puppies raised with love.",
-    cta: "Browse Puppies",
-    link: "/puppies",
-  },
-];
-
-const trustPoints = [
-  {
-    icon: Users,
-    title: "Family Operated",
-    description: "Dedicated to pets and their families since day one",
-  },
-  {
-    icon: MapPin,
-    title: "Serving FL & NC",
-    description: "Proudly serving Florida and North Carolina",
-  },
-  {
-    icon: Heart,
-    title: "Raised with Love",
-    description: "Every puppy receives personal care and attention",
-  },
-];
-
 export default function Index() {
-  const featuredService = services[0];
+  const { t } = useLanguage();
+  const featuredService = {
+    icon: Dog,
+    title: t("serviceAvailablePuppiesTitle"),
+    description: t("serviceAvailablePuppiesDescription"),
+    cta: t("indexBrowsePuppies"),
+    link: "/puppies",
+  };
+  const trustPoints = [
+    {
+      icon: Users,
+      title: t("trustFamilyOperatedTitle"),
+      description: t("trustFamilyOperatedDescription"),
+    },
+    {
+      icon: MapPin,
+      title: t("trustServingTitle"),
+      description: t("trustServingDescription"),
+    },
+    {
+      icon: Heart,
+      title: t("trustRaisedWithLoveTitle"),
+      description: t("trustRaisedWithLoveDescription"),
+    },
+  ];
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [bannerError, setBannerError] = useState(false);
   const useBannerImage = bannerLoaded && !bannerError;
@@ -76,18 +73,18 @@ export default function Index() {
             <h1
               className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 ${useBannerImage ? "text-white drop-shadow-md" : "text-primary-foreground"}`}
             >
-              Welcome to Puppy Heaven
+              {t("indexWelcomeTitle")}
             </h1>
             <p
               className={`text-lg md:text-xl mb-8 ${useBannerImage ? "text-white/90 drop-shadow-sm" : "text-primary-foreground/80"}`}
             >
-              Your trusted partner for finding the perfect puppy and everything your furry friend needs to thrive.
+              {t("indexWelcomeDescription")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="secondary" className="text-black" asChild>
                 <Link to="/puppies">
                   <Dog className="h-5 w-5 mr-2" />
-                  Browse Puppies
+                  {t("indexBrowsePuppies")}
                 </Link>
               </Button>
             </div>
@@ -100,10 +97,10 @@ export default function Index() {
       {/* Services Section */}
       <section className="container py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-4">
-          Our Services
+          {t("indexOurServices")}
         </h2>
         <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-          From finding your perfect companion to ongoing support, we're here for every step of your pet journey.
+          {t("indexServicesDescription")}
         </p>
         <div className="mx-auto max-w-5xl">
           <Card className="overflow-hidden border-primary/20 shadow-sm hover:shadow-lg transition-shadow">
@@ -124,26 +121,26 @@ export default function Index() {
                       <Link to={featuredService.link}>{featuredService.cta}</Link>
                     </Button>
                     <Button size="lg" variant="outline" asChild>
-                      <Link to="/contact">Ask About Availability</Link>
+                      <Link to="/contact">{t("indexAskAvailability")}</Link>
                     </Button>
                   </div>
                 </CardContent>
               </div>
 
               <div className="bg-muted/40 border-t md:border-t-0 md:border-l p-8 md:p-10">
-                <h3 className="text-lg font-semibold text-foreground mb-4">What to expect</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">{t("indexWhatToExpect")}</h3>
                 <div className="space-y-3 text-muted-foreground">
                   <p className="flex items-start gap-2">
                     <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    Healthy, socialized puppies raised with daily care and attention.
+                    {t("indexExpectOne")}
                   </p>
                   <p className="flex items-start gap-2">
                     <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    Detailed listings with current photos and helpful notes.
+                    {t("indexExpectTwo")}
                   </p>
                   <p className="flex items-start gap-2">
                     <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                    Friendly support to help you find the right fit for your home.
+                    {t("indexExpectThree")}
                   </p>
                 </div>
               </div>
@@ -156,7 +153,7 @@ export default function Index() {
       <section className="bg-muted/30 py-16">
         <div className="container">
           <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-12">
-            Why Choose Puppy Heaven?
+            {t("indexWhyChoose")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {trustPoints.map((point, index) => (
@@ -177,10 +174,9 @@ export default function Index() {
         <Card className="bg-primary text-primary-foreground">
           <CardContent className="py-12">
             <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4">Ready to Start Your Journey?</h2>
+              <h2 className="text-3xl font-bold mb-4">{t("indexReadyTitle")}</h2>
               <p className="text-primary-foreground/80 mb-8">
-                Whether you're looking for a new puppy, need pet advice, or want to stock up on supplies, 
-                we're here to help. Reach out today!
+                {t("indexReadyDescription")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <a 
@@ -199,7 +195,7 @@ export default function Index() {
                 </a>
               </div>
               <Button variant="secondary" size="lg" asChild>
-                <Link to="/contact">Contact Us</Link>
+                <Link to="/contact">{t("footerContactUs")}</Link>
               </Button>
             </div>
           </CardContent>
