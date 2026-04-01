@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { BreedingDog } from '@/lib/supabase';
-import { deleteBreedingDog } from '@/lib/admin/breeding-dogs-service';
+import { fetchAdminBreedingDogs, deleteBreedingDog } from '@/lib/admin/breeding-dogs-service';
 import { getBreedingDogPhotoUrl } from '@/lib/puppy-photos';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,15 +26,7 @@ export default function BreedingDogsList() {
 
   const { data: dogs, isLoading } = useQuery({
     queryKey: ['admin-breeding-dogs'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('breeding_dogs')
-        .select('*')
-        .order('role', { ascending: true })
-        .order('name', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as BreedingDog[];
-    },
+    queryFn: fetchAdminBreedingDogs,
   });
 
   const deleteMutation = useMutation({

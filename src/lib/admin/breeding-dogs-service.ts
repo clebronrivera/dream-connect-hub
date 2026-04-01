@@ -1,6 +1,16 @@
 import { supabase } from '@/lib/supabase-client';
 import type { BreedingDog } from '@/lib/supabase';
 
+export async function fetchAdminBreedingDogs(): Promise<BreedingDog[]> {
+  const { data, error } = await supabase
+    .from('breeding_dogs')
+    .select('*')
+    .order('role', { ascending: true })
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as BreedingDog[];
+}
+
 export async function fetchBreedingDog(id: string): Promise<BreedingDog> {
   const { data, error } = await supabase
     .from('breeding_dogs')
