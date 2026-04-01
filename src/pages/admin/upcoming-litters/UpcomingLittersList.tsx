@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UpcomingLitter } from '@/lib/supabase';
-import { deleteUpcomingLitter } from '@/lib/admin/upcoming-litters-service';
+import { fetchAdminUpcomingLitters, deleteUpcomingLitter } from '@/lib/admin/upcoming-litters-service';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -25,15 +25,7 @@ export default function UpcomingLittersList() {
 
   const { data: litters, isLoading } = useQuery({
     queryKey: ['admin-upcoming-litters'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('upcoming_litters')
-        .select('*')
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as UpcomingLitter[];
-    },
+    queryFn: fetchAdminUpcomingLitters,
   });
 
   const deleteMutation = useMutation({
