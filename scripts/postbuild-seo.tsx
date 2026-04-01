@@ -78,16 +78,26 @@ function renderRouteHtml(
 ): string {
   const { AppProviders, AppRoutes, createAppQueryClient } = modules;
 
-  const appHtml = renderToString(
-    <AppProviders queryClient={createAppQueryClient()}>
-      <StaticRouter location={routePath}>
-        <AppRoutes />
-      </StaticRouter>
-    </AppProviders>
-  );
+  let appHtml = "";
+  try {
+    appHtml = renderToString(
+      <AppProviders queryClient={createAppQueryClient()}>
+        <StaticRouter location={routePath}>
+          <AppRoutes />
+        </StaticRouter>
+      </AppProviders>
+    );
+  } catch {
+    // React.lazy components cannot be rendered synchronously via renderToString.
+    // SEO tags (title, meta, og:*) are still injected — that's the critical output.
+    // The client-side React hydration will render the actual page content.
+    console.warn(`  [postbuild] SSR body skipped for ${routePath} (lazy route); SEO tags injected.`);
+  }
 
   let html = stripManagedHeadTags(template);
-  html = html.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+  if (appHtml) {
+    html = html.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+  }
   html = html.replace("</head>", `${seoTags}</head>`);
 
   return html;
