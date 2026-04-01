@@ -2,6 +2,10 @@
 
 Chronological delivery notes for shipped development work.
 
+## 2026-04-01 — Hotfix
+
+- **Production blank page fix:** `UpcomingLittersList` and `BreedingDogsList` called `supabase.from()` without importing `supabase` after Phase 5 migration. TypeScript didn't flag it (ambient re-export). Fixed by adding fetch functions to services and wiring list pages.
+
 ## 2026-04-01 (Phase 7)
 
 - Phase 7 cleanup: removed unused `Product` type import from `ProductForm.tsx`; updated `DOCUMENTATION_INDEX.md` with translations doc; added stabilization outcome summary to `TECHNICAL_AUDIT_REPORT.md` (before/after table, updated file map, resolved follow-ups).
