@@ -51,7 +51,6 @@ export function AppProviders({ children, queryClient }: AppProvidersProps) {
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <GoogleTranslateRuntime />
               {children}
             </TooltipProvider>
           </AuthProvider>
@@ -64,6 +63,7 @@ export function AppProviders({ children, queryClient }: AppProvidersProps) {
 export function AppRoutes() {
   return (
     <ErrorBoundary>
+      <GoogleTranslateRuntime />
       <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading…</div>}>
         <Routes>
         {/* Public routes */}
