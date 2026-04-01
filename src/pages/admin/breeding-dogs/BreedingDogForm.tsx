@@ -3,7 +3,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase, type BreedingDog } from '@/lib/supabase';
+import type { BreedingDog } from '@/lib/supabase';
+import {
+  fetchBreedingDog,
+  createBreedingDog,
+  updateBreedingDog,
+} from '@/lib/admin/breeding-dogs-service';
 import { uploadBreedingDogPhoto, getBreedingDogPhotoUrl } from '@/lib/puppy-photos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,16 +39,7 @@ export default function BreedingDogForm() {
 
   const { data: row, isLoading } = useQuery({
     queryKey: ['breeding-dog', id],
-    queryFn: async () => {
-      if (!id || isNew) return null;
-      const { data, error } = await supabase
-        .from('breeding_dogs')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) throw error;
-      return data as BreedingDog;
-    },
+    queryFn: () => fetchBreedingDog(id!),
     enabled: !isNew,
   });
 
@@ -85,26 +81,16 @@ export default function BreedingDogForm() {
 
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const { data: inserted, error } = await supabase
-        .from('breeding_dogs')
-        .insert({
-          name: data.name,
-          role: data.role,
-          breed: data.breed,
-          composition: data.composition,
-          color: data.color,
-        })
-        .select('id')
-        .single();
-      if (error) throw error;
-      const newId = inserted?.id;
-      if (photoFile && newId) {
-        const { path } = await uploadBreedingDogPhoto(photoFile, newId);
-        const { error: updateError } = await supabase
-          .from('breeding_dogs')
-          .update({ photo_path: path })
-          .eq('id', newId);
-        if (updateError) throw updateError;
+      const inserted = await createBreedingDog({
+        name: data.name,
+        role: data.role,
+        breed: data.breed,
+        composition: data.composition,
+        color: data.color,
+      });
+      if (photoFile && inserted.id) {
+        const { path } = await uploadBreedingDogPhoto(photoFile, inserted.id);
+        await updateBreedingDog(inserted.id, { photo_path: path });
       }
     },
     onSuccess: () => {
@@ -125,18 +111,14 @@ export default function BreedingDogForm() {
         const { path } = await uploadBreedingDogPhoto(photoFile, id);
         photoPath = path;
       }
-      const { error } = await supabase
-        .from('breeding_dogs')
-        .update({
-          name: data.name,
-          role: data.role,
-          breed: data.breed,
-          composition: data.composition,
-          color: data.color,
-          photo_path: photoPath,
-        })
-        .eq('id', id!);
-      if (error) throw error;
+      await updateBreedingDog(id!, {
+        name: data.name,
+        role: data.role,
+        breed: data.breed,
+        composition: data.composition,
+        color: data.color,
+        photo_path: photoPath,
+      });
     },
     onSuccess: () => {
       toast({ title: 'Breeding dog updated' });

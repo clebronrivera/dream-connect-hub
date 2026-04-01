@@ -158,13 +158,49 @@ Constraints: no live profiling; conclusions based on static inspection and repo 
 
 ---
 
-## 6. What to do next (optional)
+## 6. Stabilization outcome (Phases 1–7, April 2026)
+
+A full codebase stabilization was completed across seven phases after the initial audit. Key outcomes:
+
+| Area | Before | After |
+|------|--------|-------|
+| Bundle splitting | All public pages in one eager bundle | All public + dormant pages lazy-loaded via `React.lazy()` |
+| Crash containment | No error boundaries | `ErrorBoundary` at route level; any crash isolated to the failing route |
+| Type safety | `strictNullChecks: false`, no strict flags | `strictNullChecks: true`, `noImplicitAny`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` — all zero errors |
+| Admin data access | Pages called `supabase.from()` directly | All DB calls in `src/lib/admin/` service modules; pages import services |
+| Supabase client | Defined in `supabase.ts` alongside all types | Isolated to `supabase-client.ts`; `supabase.ts` re-exports for backward compatibility |
+| Large files | PuppyForm 1,119 lines; Puppies.tsx 932 lines; Breeds.tsx 754 lines | PuppyForm split into 6 co-located files; Puppies split into 3 components + 2 hooks + utils; Breeds data extracted to `src/data/breeds-content.ts` |
+| Dashboard queries | Single monolithic block of 22+ queries | 4 independent `useQuery` hooks; each section loads and fails independently |
+| Dead dependencies | `i18next` and `react-i18next` in `package.json` (unused) | Removed; ~100 KB bundle reduction |
+| Test coverage | 26 tests (example, translations, SEO, descriptions) | 57 tests; 5 critical-path test files added (ErrorBoundary, schema, contact service, AuthContext, UpcomingLitters) |
+| Quality gate | `lint + test + build` | `lint + test + tsc --noEmit + build` |
+| i18n strategy | Undefined (two systems, orphan i18next package) | Documented in `docs/TRANSLATIONS_PUBLIC_SITE.md` |
+
+**Dormant tabs standing rule (unchanged):** `/consultation` and `/essentials` routes remain in `App.tsx`. They are intentionally absent from all nav/footer links. Adding links is the only change needed to publish them.
+
+### Updated file map (new files from stabilization)
+
+| Purpose | Location |
+|---------|----------|
+| Supabase client (isolated) | `src/lib/supabase-client.ts` |
+| Admin service modules | `src/lib/admin/` (puppies, breeding-dogs, inventory, litters, upcoming-litters, business-events) |
+| Dashboard hooks | `src/hooks/use-dashboard-stats.ts`, `use-dashboard-analytics.ts`, `use-dashboard-inventory.ts`, `use-dashboard-recent.ts` |
+| Public page hooks/components | `src/hooks/use-favorites.ts`, `src/hooks/use-puppy-filters.ts`, `src/pages/PuppyCard.tsx`, `src/pages/PuppyDetailModal.tsx`, `src/pages/PuppyShareDialog.tsx` |
+| Puppy display utilities | `src/lib/puppy-display-utils.ts` |
+| Breed content data | `src/data/breeds-content.ts` |
+| PuppyForm co-located files | `src/pages/admin/puppies/puppy-form-schema.ts`, `puppy-form-defaults.ts`, `PuppyFormPhotoSection.tsx`, `PuppyLitterSection.tsx`, `AddLittermateDialog.tsx`, `GenerateLittermatesDialog.tsx` |
+| Error boundary | `src/components/ErrorBoundary.tsx` |
+| i18n strategy doc | `docs/TRANSLATIONS_PUBLIC_SITE.md` |
+
+---
+
+## 7. What to do next (optional)
 
 - **Ongoing changes:** Record new work (additions, fixes, mistakes, problems) in **[CHANGELOG.md](../CHANGELOG.md)**. See **[docs/DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** for the full doc index.
-- **PuppyForm / UpcomingLitterForm:** Still large; can be split by concern (photos, pricing, timeline, submit mapping) in a later refactor.
+- **UpcomingLitterForm (710 lines):** Can be split further (photo section, parent selectors, submit mapping) using the same pattern as PuppyForm.
 - **Consultation and product inquiries:** Still only reflected in dashboard counts; no dedicated admin inbox routes yet.
 - **Validation:** Puppy interest uses Zod; other forms mostly HTML required. Consider centralizing validation for other intakes.
-- **TypeScript:** Strict mode still off; can be tightened gradually in high-risk areas.
+- **Vendor bundle (527 KB):** The main vendor chunk (React, Supabase, Radix, TanStack) exceeds 500 KB. Addressable via `build.rollupOptions.output.manualChunks` to split vendor groups.
 - **Webhooks:** Notification webhooks remain manual in the Dashboard; consider documenting or codifying per environment.
 
 ---

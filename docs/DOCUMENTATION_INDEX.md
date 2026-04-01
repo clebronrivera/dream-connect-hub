@@ -31,6 +31,7 @@ Quick reference for where to find **changes, mistakes, additions, and problems**
 |---------|--------|
 | **[MANAGING_PUPPIES.md](../MANAGING_PUPPIES.md)** | How to manage puppies: schema, adding/editing/sold/deleting, photos (storage bucket, admin form), litters. |
 | **[BACKEND_CONTRACT.md](../BACKEND_CONTRACT.md)** | Backend API / data contracts if used by the app or scripts. |
+| **[docs/TRANSLATIONS_PUBLIC_SITE.md](TRANSLATIONS_PUBLIC_SITE.md)** | i18n strategy: `LanguageContext` + `translations.ts` (EN/ES/PT) is the authoritative system; Google Translate is a runtime layer. i18next confirmed unused and removed. |
 | **[docs/PLAN_GOLDENDOODLE_NAMES_DESCRIPTIONS.md](PLAN_GOLDENDOODLE_NAMES_DESCRIPTIONS.md)** | Plan for Goldendoodle names/descriptions (and audit note). |
 | **[docs/IMPLEMENTATION_PLAN_UPCOMING_FEATURES.md](IMPLEMENTATION_PLAN_UPCOMING_FEATURES.md)** | Plan for upcoming features. |
 

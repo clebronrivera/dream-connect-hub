@@ -4,7 +4,7 @@
  * the returned URL in products.photo or kits.photo.
  */
 
-import { supabase } from './supabase';
+import { supabase } from './supabase-client';
 
 /**
  * Upload a photo to the product-photos bucket.

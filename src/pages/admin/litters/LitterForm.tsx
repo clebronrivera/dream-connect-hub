@@ -3,7 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase, type Litter } from '@/lib/supabase';
+import type { Litter } from '@/lib/supabase';
+import { fetchLitter, updateLitter } from '@/lib/admin/litters-service';
 import { applyLitterDefaultsToLittermates } from '@/lib/litter-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,16 +38,7 @@ export default function LitterForm() {
 
   const { data: litter, isLoading } = useQuery({
     queryKey: ['litter', id],
-    queryFn: async () => {
-      if (!id) return null;
-      const { data, error } = await supabase
-        .from('litters')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) throw error;
-      return data as Litter;
-    },
+    queryFn: () => fetchLitter(id!),
     enabled: !!id,
   });
 
@@ -76,25 +68,20 @@ export default function LitterForm() {
   }, [litter, form]);
 
   const mutation = useMutation({
-    mutationFn: async (data: LitterFormValues) => {
-      const { error } = await supabase
-        .from('litters')
-        .update({
-          breed: data.breed,
-          listing_date: data.listing_date || null,
-          date_of_birth: data.date_of_birth || null,
-          ready_date: data.ready_date || null,
-          base_price: data.base_price ?? 0,
-          mom_weight_lbs: data.mom_weight_lbs ?? null,
-          dad_weight_lbs: data.dad_weight_lbs ?? null,
-          vaccinations: data.vaccinations || null,
-          health_certificate_default: data.health_certificate_default ?? false,
-          microchipped_default: true,
-          status_default: data.status_default ?? 'Available',
-        })
-        .eq('id', id!);
-      if (error) throw error;
-    },
+    mutationFn: (data: LitterFormValues) =>
+      updateLitter(id!, {
+        breed: data.breed,
+        listing_date: data.listing_date || null,
+        date_of_birth: data.date_of_birth || null,
+        ready_date: data.ready_date || null,
+        base_price: data.base_price ?? 0,
+        mom_weight_lbs: data.mom_weight_lbs ?? null,
+        dad_weight_lbs: data.dad_weight_lbs ?? null,
+        vaccinations: data.vaccinations || null,
+        health_certificate_default: data.health_certificate_default ?? false,
+        microchipped_default: true,
+        status_default: data.status_default ?? 'Available',
+      }),
     onSuccess: () => {
       toast({ title: 'Litter updated', description: 'Defaults saved.' });
     },

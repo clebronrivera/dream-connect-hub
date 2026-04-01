@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, Puppy } from '@/lib/supabase';
+import type { Puppy } from '@/lib/supabase';
+import { fetchAdminPuppies, deletePuppy } from '@/lib/admin/puppies-service';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -25,15 +26,7 @@ export default function PuppiesList() {
 
   const { data: puppies, isLoading } = useQuery({
     queryKey: ['admin-puppies'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('puppies')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Puppy[];
-    },
+    queryFn: fetchAdminPuppies,
   });
 
   const availablePuppies = useMemo(
@@ -46,14 +39,7 @@ export default function PuppiesList() {
   );
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('puppies')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
+    mutationFn: deletePuppy,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-puppies'] });
       toast({

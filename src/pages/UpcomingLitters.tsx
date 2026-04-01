@@ -25,6 +25,7 @@ import { JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT } from "@/lib/inquiry-subjects"
 import { getBirthWindow, getGoHomeWindow } from "@/lib/litter-timeline";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
 import { insertContactMessage, upcomingLitterPayloadToRow } from "@/lib/contact-messages";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const DEFAULT_DEPOSIT_AMOUNT = 300;
 
@@ -55,6 +56,7 @@ function photoPathOrNull(path: string | null | undefined): string | null {
 }
 
 export default function UpcomingLitters() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [reserveLitter, setReserveLitter] = useState<UpcomingLitter | null>(null);
   const [reserveSubmitting, setReserveSubmitting] = useState(false);
@@ -93,9 +95,9 @@ export default function UpcomingLitters() {
       <section className="bg-primary py-16">
         <div className="container text-center">
           <Calendar className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Upcoming Litters</h1>
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4">{t("upcomingHeroTitle")}</h1>
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-            Reserve your pick from our upcoming litters. Place a deposit to secure your spot in line.
+            {t("upcomingHeroDescription")}
           </p>
         </div>
       </section>
@@ -107,15 +109,15 @@ export default function UpcomingLitters() {
           </div>
         ) : error ? (
           <div className="text-center text-destructive py-12">
-            Unable to load upcoming litters. Please try again later.
+            {t("upcomingLoadError")}
           </div>
         ) : !litters?.length ? (
           <div className="text-center text-muted-foreground py-12">
-            No upcoming litters at the moment. Check back soon or{" "}
+            {t("upcomingEmptyPrefix")}{" "}
             <Link to="/contact?subject=upcoming-litter" className="text-primary underline">
-              contact us
+              {t("upcomingContactUs")}
             </Link>{" "}
-            to be notified.
+            {t("upcomingEmptySuffix")}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

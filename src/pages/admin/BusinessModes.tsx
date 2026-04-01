@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import {
+  fetchBusinessEvents,
+  createBusinessEvent,
+  deleteBusinessEvent,
+  type BusinessEventRow,
+} from '@/lib/admin/business-events-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,14 +30,6 @@ const EVENT_CATEGORIES = [
 
 export type BusinessEventCategory = (typeof EVENT_CATEGORIES)[number]['value'];
 
-export interface BusinessEventRow {
-  id: string;
-  event_date: string;
-  description: string;
-  category: string | null;
-  created_at: string;
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -53,14 +50,7 @@ export default function BusinessModes() {
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['business-events'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('business_events')
-        .select('id, event_date, description, category, created_at')
-        .order('event_date', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as BusinessEventRow[];
-    },
+    queryFn: fetchBusinessEvents,
   });
 
   const insertMutation = useMutation({
@@ -69,8 +59,7 @@ export default function BusinessModes() {
       description: string;
       category: string | null;
     }) => {
-      const { error } = await supabase.from('business_events').insert(payload);
-      if (error) throw error;
+      await createBusinessEvent(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['business-events'] });
@@ -83,10 +72,7 @@ export default function BusinessModes() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('business_events').delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: deleteBusinessEvent,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['business-events'] });
       toast.success('Event removed');

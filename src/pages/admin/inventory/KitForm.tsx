@@ -3,8 +3,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { replaceProductPhoto } from '@/lib/product-photos';
+import {
+  fetchAdminKit,
+  fetchKitItems,
+  updateKit,
+  createKit,
+} from '@/lib/admin/inventory-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,32 +72,16 @@ export default function KitForm() {
     queryKey: ['kit', id],
     queryFn: async () => {
       if (!id) return null;
-      const { data: kitData, error: kitError } = await supabase
-        .from('kits')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (kitError) throw kitError;
+      const kitData = await fetchAdminKit(id);
       if (kitData?.photo) setPhotoPreview(kitData.photo);
-      return kitData as Kit;
+      return kitData;
     },
     enabled: isEdit,
   });
 
   const { data: kitItems } = useQuery({
     queryKey: ['kit-items', id],
-    queryFn: async () => {
-      if (!id) return [];
-      const { data, error } = await supabase
-        .from('kit_items')
-        .select('*')
-        .eq('kit_id', id)
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => (id ? fetchKitItems(id) : []),
     enabled: isEdit && !!kit,
   });
 
@@ -167,59 +156,9 @@ export default function KitForm() {
       };
 
       if (isEdit && id) {
-        const { data: updated, error } = await supabase
-          .from('kits')
-          .update(kitPayload)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Replace kit items
-        await supabase.from('kit_items').delete().eq('kit_id', id);
-
-        const itemsToInsert = data.items
-          .filter((i) => i.item_text.trim())
-          .map((item, i) => ({
-            kit_id: id,
-            item_text: item.item_text,
-            display_order: item.display_order ?? i,
-          }));
-
-        if (itemsToInsert.length > 0) {
-          const { error: itemsError } = await supabase
-            .from('kit_items')
-            .insert(itemsToInsert);
-
-          if (itemsError) throw itemsError;
-        }
-
-        return updated;
+        return updateKit(id, kitPayload as Record<string, unknown>, data.items);
       } else {
-        const { data: created, error } = await supabase
-          .from('kits')
-          .insert([kitPayload])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        const newKitId = created.id;
-
-        const itemsToInsert = data.items
-          .filter((i) => i.item_text.trim())
-          .map((item, i) => ({
-            kit_id: newKitId,
-            item_text: item.item_text,
-            display_order: item.display_order ?? i,
-          }));
-
-        if (itemsToInsert.length > 0) {
-          await supabase.from('kit_items').insert(itemsToInsert);
-        }
-
-        return created;
+        return createKit(kitPayload as Record<string, unknown>, data.items);
       }
     },
     onSuccess: () => {
