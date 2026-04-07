@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dream Enterprises — Form Templates</title>
+<style>
+  :root {
+    --primary: #2E5A3C;
+    --primary-light: #3A7A50;
+    --secondary: #C68B3F;
+    --secondary-light: #D4A05A;
+    --cream: #F5F0E8;
+    --cream-dark: #EDE5D8;
+    --dark: #1A1A1A;
+    --medium: #555555;
+    --light: #999999;
+    --light-bg: #F9F7F3;
+    --white: #FFFFFF;
+    --success: #2E7D32;
+    --success-bg: #E8F5E9;
+    --warning: #F57F17;
+    --warning-bg: #FFF8E1;
+    --danger: #C62828;
+    --danger-bg: #FFEBEE;
+    --border: #E0DCD4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Inter', 'Segoe UI', Arial, sans-serif; background: #F4F2ED; color: var(--dark); -webkit-font-smoothing: antialiased; }
+
+  /* Top header */
+  .top-bar { background: var(--primary); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+  .top-bar h1 { color: #fff; font-size: 15px; font-weight: 700; }
+  .top-bar span { color: rgba(255,255,255,.55); font-size: 11px; }
+
+  /* Tab navigation - horizontal scroll on mobile */
+  .tabs { background: #fff; border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; position: sticky; top: 47px; z-index: 99; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; font-size: 12px; font-weight: 500;
+    color: var(--medium); background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap;
+  }
+  .tab-btn.active { color: var(--primary); font-weight: 700; border-bottom-color: var(--primary); }
+  .tab-icon {
+    width: 20px; height: 20px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; background: var(--cream); color: var(--medium);
+  }
+  .tab-btn.active .tab-icon { background: var(--primary); color: #fff; }
+
+  /* Content area */
+  .content { padding: 16px; max-width: 640px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 16px; }
+
+  /* Form elements */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--dark); margin-bottom: 4px; }
+  .form-label .req { color: var(--danger); }
+  .form-input, .form-select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+    background: #fff; color: var(--dark); -webkit-appearance: none;
+  }
+  .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,90,60,.12); }
+  .form-input[readonly] { background: #FAFAF8; }
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .form-row > .form-group { flex: 1 1 45%; min-width: 140px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s;
+  }
+  .btn:active { opacity: .8; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-outline { background: #fff; color: var(--dark); border: 1px solid var(--border); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-full { width: 100%; }
+  .btn:disabled { background: #CCC; color: #888; cursor: not-allowed; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+
+  /* Doc header */
+  .doc-header { border-bottom: 3px solid var(--secondary); padding-bottom: 16px; margin-bottom: 20px; text-align: center; }
+  .doc-header .logo-name { font-size: 24px; font-weight: 800; color: var(--primary); }
+  .doc-header .logo-sub { font-size: 13px; color: var(--secondary); font-style: italic; margin-top: 2px; }
+  .doc-header .doc-title { font-size: 18px; font-weight: 700; color: var(--dark); margin-top: 12px; }
+  .doc-header .doc-subtitle { font-size: 13px; color: var(--medium); margin-top: 4px; }
+  .doc-header .doc-ref { font-size: 12px; color: var(--light); font-family: monospace; margin-top: 4px; }
+
+  /* Info rows */
+  .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--cream); font-size: 13px; }
+  .info-row .label { color: var(--medium); }
+  .info-row .value { color: var(--dark); font-weight: 500; }
+  .info-row .value.bold { font-weight: 700; }
+
+  /* Section titles */
+  .section-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .section-title .icon { font-size: 18px; }
+
+  /* Cream box */
+  .cream-box { background: var(--cream); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+
+  /* Puppy photo placeholder */
+  .puppy-photo {
+    border-radius: 12px; background: linear-gradient(135deg, var(--cream), var(--cream-dark));
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    border: 2px solid var(--border); flex-shrink: 0;
+  }
+  .puppy-photo .emoji { line-height: 1; }
+  .puppy-photo .name { font-size: 10px; color: var(--medium); margin-top: 4px; }
+
+  /* Payment option */
+  .pay-option {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border); background: #fff; margin-bottom: 10px; transition: all .15s;
+  }
+  .pay-option.selected { border: 2px solid var(--primary); background: #EBF5EE; }
+  .pay-option .pay-icon {
+    width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; background: var(--cream); color: var(--primary);
+  }
+  .pay-option.selected .pay-icon { background: var(--primary); color: #fff; }
+  .pay-option .pay-name { font-size: 15px; font-weight: 600; color: var(--dark); }
+  .pay-option .pay-desc { font-size: 12px; color: var(--light); }
+  .pay-radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); margin-left: auto; display: flex; align-items: center; justify-content: center; }
+  .pay-option.selected .pay-radio { border-color: var(--primary); background: var(--primary); }
+  .pay-radio .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; display: none; }
+  .pay-option.selected .pay-radio .dot { display: block; }
+
+  /* Source toggle */
+  .source-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+  .source-btn {
+    flex: 1; padding: 10px 6px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;
+    border: 1px solid var(--border); background: #fff; color: var(--medium);
+  }
+  .source-btn.active { border: 2px solid var(--primary); background: #EBF5EE; color: var(--primary); }
+
+  /* Payment method chips */
+  .method-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .method-chip {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: #fff;
+  }
+  .method-chip.on { border-color: var(--primary); background: #EBF5EE; }
+  .method-chip input { accent-color: var(--primary); }
+
+  /* Link box */
+  .link-box { margin-top: 16px; background: #EBF5EE; border-radius: 8px; padding: 14px; border: 1px dashed var(--primary); }
+  .link-box .link-label { font-size: 11px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+  .link-box .link-row { display: flex; align-items: center; gap: 8px; }
+  .link-box code { flex: 1; font-size: 12px; color: var(--dark); background: #fff; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; }
+  .link-box .link-hint { font-size: 11px; color: var(--medium); margin-top: 6px; }
+
+  /* Signature canvas */
+  .sig-canvas { border: 2px solid var(--border); border-radius: 10px; width: 100%; height: 120px; background: #fff; touch-action: none; }
+  .sig-canvas.signed { border-color: var(--success); }
+
+  /* Terms box */
+  .terms-box { max-height: 160px; overflow-y: auto; background: #FAFAFA; border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 12px; line-height: 1.7; color: var(--medium); -webkit-overflow-scrolling: touch; }
+  .terms-box p { margin-bottom: 10px; }
+
+  /* Consent checkbox */
+  .consent-label { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; cursor: pointer; font-size: 13px; color: var(--dark); }
+  .consent-label input { margin-top: 3px; accent-color: var(--primary); }
+
+  /* Status grid */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-card .stat-val { font-size: 22px; font-weight: 800; }
+  .stat-card .stat-label { font-size: 11px; color: var(--medium); }
+
+  /* Agreement list */
+  .agreement-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--cream); align-items: center; }
+  .agreement-row .a-customer { font-weight: 600; font-size: 14px; color: var(--dark); }
+  .agreement-row .a-puppy { font-size: 12px; color: var(--medium); }
+  .agreement-row .a-meta { font-size: 11px; color: var(--light); margin-top: 2px; }
+
+  /* Welcome hero */
+  .welcome-hero { background: linear-gradient(135deg, var(--primary), var(--primary-light)); border-radius: 14px; padding: 24px 16px; color: #fff; text-align: center; margin-bottom: 16px; }
+  .welcome-hero .wh-label { font-size: 12px; letter-spacing: 2px; opacity: .7; margin-bottom: 10px; }
+  .welcome-hero .wh-photo { width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,.2); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 42px; border: 3px solid rgba(255,255,255,.4); }
+  .welcome-hero .wh-name { font-size: 26px; font-weight: 800; }
+  .welcome-hero .wh-breed { font-size: 13px; opacity: .85; margin-top: 4px; }
+  .welcome-hero .wh-stats { display: flex; justify-content: center; gap: 18px; margin-top: 14px; font-size: 12px; }
+  .welcome-hero .wh-stats .ws-label { opacity: .6; }
+  .welcome-hero .wh-stats .ws-value { font-weight: 600; }
+  .welcome-hero .wh-owner { margin-top: 12px; font-size: 13px; opacity: .8; }
+
+  /* Health table */
+  .health-table { border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+  .health-table .ht-header { display: grid; grid-template-columns: 1.5fr 1fr .8fr; background: var(--primary); padding: 8px 12px; color: #fff; font-size: 11px; font-weight: 600; }
+  .health-table .ht-row { display: grid; grid-template-columns: 1.5fr 1fr .8fr; padding: 8px 12px; font-size: 12px; align-items: center; }
+  .health-table .ht-row:nth-child(odd) { background: var(--cream); }
+
+  /* Alert boxes */
+  .alert { border-radius: 8px; padding: 10px 12px; font-size: 12px; margin-top: 10px; }
+  .alert-warning { background: var(--warning-bg); border: 1px solid #FFE082; color: var(--warning); }
+  .alert-danger { background: var(--danger-bg); border: 1px solid #FFCDD2; color: var(--danger); }
+  .alert-info { background: #E3F2FD; border: 1px solid #BBDEFB; color: #1565C0; }
+  .alert-success { background: var(--success-bg); border: 1px solid #A5D6A7; color: var(--success); }
+
+  /* Food schedule grid */
+  .food-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12px; color: var(--medium); align-items: center; }
+
+  /* Panic guide */
+  .panic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 480px) { .panic-grid { grid-template-columns: 1fr; } }
+  .panic-card { border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.5; }
+  .panic-card.ok { background: var(--success-bg); border: 1px solid #A5D6A7; }
+  .panic-card.bad { background: var(--danger-bg); border: 1px solid #FFCDD2; }
+  .panic-card .pc-title { font-weight: 600; margin-bottom: 4px; }
+  .panic-card.ok .pc-title { color: var(--success); }
+  .panic-card.bad .pc-title { color: var(--danger); }
+  .panic-card .pc-body { color: var(--medium); }
+
+  /* Vet listing */
+  .vet-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--cream); font-size: 12px; }
+  .vet-row .vr-name { font-weight: 600; color: var(--dark); }
+  .vet-row .vr-addr { color: var(--light); }
+  .vet-row .vr-rating { color: var(--secondary); font-weight: 600; }
+  .vet-row .vr-dist { color: var(--light); }
+
+  /* QR placeholder */
+  .qr-placeholder { width: 140px; height: 140px; margin: 0 auto; background: var(--cream); border-radius: 12px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+
+  /* Paid stamp */
+  .paid-stamp { text-align: center; padding: 16px; background: var(--success-bg); border-radius: 10px; border: 1px solid #A5D6A7; margin-bottom: 16px; }
+  .paid-stamp .ps-text { font-size: 28px; font-weight: 800; color: var(--success); }
+  .paid-stamp .ps-date { font-size: 13px; color: var(--success); }
+
+  /* Signature display */
+  .sig-display { background: #fff; border-radius: 6px; padding: 8px 16px; border: 1px solid var(--border); }
+  .sig-display .sd-sig { font-style: italic; font-size: 22px; font-family: Georgia, serif; color: var(--dark); }
+  .sig-display .sd-meta { font-size: 10px; color: var(--light); margin-top: 2px; }
+
+  /* Signature with label */
+  .sig-block { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .sig-block .sig-col { }
+  .sig-block .sig-label { font-size: 11px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+  .sig-block .sig-box { border: 1px solid var(--border); border-radius: 6px; padding: 8px 16px; background: #fff; }
+  .sig-block .sig-content { font-style: italic; font-size: 20px; font-family: Georgia, serif; color: var(--dark); min-height: 40px; display: flex; align-items: center; }
+  .sig-block .sig-meta { font-size: 10px; color: var(--light); margin-top: 4px; }
+
+  /* Memo box */
+  .memo-box { background: #fff; border-radius: 6px; padding: 10px; font-family: monospace; font-size: 14px; color: var(--dark); text-align: center; border: 1px dashed var(--warning); }
+
+  /* Footer */
+  .doc-footer { border-top: 2px solid var(--secondary); margin-top: 20px; padding-top: 12px; text-align: center; font-size: 12px; color: var(--light); }
+
+  /* Checkmark animation */
+  @keyframes checkmark-pop {
+    0% { transform: scale(0) rotate(0deg); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .checkmark-animated { animation: checkmark-pop 0.6s ease-out; }
+
+  /* Email template styling */
+  .email-template { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 16px; }
+  .email-header { background: var(--primary); color: #fff; padding: 20px; text-align: center; }
+  .email-subject { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .email-body { padding: 20px; font-size: 13px; color: var(--medium); line-height: 1.8; }
+  .email-body strong { color: var(--dark); }
+  .email-footer { background: var(--cream); padding: 12px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--light); text-align: center; }
+
+  /* Alert badge */
+  .alert-badge { display: inline-block; background: var(--danger); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-bottom: 12px; }
+
+  /* Hidden panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Responsive tweaks */
+  @media (max-width: 480px) {
+    .form-row > .form-group { flex: 1 1 100%; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .content { padding: 12px; }
+    .card { padding: 16px; }
+    .sig-block { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Dream Enterprises — Form Templates</h1>
+  <span>13 Templates</span>
+</div>
+
+<div class="tabs" id="tabBar">
+  <button class="tab-btn active" data-tab="admin-create"><span class="tab-icon">+</span> Create</button>
+  <button class="tab-btn" data-tab="admin-dash"><span class="tab-icon">G</span> Dashboard</button>
+  <button class="tab-btn" data-tab="deposit"><span class="tab-icon">1</span> Deposit Agree</button>
+  <button class="tab-btn" data-tab="payment"><span class="tab-icon">2</span> Payment Select</button>
+  <button class="tab-btn" data-tab="instructions"><span class="tab-icon">3</span> Instructions</button>
+  <button class="tab-btn" data-tab="pending"><span class="tab-icon">⏳</span> Pending</button>
+  <button class="tab-btn" data-tab="verify"><span class="tab-icon">✓</span> Verify</button>
+  <button class="tab-btn" data-tab="finalized"><span class="tab-icon">✓✓</span> Finalized</button>
+  <button class="tab-btn" data-tab="email-deposit"><span class="tab-icon">📧</span> Email Dep</button>
+  <button class="tab-btn" data-tab="invoice"><span class="tab-icon">I</span> Final Pay</button>
+  <button class="tab-btn" data-tab="final"><span class="tab-icon">F</span> Receipt</button>
+  <button class="tab-btn" data-tab="email-welcome"><span class="tab-icon">📧</span> Email Wel</button>
+  <button class="tab-btn" data-tab="welcome"><span class="tab-icon">P</span> Packet</button>
+</div>
+
+<div class="content">
+
+<!-- ═══════ ADMIN: CREATE AGREEMENT ═══════ -->
+<div class="panel active" id="admin-create">
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div style="width:40px;height:40px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px">+</div>
+    <div><div style="font-size:18px;font-weight:700">New Deposit Agreement</div><div style="font-size:12px;color:var(--light)">Create and send to customer</div></div>
+  </div>
+
+  <div class="section-title"><span class="icon">🐕</span> Dog Source</div>
+  <div class="source-toggle">
+    <button class="source-btn active" onclick="this.parentElement.querySelectorAll('.source-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('src-available').style.display='block';document.getElementById('src-upcoming').style.display='none';document.getElementById('src-custom').style.display='none'">Available Puppies</button>
+    <button class="source-btn" onclick="this.parentElement.querySelectorAll('.source-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('src-available').style.display='none';document.getElementById('src-upcoming').style.display='block';document.getElementById('src-custom').style.display='none'">Upcoming Litter</button>
+    <button class="source-btn" onclick="this.parentElement.querySelectorAll('.source-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('src-available').style.display='none';document.getElementById('src-upcoming').style.display='none';document.getElementById('src-custom').style.display='block'">Custom / Unlisted</button>
+  </div>
+  <div id="src-available">
+    <div class="form-group"><label class="form-label">Select Puppy <span class="req">*</span></label>
+      <select class="form-select"><option>Gus – F1B Goldendoodle – Male – $1,800</option><option>Bella – Toy Poodle – Female – $1,500</option></select>
+    </div>
+  </div>
+  <div id="src-upcoming" style="display:none">
+    <div class="form-group"><label class="form-label">Select Litter <span class="req">*</span></label>
+      <select class="form-select"><option>Star x Bruno – F1B Goldendoodle – Due May 1–7</option><option>Trixie x Koko – Mini Goldendoodle – Due May 3–9</option><option>Luna x Bruno – Labradoodle Mix – Due May 7–13</option><option>Puerto x Rico – Toy Poodle – Due May 11–17</option></select>
+    </div>
+  </div>
+  <div id="src-custom" style="display:none">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Breed <span class="req">*</span></label><input class="form-input" placeholder="e.g., Goldendoodle"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" placeholder="e.g., Apricot"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Gender</label><input class="form-input" placeholder="Male / Female"></div>
+      <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-input" placeholder="MM/DD/YYYY"></div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:20px"><span class="icon">💰</span> Pricing</div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Total Price <span class="req">*</span></label><input class="form-input" value="$1,800.00" readonly></div>
+    <div class="form-group"><label class="form-label">Deposit Amount <span class="req">*</span></label><input class="form-input" value="$400.00" readonly></div>
+  </div>
+  <div class="cream-box" style="display:flex;justify-content:space-between">
+    <span style="font-size:13px;color:var(--medium)">Balance Due After Deposit</span>
+    <span style="font-size:15px;font-weight:700;color:var(--primary)">$1,400.00</span>
+  </div>
+
+  <div class="section-title" style="margin-top:20px"><span class="icon">💳</span> Payment Methods</div>
+  <div style="font-size:12px;color:var(--light);margin-bottom:8px">Select which options to offer this customer:</div>
+  <div class="method-chips">
+    <label class="method-chip on"><input type="checkbox" checked> Zelle</label>
+    <label class="method-chip on"><input type="checkbox" checked> Cash App</label>
+    <label class="method-chip on"><input type="checkbox" checked> Venmo</label>
+    <label class="method-chip on"><input type="checkbox" checked> PayPal</label>
+    <label class="method-chip on"><input type="checkbox" checked> Cash</label>
+    <label class="method-chip"><input type="checkbox"> Square <span style="font-size:10px;color:var(--light)">(Soon)</span></label>
+    <label class="method-chip"><input type="checkbox"> Stripe <span style="font-size:10px;color:var(--light)">(Soon)</span></label>
+  </div>
+
+  <div class="section-title" style="margin-top:20px"><span class="icon">👤</span> Customer (Optional)</div>
+  <div style="font-size:12px;color:var(--light);margin-bottom:8px">Pre-fill if you have their info, or leave blank.</div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Customer Name</label><input class="form-input" placeholder="Will fill in via the link"></div>
+    <div class="form-group"><label class="form-label">Email or Phone</label><input class="form-input" placeholder="For sending the link"></div>
+  </div>
+
+  <button class="btn btn-primary btn-full" style="margin-top:16px">Generate Agreement Link</button>
+
+  <div class="link-box">
+    <div class="link-label">GENERATED LINK</div>
+    <div class="link-row">
+      <code>puppyheavenllc.com/agreement/x7Kp9mQ2</code>
+      <button class="btn btn-outline btn-sm">Copy</button>
+    </div>
+    <div class="link-hint">Send this link to your customer via text, email, or DM.</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ ADMIN: DASHBOARD ═══════ -->
+<div class="panel" id="admin-dash">
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div><div style="font-size:18px;font-weight:700">Deposit Agreements</div><div style="font-size:12px;color:var(--light)">Manage all customer agreements</div></div>
+    <button class="btn btn-primary btn-sm">+ New</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card" style="background:#EBF5EE"><div class="stat-val" style="color:var(--primary)">3</div><div class="stat-label">Active</div></div>
+    <div class="stat-card" style="background:var(--success-bg)"><div class="stat-val" style="color:var(--success)">$1,200</div><div class="stat-label">Deposits Collected</div></div>
+    <div class="stat-card" style="background:var(--warning-bg)"><div class="stat-val" style="color:var(--warning)">1</div><div class="stat-label">Pending Signature</div></div>
+    <div class="stat-card" style="background:#E3F2FD"><div class="stat-val" style="color:#1565C0">1</div><div class="stat-label">Completed Sales</div></div>
+  </div>
+
+  <div class="agreement-row"><div><div class="a-customer">Carlos Rivera</div><div class="a-puppy">Gus · F1B Goldendoodle · $1,800</div></div><div><span class="badge" style="background:var(--success-bg);color:var(--success)">Deposit Paid</span><div class="a-meta">Apr 1</div></div></div>
+  <div class="agreement-row"><div><div class="a-customer">Maria Santos</div><div class="a-puppy">Upcoming Litter · Toy Poodle · $1,500</div></div><div><span class="badge" style="background:var(--success-bg);color:var(--success)">Signed</span><div class="a-meta">Mar 30</div></div></div>
+  <div class="agreement-row"><div><div class="a-customer">James Wilson</div><div class="a-puppy">Upcoming Litter · F1B Goldendoodle · $1,800</div></div><div><span class="badge" style="background:var(--warning-bg);color:var(--warning)">Sent</span><div class="a-meta">Mar 28</div></div></div>
+  <div class="agreement-row"><div><div class="a-customer">Emily Chen</div><div class="a-puppy">Snow · Shih Tzu · $1,500</div></div><div><span class="badge" style="background:var(--success-bg);color:#1B5E20">Paid in Full</span><div class="a-meta">Mar 15</div></div></div>
+  <div class="agreement-row"><div><div class="a-customer" style="color:var(--light)">Draft Agreement</div><div class="a-puppy">–</div></div><div><span class="badge" style="background:#F5F5F5;color:#757575">Draft</span><div class="a-meta">Apr 1</div></div></div>
+</div>
+</div>
+
+<!-- ═══════ CUSTOMER: DEPOSIT AGREEMENT ═══════ -->
+<div class="panel" id="deposit">
+<div class="card">
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+    <div class="doc-title">Puppy Deposit Agreement</div>
+    <div class="doc-subtitle">Please review and sign below to secure your puppy.</div>
+  </div>
+
+  <div class="section-title">Puppy Details</div>
+  <div class="cream-box" style="display:flex;gap:14px;align-items:flex-start">
+    <div class="puppy-photo" style="width:90px;height:90px"><span class="emoji" style="font-size:36px">🐕</span><span class="name">Gus</span></div>
+    <div style="flex:1">
+      <div style="font-size:17px;font-weight:700">Gus</div>
+      <div style="font-size:13px;color:var(--medium);margin-top:2px">F1B Goldendoodle · Male · Apricot</div>
+      <div style="font-size:12px;color:var(--light)">DOB: December 29, 2025 · 13 weeks old</div>
+      <div style="margin-top:6px"><span class="badge" style="background:var(--cream);color:var(--primary)">Vaccinated</span><span class="badge" style="background:var(--cream);color:var(--primary)">Microchipped</span></div>
+      <div style="display:flex;gap:16px;margin-top:8px">
+        <div><div style="font-size:11px;color:var(--light)">Total Price</div><div style="font-size:17px;font-weight:700">$1,800.00</div></div>
+        <div><div style="font-size:11px;color:var(--light)">Deposit</div><div style="font-size:17px;font-weight:700;color:var(--secondary)">$400.00</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Your Information</div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Full Legal Name <span class="req">*</span></label><input class="form-input" value="Carlos Rivera" readonly></div>
+    <div class="form-group"><label class="form-label">Email <span class="req">*</span></label><input class="form-input" value="carlos@email.com" readonly></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Phone <span class="req">*</span></label><input class="form-input" value="(555) 123-4567" readonly></div>
+    <div class="form-group"><label class="form-label">Zip Code <span class="req">*</span></label><input class="form-input" value="33101" readonly></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Street Address</label><input class="form-input" value="1234 Palm Ave" readonly></div>
+    <div class="form-group"><label class="form-label">City / State</label><input class="form-input" value="Miami, FL" readonly></div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Puppy's New Name</div>
+  <div class="form-group"><label class="form-label">What will you name your new puppy? <span class="req">*</span></label><input class="form-input" placeholder="e.g., Buddy, Max, Luna..." value="Buddy"></div>
+
+  <div class="section-title" style="margin-top:16px">Terms & Conditions</div>
+  <div class="terms-box">
+    <p><strong>1. Deposit Amount & Purpose:</strong> The deposit of $400.00 secures the above-described puppy for the Buyer. This deposit is applied toward the total purchase price of $1,800.00.</p>
+    <p><strong>2. Non-Refundable Policy:</strong> The deposit is non-refundable. If the Buyer decides not to proceed, the deposit will be forfeited. At the Breeder's discretion, the deposit may be transferred to a future litter or different puppy.</p>
+    <p><strong>3. Breeder's Guarantee:</strong> If the Breeder cannot provide the reserved puppy due to health complications, the Buyer may choose a replacement of equal value or receive a full refund.</p>
+    <p><strong>4. Health Guarantee:</strong> The puppy comes with a 72-hour health guarantee. The Buyer agrees to have the puppy examined by a licensed veterinarian within 72 hours of pickup.</p>
+    <p><strong>5. Vaccination & Records:</strong> Age-appropriate vaccinations, deworming, health record, and microchip included.</p>
+    <p><strong>6. Balance Due:</strong> Remaining balance of $1,400.00 due on or before pickup. Failure to pay may forfeit deposit.</p>
+    <p><strong>7. Spay/Neuter:</strong> Buyer agrees to spay/neuter by 12 months unless breeding rights purchased.</p>
+    <p><strong>8. No Resale:</strong> Buyer agrees not to resell. Contact Breeder first if unable to keep.</p>
+    <p><strong>9. Liability:</strong> Breeder's liability shall not exceed the purchase price.</p>
+    <p><strong>10. Binding Upon Receipt & Countersignature:</strong> This agreement becomes binding upon receipt of deposit and Breeder's countersignature.</p>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Digital Signature</div>
+  <div style="border:2px solid var(--success);border-radius:10px;overflow:hidden;background:#fff;height:100px;display:flex;align-items:flex-end;padding:0 20px 15px">
+    <span style="font-style:italic;font-size:26px;font-family:Georgia,serif;color:var(--dark)">Carlos Rivera</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--light)">
+    <span>Sign with finger (mobile) or mouse</span>
+    <span style="color:var(--primary);text-decoration:underline">Clear</span>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label class="form-label">Type Your Full Legal Name <span class="req">*</span></label><input class="form-input" value="Carlos Rivera" readonly></div>
+  <label class="consent-label"><input type="checkbox" checked> I have read and agree to the Terms & Conditions above. I understand that this deposit is non-refundable and that this constitutes a legally binding electronic signature.</label>
+
+  <button class="btn btn-primary btn-full" style="margin-top:16px">Continue to Payment</button>
+  <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--light)">Secured by Dream Enterprises · puppyheavenllc.com</div>
+</div>
+</div>
+
+<!-- ═══════ PAYMENT SELECTION ═══════ -->
+<div class="panel" id="payment">
+<div class="card">
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+    <div class="doc-title">Select Payment Method</div>
+    <div class="doc-subtitle">Choose how you'd like to pay your deposit</div>
+  </div>
+
+  <div class="cream-box" style="text-align:center;margin-bottom:20px">
+    <div style="font-size:13px;color:var(--medium)">Deposit Amount Due</div>
+    <div style="font-size:32px;font-weight:800;color:var(--primary)">$400.00</div>
+    <div style="font-size:12px;color:var(--light)">for Gus · F1B Goldendoodle</div>
+  </div>
+
+  <div class="pay-option selected" onclick="document.querySelectorAll('#payment .pay-option').forEach(o=>o.classList.remove('selected'));this.classList.add('selected')">
+    <div class="pay-icon">Z</div>
+    <div><div class="pay-name">Zelle</div><div class="pay-desc">Pay instantly from your bank</div></div>
+    <div class="pay-radio"><div class="dot"></div></div>
+  </div>
+  <div class="pay-option" onclick="document.querySelectorAll('#payment .pay-option').forEach(o=>o.classList.remove('selected'));this.classList.add('selected')">
+    <div class="pay-icon">$</div>
+    <div><div class="pay-name">Cash App</div><div class="pay-desc">Send via Cash App</div></div>
+    <div class="pay-radio"><div class="dot"></div></div>
+  </div>
+  <div class="pay-option" onclick="document.querySelectorAll('#payment .pay-option').forEach(o=>o.classList.remove('selected'));this.classList.add('selected')">
+    <div class="pay-icon">V</div>
+    <div><div class="pay-name">Venmo</div><div class="pay-desc">Pay with Venmo</div></div>
+    <div class="pay-radio"><div class="dot"></div></div>
+  </div>
+  <div class="pay-option" onclick="document.querySelectorAll('#payment .pay-option').forEach(o=>o.classList.remove('selected'));this.classList.add('selected')">
+    <div class="pay-icon">P</div>
+    <div><div class="pay-name">PayPal</div><div class="pay-desc">Pay with PayPal</div></div>
+    <div class="pay-radio"><div class="dot"></div></div>
+  </div>
+  <div class="pay-option" onclick="document.querySelectorAll('#payment .pay-option').forEach(o=>o.classList.remove('selected'));this.classList.add('selected')">
+    <div class="pay-icon">$$</div>
+    <div><div class="pay-name">Cash</div><div class="pay-desc">Pay in person</div></div>
+    <div class="pay-radio"><div class="dot"></div></div>
+  </div>
+
+  <button class="btn btn-primary btn-full" style="margin-top:16px">Continue</button>
+</div>
+</div>
+
+<!-- ═══════ PAYMENT INSTRUCTIONS ═══════ -->
+<div class="panel" id="instructions">
+<div class="card">
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+    <div class="doc-title">Pay with Zelle</div>
+    <div class="doc-subtitle">Send your deposit using the details below</div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:20px">
+    <div class="qr-placeholder"><div style="font-size:48px">⊟⊟</div><div style="font-size:10px;color:var(--light);margin-top:6px">QR Code</div></div>
+    <div style="font-size:11px;color:var(--light);margin-top:8px">Scan with your banking app</div>
+  </div>
+
+  <div class="cream-box">
+    <div style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px">OR SEND MANUALLY TO:</div>
+    <div class="info-row"><span class="label">Recipient</span><span class="value bold">Dream Enterprises LLC</span></div>
+    <div class="info-row"><span class="label">Email</span><span class="value">payments@dreamenterprises.com</span></div>
+    <div class="info-row"><span class="label">Phone</span><span class="value">(555) 987-6543</span></div>
+  </div>
+
+  <div class="alert alert-warning" style="margin-top:14px;margin-bottom:14px">
+    <div style="font-weight:700;margin-bottom:6px">IMPORTANT: In the memo/note field, write exactly:</div>
+    <div class="memo-box">Deposit – Gus – Carlos Rivera</div>
+  </div>
+
+  <div class="cream-box" style="text-align:center">
+    <div style="font-size:13px;color:var(--medium)">Amount to Send</div>
+    <div style="font-size:28px;font-weight:800;color:var(--primary)">$400.00</div>
+  </div>
+
+  <div class="alert alert-info" style="margin-top:14px">After sending your payment, it may take a few minutes to confirm. You'll receive a deposit receipt via email once confirmed.</div>
+
+  <button class="btn btn-primary btn-full" style="margin-top:16px">I've Sent My Payment</button>
+</div>
+</div>
+
+<!-- ═══════ CUSTOMER: PAYMENT PENDING ═══════ -->
+<div class="panel" id="pending">
+<div class="card">
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-size:60px;margin-bottom:12px">✓</div>
+    <div style="font-size:18px;font-weight:700;color:var(--primary)">Thank You!</div>
+    <div style="font-size:14px;color:var(--medium);margin-top:6px">Your payment is being verified.</div>
+  </div>
+
+  <div class="cream-box">
+    <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px">Payment Summary</div>
+    <div class="info-row"><span class="label">Amount Sent</span><span class="value bold">$400.00</span></div>
+    <div class="info-row"><span class="label">Payment Method</span><span class="value">Zelle</span></div>
+    <div class="info-row"><span class="label">Puppy</span><span class="value">Gus · F1B Goldendoodle</span></div>
+  </div>
+
+  <div class="alert alert-info" style="margin-top:14px">
+    <strong>Next step:</strong> You'll receive an email confirmation once your payment has been verified by our team. This usually takes 1-2 business hours.
+  </div>
+
+  <div class="cream-box" style="margin-top:14px;text-align:center">
+    <div style="font-size:12px;color:var(--medium);margin-bottom:8px">Check your agreement status anytime:</div>
+    <div style="font-size:13px;font-weight:600;color:var(--primary)">puppyheavenllc.com/agreement/x7Kp9mQ2</div>
+  </div>
+
+  <div style="background:var(--cream);border-radius:8px;padding:12px;margin-top:14px;text-align:center;font-size:12px;color:var(--medium)">
+    <strong>Questions?</strong> Contact us at <strong>(555) 987-6543</strong>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ ADMIN: VERIFY PAYMENT ═══════ -->
+<div class="panel" id="verify">
+<div class="card">
+  <div class="alert-badge">New payment received – needs verification</div>
+
+  <div style="border-radius:8px;background:var(--warning-bg);border:1px solid #FFE082;padding:14px;margin-bottom:16px">
+    <div style="font-weight:600;color:var(--warning);font-size:13px">Payment Verification Required</div>
+    <div style="color:var(--medium);font-size:12px;margin-top:4px">Carlos Rivera sent $400.00 via Zelle</div>
+  </div>
+
+  <div class="section-title">Customer Information</div>
+  <div class="cream-box">
+    <div class="info-row"><span class="label">Name</span><span class="value bold">Carlos Rivera</span></div>
+    <div class="info-row"><span class="label">Email</span><span class="value">carlos@email.com</span></div>
+    <div class="info-row"><span class="label">Phone</span><span class="value">(555) 123-4567</span></div>
+    <div class="info-row"><span class="label">Location</span><span class="value">Miami, FL 33101</span></div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Puppy Information</div>
+  <div class="cream-box" style="display:flex;gap:12px;align-items:center">
+    <div class="puppy-photo" style="width:60px;height:60px"><span class="emoji" style="font-size:24px">🐕</span><span class="name">Gus</span></div>
+    <div><div style="font-size:15px;font-weight:600">Gus</div><div style="font-size:13px;color:var(--medium)">F1B Goldendoodle · Male · Apricot</div><div style="font-size:12px;color:var(--light)">DOB: December 29, 2025</div></div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Payment Details</div>
+  <div class="cream-box">
+    <div class="info-row"><span class="label">Amount</span><span class="value bold">$400.00</span></div>
+    <div class="info-row"><span class="label">Method</span><span class="value">Zelle</span></div>
+    <div class="info-row"><span class="label">Submitted</span><span class="value">Apr 1, 2026 · 2:15 PM EST</span></div>
+  </div>
+
+  <div style="margin-top:16px;padding:14px;background:var(--cream);border-radius:8px">
+    <div style="font-size:12px;font-weight:600;color:var(--dark);margin-bottom:6px">Confirming will:</div>
+    <ul style="font-size:12px;color:var(--medium);margin-left:20px;line-height:1.8">
+      <li>Countersign the deposit agreement on behalf of Dream Enterprises</li>
+      <li>Send the finalized deposit agreement to the customer via email</li>
+      <li>Update the agreement status to 'Deposit Paid'</li>
+      <li>Notify both Carlos and Yolanda via email</li>
+    </ul>
+  </div>
+
+  <button class="btn btn-success btn-full" style="margin-top:16px">Confirm Payment Received</button>
+  <button class="btn btn-outline btn-full" style="margin-top:10px;border-color:var(--danger);color:var(--danger)">Payment Not Found / Issue</button>
+
+  <div class="section-title" style="margin-top:20px">Breeder Countersignature</div>
+  <div class="cream-box">
+    <div style="font-size:12px;color:var(--medium);margin-bottom:10px">This will be added to the finalized agreement:</div>
+    <div class="info-row"><span class="label">Signer</span><span class="value bold">Dream Enterprises LLC</span></div>
+    <div class="info-row"><span class="label">Signed</span><span class="value">Apr 1, 2026 · 2:45 PM EST</span></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ FINALIZED AGREEMENT ═══════ -->
+<div class="panel" id="finalized">
+<div class="card">
+  <div style="text-align:center;margin-bottom:16px">
+    <span class="badge" style="background:var(--success-bg);color:var(--success);padding:6px 12px;font-size:12px">✓ Agreement Finalized</span>
+  </div>
+
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+    <div class="doc-title">Puppy Deposit Agreement</div>
+    <div class="doc-ref">DEP-2026-0001</div>
+  </div>
+
+  <div class="section-title">Puppy Details</div>
+  <div class="cream-box" style="display:flex;gap:14px;align-items:flex-start">
+    <div class="puppy-photo" style="width:90px;height:90px"><span class="emoji" style="font-size:36px">🐕</span><span class="name">Buddy</span></div>
+    <div style="flex:1">
+      <div style="font-size:17px;font-weight:700">Buddy</div>
+      <div style="font-size:12px;color:var(--light)">Born as Gus</div>
+      <div style="font-size:13px;color:var(--medium);margin-top:2px">F1B Goldendoodle · Male · Apricot</div>
+      <div style="font-size:12px;color:var(--light)">DOB: December 29, 2025 · 13 weeks old</div>
+      <div style="margin-top:6px"><span class="badge" style="background:var(--cream);color:var(--primary)">Vaccinated</span><span class="badge" style="background:var(--cream);color:var(--primary)">Microchipped</span></div>
+      <div style="display:flex;gap:16px;margin-top:8px">
+        <div><div style="font-size:11px;color:var(--light)">Total Price</div><div style="font-size:17px;font-weight:700">$1,800.00</div></div>
+        <div><div style="font-size:11px;color:var(--light)">Deposit</div><div style="font-size:17px;font-weight:700;color:var(--secondary)">$400.00</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Customer Information</div>
+  <div class="cream-box">
+    <div class="info-row"><span class="label">Name</span><span class="value bold">Carlos Rivera</span></div>
+    <div class="info-row"><span class="label">Email</span><span class="value">carlos@email.com</span></div>
+    <div class="info-row"><span class="label">Phone</span><span class="value">(555) 123-4567</span></div>
+    <div class="info-row"><span class="label">Address</span><span class="value">1234 Palm Ave, Miami, FL 33101</span></div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px">Terms & Conditions</div>
+  <div class="cream-box" style="font-size:12px;color:var(--medium);line-height:1.6">
+    <p style="margin-bottom:8px"><strong>Deposit & Payment:</strong> The deposit of $400.00 secures Buddy and is non-refundable. This amount is applied toward the total purchase price of $1,800.00. The remaining balance of $1,400.00 is due on or before pickup.</p>
+    <p style="margin-bottom:8px"><strong>Health Guarantee:</strong> The puppy comes with a 72-hour health guarantee. Buyer agrees to have Buddy examined by a licensed veterinarian within 72 hours of pickup. Age-appropriate vaccinations, deworming, and microchip are included.</p>
+    <p><strong>Agreement Status:</strong> This agreement becomes binding upon receipt of deposit and Breeder's countersignature.</p>
+  </div>
+
+  <div class="sig-block">
+    <div class="sig-col">
+      <div class="sig-label">BUYER'S SIGNATURE</div>
+      <div class="sig-box">
+        <div class="sig-content">Carlos Rivera</div>
+        <div class="sig-meta">Signed Apr 1, 2026 · 1:30 PM EST</div>
+      </div>
+    </div>
+    <div class="sig-col">
+      <div class="sig-label">BREEDER'S SIGNATURE</div>
+      <div class="sig-box">
+        <div class="sig-content">Dream Enterprises LLC</div>
+        <div class="sig-meta">Signed Apr 1, 2026 · 2:45 PM EST</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--cream);border-radius:8px;padding:12px;margin-top:14px;text-align:center;font-size:12px;color:var(--medium)">
+    A copy of this agreement has been sent to <strong>carlos@email.com</strong>
+  </div>
+
+  <div class="doc-footer">Dream Enterprises LLC d/b/a Puppy Heaven<br>puppyheavenllc.com · Florida & North Carolina</div>
+</div>
+</div>
+
+<!-- ═══════ EMAIL: DEPOSIT CONFIRMED ═══════ -->
+<div class="panel" id="email-deposit">
+<div class="card">
+  <div class="email-template">
+    <div class="email-header">
+      <div style="font-size:24px;font-weight:800;color:#fff">DREAM ENTERPRISES</div>
+      <div style="font-size:13px;opacity:.8;margin-top:4px">Puppy Heaven</div>
+    </div>
+
+    <div class="email-body">
+      <div style="margin-bottom:14px"><strong>Subject: Your deposit for Buddy has been confirmed!</strong></div>
+
+      <p style="margin-bottom:12px">Hi Carlos,</p>
+
+      <p style="margin-bottom:12px">Great news! We've received and confirmed your $400.00 deposit for Buddy (born as Gus), your beautiful F1B Goldendoodle.</p>
+
+      <p style="margin-bottom:12px">Your deposit agreement has been countersigned and is now official. Buddy is officially yours!</p>
+
+      <p style="font-weight:600;margin-bottom:6px">What's next:</p>
+      <ul style="margin-left:20px;margin-bottom:12px;color:var(--medium)">
+        <li>Remaining balance due: <strong>$1,400.00</strong> by April 15, 2026</li>
+        <li>Pickup date: April 20, 2026</li>
+        <li>We'll contact you with next steps and final details</li>
+      </ul>
+
+      <p style="margin-bottom:12px">Your finalized deposit agreement is attached to this email for your records.</p>
+
+      <p style="margin-bottom:12px">If you have any questions, feel free to reach out anytime!</p>
+
+      <p style="margin-bottom:6px">Warmly,<br><strong>Dream Enterprises<br>Puppy Heaven</strong></p>
+    </div>
+
+    <div class="email-footer">
+      puppyheavenllc.com · (555) 987-6543<br>Florida & North Carolina
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ BALANCE DUE INVOICE (Make Final Payment) ═══════ -->
+<div class="panel" id="invoice">
+<div class="card">
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+    <div class="doc-title">Balance Due Notice</div>
+    <div class="doc-subtitle">Complete your purchase – Buddy is ready!</div>
+    <div class="doc-ref">INV-2026-0001</div>
+  </div>
+
+  <div class="alert alert-warning" style="text-align:center;margin-bottom:16px;padding:14px">
+    <div style="font-weight:600">Payment Due By</div>
+    <div style="font-size:22px;font-weight:800;color:var(--dark)">April 15, 2026</div>
+  </div>
+
+  <div class="cream-box" style="display:flex;gap:12px;align-items:center">
+    <div class="puppy-photo" style="width:70px;height:70px"><span class="emoji" style="font-size:28px">🐕</span><span class="name">Buddy</span></div>
+    <div><div style="font-size:16px;font-weight:700">Buddy is ready to come home!</div><div style="font-size:13px;color:var(--medium)">F1B Goldendoodle · Male · 14 weeks old</div><div style="font-size:12px;color:var(--success);font-weight:600;margin-top:4px">Vaccinated · Microchipped · Health Certified</div></div>
+  </div>
+
+  <div class="info-row"><span class="label">Total Purchase Price</span><span class="value">$1,800.00</span></div>
+  <div class="info-row"><span class="label">Deposit Paid (DEP-2026-0001)</span><span class="value">–$400.00</span></div>
+  <div class="cream-box" style="display:flex;justify-content:space-between;margin-top:8px">
+    <span style="font-size:16px;font-weight:800">Balance Due</span>
+    <span style="font-size:22px;font-weight:800;color:var(--secondary)">$1,400.00</span>
+  </div>
+
+  <button class="btn btn-primary btn-full" style="margin-top:16px">Make Final Payment</button>
+
+  <div style="background:var(--cream);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:var(--medium);line-height:1.6">
+    Once payment is confirmed, you'll receive your <strong>Puppy Welcome Packet</strong> with everything you need to bring Buddy home!
+  </div>
+
+  <div style="margin-top:10px;font-size:12px;color:var(--medium);text-align:center;line-height:1.6">Failure to pay by the due date may result in forfeiture of your deposit.<br>Questions? Contact us at (555) 987-6543</div>
+</div>
+</div>
+
+<!-- ═══════ FINAL RECEIPT / BILL OF SALE ═══════ -->
+<div class="panel" id="final">
+<div class="card">
+  <div class="doc-header">
+    <div class="logo-name">DREAM ENTERPRISES</div>
+    <div class="logo-sub">d/b/a Puppy Heaven</div>
+    <div class="doc-title">Bill of Sale & Final Receipt</div>
+    <div class="doc-ref">SALE-2026-0001</div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom:16px;text-align:center;font-size:12px">
+    <strong>Receipt Status:</strong> This receipt is generated automatically but held until manually released by the admin.
+  </div>
+
+  <div class="paid-stamp"><div class="ps-text">PAID IN FULL</div><div class="ps-date">April 12, 2026</div></div>
+
+  <div class="cream-box">
+    <div style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:6px">BUYER</div>
+    <div style="font-size:15px;font-weight:600">Carlos Rivera</div>
+    <div style="font-size:13px;color:var(--medium)">1234 Palm Ave, Miami, FL 33101</div>
+    <div style="font-size:13px;color:var(--medium)">carlos@email.com · (555) 123-4567</div>
+  </div>
+
+  <div class="cream-box" style="display:flex;gap:12px">
+    <div class="puppy-photo" style="width:65px;height:65px"><span class="emoji" style="font-size:26px">🐕</span><span class="name">Buddy</span></div>
+    <div style="flex:1">
+      <div class="info-row"><span class="label">Name</span><span class="value bold">Buddy</span></div>
+      <div class="info-row"><span class="label">Original Name</span><span class="value">Gus</span></div>
+      <div class="info-row"><span class="label">Breed</span><span class="value">F1B Goldendoodle</span></div>
+      <div class="info-row"><span class="label">Gender / Color</span><span class="value">Male / Apricot</span></div>
+      <div class="info-row"><span class="label">DOB</span><span class="value">December 29, 2025</span></div>
+      <div class="info-row"><span class="label">Microchip #</span><span class="value">985112345678901</span></div>
+    </div>
+  </div>
+
+  <div style="font-weight:700;font-size:13px;color:var(--primary);background:var(--primary);color:#fff;padding:8px 12px;border-radius:8px 8px 0 0;margin-top:14px">PAYMENT SUMMARY</div>
+  <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+    <div class="info-row" style="padding:8px 12px"><span class="label">Total Purchase Price</span><span class="value bold">$1,800.00</span></div>
+    <div class="info-row" style="padding:8px 12px"><span class="label">Deposit Paid (Apr 1 via Zelle)</span><span class="value">$400.00</span></div>
+    <div class="info-row" style="padding:8px 12px"><span class="label">Balance Paid (Apr 12 via Zelle)</span><span class="value">$1,400.00</span></div>
+    <div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--success-bg)">
+      <span style="font-size:14px;font-weight:700;color:var(--success)">Total Paid</span>
+      <span style="font-size:14px;font-weight:700;color:var(--success)">$1,800.00</span>
+    </div>
+  </div>
+
+  <div style="background:#FAFAFA;border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:var(--medium);line-height:1.6">
+    <strong>Transfer of Ownership:</strong> Ownership of the above-described puppy is hereby transferred from Dream Enterprises LLC to Carlos Rivera as of April 12, 2026, subject to the terms of Agreement DEP-2026-0001.
+  </div>
+
+  <div class="cream-box" style="margin-top:14px">
+    <div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:6px">BUYER'S SIGNATURE</div>
+    <div class="sig-display"><div class="sd-sig">Carlos Rivera</div><div class="sd-meta">Signed electronically on April 1, 2026 at 2:34 PM EST</div></div>
+  </div>
+
+  <button class="btn btn-primary btn-full" style="margin-top:16px">Admin: Send Receipt</button>
+
+  <div class="doc-footer">Dream Enterprises LLC d/b/a Puppy Heaven<br>puppyheavenllc.com · Florida & North Carolina</div>
+</div>
+</div>
+
+<!-- ═══════ EMAIL: WELCOME PACKET ═══════ -->
+<div class="panel" id="email-welcome">
+<div class="card">
+  <div class="email-template">
+    <div class="email-header">
+      <div style="font-size:24px;font-weight:800;color:#fff">DREAM ENTERPRISES</div>
+      <div style="font-size:13px;opacity:.8;margin-top:4px">Puppy Heaven</div>
+    </div>
+
+    <div class="email-body">
+      <div style="margin-bottom:14px"><strong>Subject: Prepared to welcome your newest addition to your family</strong></div>
+
+      <p style="margin-bottom:12px">Hi Carlos,</p>
+
+      <p style="margin-bottom:12px"><strong>Congratulations! Buddy is coming home.</strong></p>
+
+      <p style="margin-bottom:12px">We've put together everything you need to make Buddy's transition smooth and safe. Your Puppy Welcome Packet includes:</p>
+
+      <ul style="margin-left:20px;margin-bottom:12px;color:var(--medium)">
+        <li>Complete health & vaccination records</li>
+        <li>Feeding guide and transition schedule</li>
+        <li>Health care tips and emergency contacts</li>
+        <li>Local veterinary recommendations</li>
+        <li>Training resources and behavior guide</li>
+      </ul>
+
+      <p style="margin-bottom:12px">Everything is personalized for Buddy and your location in Miami, FL.</p>
+
+      <p style="margin-bottom:12px">You can access your Welcome Packet anytime at: <strong>puppyheavenllc.com/welcome/buddy</strong></p>
+
+      <p style="margin-bottom:6px">If you have any questions before or after bringing Buddy home, we're always here to help.</p>
+
+      <p style="margin-bottom:6px">Welcome to the family!<br><strong>Dream Enterprises<br>Puppy Heaven</strong></p>
+    </div>
+
+    <div class="email-footer">
+      puppyheavenllc.com · (555) 987-6543<br>Florida & North Carolina
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ PUPPY WELCOME PACKET ═══════ -->
+<div class="panel" id="welcome">
+
+  <div class="welcome-hero">
+    <div class="wh-label">WELCOME HOME</div>
+    <div class="wh-photo">🐕</div>
+    <div class="wh-name">Buddy</div>
+    <div style="font-size:11px;opacity:.8;margin-top:2px">Born as Gus</div>
+    <div class="wh-breed">F1B Goldendoodle · Male · Apricot</div>
+    <div class="wh-stats">
+      <div><div class="ws-label">Born</div><div class="ws-value">Dec 29, 2025</div></div>
+      <div><div class="ws-label">Parents</div><div class="ws-value">Star & Bruno</div></div>
+      <div><div class="ws-label">Microchip</div><div class="ws-value">985112345678901</div></div>
+    </div>
+    <div class="wh-owner">Proudly owned by <strong>Carlos Rivera</strong></div>
+    <div style="font-size:10px;opacity:.5;margin-top:4px">Dream Enterprises · Puppy Heaven</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span class="icon">🐕</span> Health & Vaccination Record</div>
+    <div class="health-table">
+      <div class="ht-header"><div>Vaccine / Treatment</div><div>Date</div><div>Status</div></div>
+      <div class="ht-row"><div>DHPP (1st Round)</div><div>Feb 10, 2026</div><div><span class="badge" style="background:var(--success-bg);color:var(--success)">Complete</span></div></div>
+      <div class="ht-row"><div>DHPP (2nd Round)</div><div>Feb 24, 2026</div><div><span class="badge" style="background:var(--success-bg);color:var(--success)">Complete</span></div></div>
+      <div class="ht-row"><div>Bordetella</div><div>Feb 24, 2026</div><div><span class="badge" style="background:var(--success-bg);color:var(--success)">Complete</span></div></div>
+      <div class="ht-row"><div>Deworming</div><div>Feb 10, 2026</div><div><span class="badge" style="background:var(--success-bg);color:var(--success)">Complete</span></div></div>
+      <div class="ht-row"><div>Rabies</div><div>Due at 16 wks</div><div><span class="badge" style="background:var(--warning-bg);color:var(--warning)">Pending</span></div></div>
+    </div>
+    <div class="alert alert-warning" style="margin-top:10px;font-weight:500">Please have Buddy examined by your vet within 72 hours of bringing him home.</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span class="icon">🍽️</span> Feeding Guide</div>
+    <div class="cream-box">
+      <div style="font-size:13px;font-weight:600">Current Food</div>
+      <div style="font-size:14px;color:var(--medium);margin-top:4px">Royal Canin Medium Puppy · ¾ cup · 3x daily</div>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin:10px 0 8px">Switching Foods? Follow This Schedule:</div>
+    <div class="food-grid">
+      <span class="badge" style="background:#EBF5EE;color:var(--primary)">Days 1–3</span><span>75% current food + 25% new food</span>
+      <span class="badge" style="background:#EBF5EE;color:var(--primary)">Days 4–6</span><span>50% current food + 50% new food</span>
+      <span class="badge" style="background:#EBF5EE;color:var(--primary)">Days 7–9</span><span>25% current food + 75% new food</span>
+      <span class="badge" style="background:#EBF5EE;color:var(--primary)">Day 10+</span><span>100% new food</span>
+    </div>
+    <div class="alert alert-danger" style="margin-top:12px"><strong>Never feed:</strong> Grapes, raisins, chocolate, onions, garlic, xylitol, macadamia nuts, alcohol, cooked bones.</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span class="icon">❤️</span> Don't Panic Guide</div>
+
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">Vomiting</div>
+    <div class="panic-grid">
+      <div class="panic-card ok"><div class="pc-title">Usually Normal:</div><div class="pc-body">White foam on empty stomach. Yellow bile in the morning (try a bedtime snack). Undigested food from eating too fast. Single episode, no other symptoms.</div></div>
+      <div class="panic-card bad"><div class="pc-title">Call Your Vet:</div><div class="pc-body">More than 3 times in 24 hours. Blood (red streaks or dark coffee-ground look). Combined with lethargy or diarrhea. Won't eat or drink. Under 12 weeks old.</div></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;margin:14px 0 6px">Coat & Grooming</div>
+    <div class="cream-box" style="font-size:12px;color:var(--medium);line-height:1.6;margin-bottom:0">
+      Some shedding during adjustment is normal. Brush daily to prevent matting (Goldendoodles have curly coats!). First professional grooming at 12–16 weeks. Excessive scratching may mean allergies or fleas — check with your vet.
+    </div>
+
+    <div style="font-size:13px;font-weight:700;margin:14px 0 6px">Energy & Behavior</div>
+    <div class="cream-box" style="font-size:12px;color:var(--medium);line-height:1.6;margin-bottom:0">
+      Puppies sleep 18–20 hours a day — completely normal! Initial shyness in a new home is expected. Give Buddy 2–3 quiet days to adjust. If he won't eat or play at all after 48 hours, contact your vet.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span class="icon">📍</span> Local Resources Near You</div>
+    <div style="font-size:12px;color:var(--light);margin-bottom:10px">Based on your zip code: 33101 (Miami, FL)</div>
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">Veterinary Clinics</div>
+    <div class="vet-row"><div><div class="vr-name">Coral Gables Animal Hospital</div><div class="vr-addr">2100 Coral Way, Miami</div></div><div style="text-align:right"><div class="vr-rating">4.8 ★</div><div class="vr-dist">0.8 mi</div></div></div>
+    <div class="vet-row"><div><div class="vr-name">Miami Veterinary Specialists</div><div class="vr-addr">8601 Sunset Dr, Miami</div></div><div style="text-align:right"><div class="vr-rating">4.7 ★</div><div class="vr-dist">3.2 mi</div></div></div>
+    <div class="vet-row"><div><div class="vr-name">Brickell Animal Hospital</div><div class="vr-addr">1401 SW 1st Ave, Miami</div></div><div style="text-align:right"><div class="vr-rating">4.6 ★</div><div class="vr-dist">1.1 mi</div></div></div>
+
+    <div style="font-size:13px;font-weight:600;margin:14px 0 6px">24-Hour Emergency</div>
+    <div class="alert alert-danger" style="margin-top:0"><div style="font-weight:600">Miami Veterinary Emergency · (305) 666-4142</div><div style="color:var(--medium)">8601 Sunset Dr, Miami, FL 33143 · Open 24/7</div></div>
+
+    <div class="cream-box" style="margin-top:14px">
+      <div style="font-weight:600;margin-bottom:4px">Important Numbers</div>
+      <div style="font-size:12px;color:var(--medium);line-height:1.8">ASPCA Poison Control: <strong>(888) 426-4435</strong><br>Miami-Dade Animal Services: <strong>(305) 884-1101</strong></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span class="icon">☎️</span> We're Here for You</div>
+    <div style="font-size:13px;color:var(--medium);line-height:1.7;margin-bottom:12px">Congratulations on your new family member! If you ever have questions about Buddy — feeding, training, health, anything — please don't hesitate to reach out. We care about every puppy we raise.</div>
+    <div class="cream-box" style="margin-bottom:0"><div style="font-weight:600">Dream Enterprises / Puppy Heaven</div><div style="font-size:13px;color:var(--medium);margin-top:4px">puppyheavenllc.com · (555) 987-6543</div></div>
+    <div class="alert alert-warning" style="margin-top:10px"><strong>Remember:</strong> If you ever find yourself unable to care for Buddy, please contact us first. We will always help find the right home.</div>
+  </div>
+
+</div>
+
+</div><!-- /content -->
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>

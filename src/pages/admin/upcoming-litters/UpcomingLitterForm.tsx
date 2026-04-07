@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, Eye, Upload, X } from 'lucide-react';
+import { Loader2, Eye, Upload, X, Wand2 } from 'lucide-react';
 import { getBreedingDogPhotoUrl, uploadPuppyPhoto } from '@/lib/puppy-photos';
 
 function getStoragePublicUrl(path: string): string {
@@ -44,6 +44,19 @@ const schema = z.object({
   expected_whelping_date: z.string().optional(),
   min_expected_puppies: z.number().int().min(0).optional(),
   max_expected_puppies: z.number().int().min(0).optional(),
+  deposits_reserved_count: z.number().int().min(0).max(8),
+  max_deposit_slots: z.number().int().min(1).max(8),
+  lifecycle_status: z.enum(['pre_birth', 'post_birth', 'previous']),
+  date_of_birth: z.string().optional(),
+  total_puppy_count: z.number().int().min(0).optional(),
+}).superRefine((data, ctx) => {
+  if (data.deposits_reserved_count > data.max_deposit_slots) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Reserved count cannot exceed max deposit slots',
+      path: ['deposits_reserved_count'],
+    });
+  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -105,6 +118,11 @@ export default function UpcomingLitterForm() {
       expected_whelping_date: '',
       min_expected_puppies: undefined,
       max_expected_puppies: undefined,
+      deposits_reserved_count: 2,
+      max_deposit_slots: 4,
+      lifecycle_status: 'pre_birth',
+      date_of_birth: '',
+      total_puppy_count: undefined,
     },
   });
 
@@ -168,6 +186,11 @@ export default function UpcomingLitterForm() {
         expected_whelping_date: row.expected_whelping_date ?? '',
         min_expected_puppies: row.min_expected_puppies ?? undefined,
         max_expected_puppies: row.max_expected_puppies ?? undefined,
+        deposits_reserved_count: row.deposits_reserved_count ?? 2,
+        max_deposit_slots: row.max_deposit_slots ?? 4,
+        lifecycle_status: row.lifecycle_status ?? 'pre_birth',
+        date_of_birth: row.date_of_birth ?? '',
+        total_puppy_count: row.total_puppy_count ?? undefined,
       });
       const paths = row.example_puppy_image_paths ?? [];
       setExamplePuppySlots(paths.slice(0, 3).map((path) => ({ path })));
@@ -204,6 +227,11 @@ export default function UpcomingLitterForm() {
       is_active: data.is_active,
       sort_order: data.sort_order,
       breeding_date: data.breeding_date || null,
+      deposits_reserved_count: data.deposits_reserved_count,
+      max_deposit_slots: data.max_deposit_slots,
+      lifecycle_status: data.lifecycle_status,
+      date_of_birth: data.date_of_birth || null,
+      total_puppy_count: data.total_puppy_count ?? null,
       // Keep denormalized fallback photo paths populated so upcoming litter cards
       // still render parent images if the join cannot be read in the browser.
       dam_photo_path: dam?.photo_path ?? null,
@@ -253,6 +281,44 @@ export default function UpcomingLitterForm() {
     },
   });
 
+  const generatePuppiesMutation = useMutation({
+    mutationFn: async () => {
+      if (!id || isNew) return;
+      const count = form.getValues('total_puppy_count');
+      if (!count || count <= 0) throw new Error('Enter a valid total puppy count first.');
+      const dob = form.getValues('date_of_birth') || null;
+      const breed = form.getValues('display_breed') || 'Unknown';
+      
+      // Fetch existing puppies to avoid duplicates or know where to start numbering
+      const { data: existing } = await supabase
+        .from('puppies')
+        .select('id')
+        .eq('upcoming_litter_id', id);
+        
+      const existingCount = existing?.length || 0;
+      const toCreate = count - existingCount;
+      if (toCreate <= 0) throw new Error(`Already have ${existingCount} puppies generated for this litter.`);
+
+      const newPuppies = Array.from({ length: toCreate }).map((_, i) => ({
+        upcoming_litter_id: id,
+        name: `Puppy ${existingCount + i + 1}`,
+        breed,
+        gender: 'Unknown',
+        date_of_birth: dob,
+        status: 'Available',
+      }));
+
+      const { error } = await supabase.from('puppies').insert(newPuppies);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Puppy slots generated successfully!' });
+    },
+    onError: (e: Error) => {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  });
+
   const onSubmit = (data: FormValues) => {
     if (isNew) createMutation.mutate(data);
     else updateMutation.mutate(data);
@@ -271,15 +337,19 @@ export default function UpcomingLitterForm() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <h1 className="text-3xl font-bold mb-8">
         {isNew ? 'Add Upcoming Litter' : 'Edit Upcoming Litter'}
       </h1>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="breeding_date"
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6 rounded-lg border p-4">
+              <h3 className="font-medium text-lg border-b pb-2">General Information</h3>
+              <FormField
+                control={form.control}
+                name="breeding_date"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Breeding date</FormLabel>
@@ -422,6 +492,54 @@ export default function UpcomingLitterForm() {
                   />
                 </FormControl>
                 <p className="text-sm text-muted-foreground">Refundable up to the date of birth.</p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="deposits_reserved_count"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Deposits shown as filled</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={8}
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value || '0', 10))
+                    }
+                  />
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  Public site shows “X of Y reserve spots” for urgency. Must not exceed max slots below.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="max_deposit_slots"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Max deposit slots offered</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={8}
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value || '4', 10))
+                    }
+                  />
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  Typically 4: we only collect deposits for up to four picks per litter.
+                </p>
                 <FormMessage />
               </FormItem>
             )}
@@ -661,46 +779,143 @@ export default function UpcomingLitterForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="is_active"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <FormLabel>Visible on Upcoming Litters page</FormLabel>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="sort_order"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sort order</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value || '0', 10))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex gap-4">
-            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-              {(createMutation.isPending || updateMutation.isPending) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isNew ? 'Add' : 'Save'}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/admin/upcoming-litters')}>
-              Cancel
-            </Button>
+              <FormField
+                control={form.control}
+                name="sort_order"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sort order</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value || '0', 10))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Right Column: Lifecycle & Post-Birth */}
+          <div className="space-y-6">
+            <div className="space-y-6 rounded-lg border p-4 sticky top-6 bg-card">
+              <h3 className="font-medium text-lg border-b pb-2">Lifecycle & Post-Birth</h3>
+              
+              <FormField
+                control={form.control}
+                name="lifecycle_status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pre_birth">Pre-birth (Upcoming)</SelectItem>
+                        <SelectItem value="post_birth">Post-birth (Born)</SelectItem>
+                        <SelectItem value="previous">Previous Litter</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="date_of_birth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of birth</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">Leave empty if pre-birth.</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="total_puppy_count"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total puppy count</FormLabel>
+                    <div className="flex flex-col gap-2">
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === '' ? undefined : parseInt(v, 10));
+                          }}
+                        />
+                      </FormControl>
+                      {!isNew && (field.value || 0) > 0 && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="w-full"
+                          onClick={() => generatePuppiesMutation.mutate()}
+                          disabled={generatePuppiesMutation.isPending}
+                        >
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          Generate Slots
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Actual number born.</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/30">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Active (Public)</FormLabel>
+                      <p className="text-sm text-muted-foreground">Show this litter on the public site.</p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-4 pt-4 border-t">
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="flex-1"
+                >
+                  {(createMutation.isPending || updateMutation.isPending) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isNew ? 'Add' : 'Save'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate('/admin/upcoming-litters')}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
           </div>
         </form>
       </Form>

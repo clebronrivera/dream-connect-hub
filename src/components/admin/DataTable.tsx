@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface Column<T> {
   header: string;
@@ -22,6 +22,8 @@ interface DataTableProps<T> {
   sortable?: boolean;
   /** If set, sort key and direction are persisted to localStorage under this key (admin use) */
   storageKey?: string;
+  /** Optional render function for an expandable sub-row */
+  renderSubComponent?: (row: T) => React.ReactNode;
 }
 
 function compare(a: unknown, b: unknown): number {
@@ -53,7 +55,7 @@ function saveSortState(storageKey: string, sortKey: string | null, sortDir: 'asc
   }
 }
 
-export function DataTable<T extends Record<string, unknown>>({ columns, data, sortable, storageKey }: DataTableProps<T>) {
+export function DataTable<T extends Record<string, unknown>>({ columns, data, sortable, storageKey, renderSubComponent }: DataTableProps<T>) {
   const sortableKeys = columns.map((c) => c.accessorKey).filter(Boolean) as (keyof T)[];
   const [sortKey, setSortKeyState] = useState<keyof T | null>(() =>
     storageKey ? loadSortState<T>(storageKey, sortableKeys).key : null
@@ -61,6 +63,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, so
   const [sortDir, setSortDirState] = useState<'asc' | 'desc'>(() =>
     storageKey ? loadSortState<T>(storageKey, sortableKeys).dir : 'asc'
   );
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (storageKey && sortKey != null) {
@@ -76,6 +79,15 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, so
       setSortDirState((d) => (d === 'asc' ? 'desc' : 'asc'));
     }
   }, [sortKey]);
+
+  const toggleRow = (index: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   const sortedData = sortable && sortKey
     ? [...data].sort((ra, rb) => {
@@ -96,6 +108,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, so
       <Table className="min-w-full relative z-10">
         <TableHeader>
           <TableRow>
+            {renderSubComponent && <TableHead className="w-10"></TableHead>}
             {columns.map((column) => {
               const canSort = sortable && column.accessorKey != null;
               const isActive = sortKey === column.accessorKey;
@@ -129,24 +142,53 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, so
         <TableBody>
           {sortedData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={columns.length + (renderSubComponent ? 1 : 0)} className="text-center text-muted-foreground py-8">
                 No data available
               </TableCell>
             </TableRow>
           ) : (
-            sortedData.map((row, rowIndex) => (
-              <TableRow key={rowIndex}>
-                {columns.map((column) => (
-                  <TableCell key={column.header}>
-                    {column.cell
-                      ? column.cell(row)
-                      : column.accessorKey
-                        ? String(row[column.accessorKey] ?? '')
-                        : ''}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            sortedData.map((row, rowIndex) => {
+              const isExpanded = expandedRows.has(rowIndex);
+              return (
+                <React.Fragment key={rowIndex}>
+                  <TableRow className={isExpanded ? "border-b-0" : ""}>
+                    {renderSubComponent && (
+                      <TableCell className="p-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleRow(rowIndex)}
+                          className="p-1 hover:bg-muted rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      </TableCell>
+                    )}
+                    {columns.map((column) => (
+                      <TableCell key={column.header}>
+                        {column.cell
+                          ? column.cell(row)
+                          : column.accessorKey
+                            ? String(row[column.accessorKey] ?? '')
+                            : ''}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {renderSubComponent && isExpanded && (
+                    <TableRow className="bg-muted/30">
+                      <TableCell colSpan={columns.length + 1} className="p-0">
+                        <div className="p-4 border-t">
+                          {renderSubComponent(row)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              );
+            })
           )}
         </TableBody>
       </Table>

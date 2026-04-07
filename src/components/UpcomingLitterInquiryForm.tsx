@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "lucide-react";
-import type { UpcomingLitter } from "@/lib/supabase";
+import type { UpcomingLitter, UpcomingLitterPuppyPlaceholder } from "@/lib/supabase";
 import { formatBirthWindow, formatGoHomeWindow } from "@/lib/litter-timeline";
 import { SUBJECT_UPCOMING_LITTER } from "@/lib/inquiry-subjects";
 import { US_STATES } from "@/data/statesData";
@@ -27,6 +27,12 @@ function getLitterLabel(litter: UpcomingLitter): string {
   return litter.due_label ? `${breed}, ${litter.due_label}` : breed;
 }
 
+export function formatPlaceholderSummary(
+  ph: UpcomingLitterPuppyPlaceholder
+): string {
+  return `${ph.public_ref_code} • ${ph.sex} • ${ph.offspring_breed_label}`;
+}
+
 export interface UpcomingLitterInquiryPayload {
   name: string;
   email: string;
@@ -37,6 +43,8 @@ export interface UpcomingLitterInquiryPayload {
   message: string;
   upcoming_litter_id: string | null;
   upcoming_litter_label: string | null;
+  upcoming_puppy_placeholder_id: string | null;
+  upcoming_puppy_placeholder_summary: string | null;
   interest_options: string[];
 }
 
@@ -44,6 +52,8 @@ interface UpcomingLitterInquiryFormProps {
   litters: UpcomingLitter[];
   /** When opened from a specific litter card, preselect this litter. */
   initialLitterId?: string | null;
+  /** Pre-select a puppy placeholder (upcoming slot) when opened from a puppy tile. */
+  initialPlaceholderId?: string | null;
   onSubmit: (payload: UpcomingLitterInquiryPayload) => Promise<void>;
   isSubmitting: boolean;
   submitLabel?: string;
@@ -52,6 +62,7 @@ interface UpcomingLitterInquiryFormProps {
 export function UpcomingLitterInquiryForm({
   litters,
   initialLitterId,
+  initialPlaceholderId,
   onSubmit,
   isSubmitting,
   submitLabel = "Submit",
@@ -62,6 +73,9 @@ export function UpcomingLitterInquiryForm({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [selectedLitterId, setSelectedLitterId] = useState<string | null>(null);
+  const [selectedPlaceholderId, setSelectedPlaceholderId] = useState<string | null>(
+    null
+  );
   const [depositChecked, setDepositChecked] = useState(false);
   const [updatesChecked, setUpdatesChecked] = useState(false);
   const [waitlistPreviewChecked, setWaitlistPreviewChecked] = useState(false);
@@ -72,9 +86,29 @@ export function UpcomingLitterInquiryForm({
     }
   }, [initialLitterId, litters]);
 
+  useEffect(() => {
+    if (!initialPlaceholderId) {
+      setSelectedPlaceholderId(null);
+      return;
+    }
+    const litter = litters.find((l) =>
+      (l.puppy_placeholders ?? []).some((p) => p.id === initialPlaceholderId)
+    );
+    if (litter?.id) {
+      setSelectedLitterId(litter.id);
+      setSelectedPlaceholderId(initialPlaceholderId);
+    }
+  }, [initialPlaceholderId, litters]);
+
   const selectedLitter = selectedLitterId
     ? litters.find((l) => l.id === selectedLitterId)
     : null;
+  const selectedPlaceholder =
+    selectedLitter && selectedPlaceholderId
+      ? (selectedLitter.puppy_placeholders ?? []).find(
+          (p) => p.id === selectedPlaceholderId
+        )
+      : null;
   const birthWindowText = selectedLitter
     ? formatBirthWindow(selectedLitter.breeding_date)
     : null;
@@ -89,6 +123,17 @@ export function UpcomingLitterInquiryForm({
     if (updatesChecked) interestOptions.push(INTEREST_OPTION_UPDATES);
     if (waitlistPreviewChecked) interestOptions.push(INTEREST_OPTION_WAITLIST_PREVIEW);
 
+    const placeholderSummary = selectedPlaceholder
+      ? formatPlaceholderSummary(selectedPlaceholder)
+      : null;
+    const baseMsg = selectedLitter
+      ? `Upcoming litter inquiry: ${getLitterLabel(selectedLitter)}`
+      : "Upcoming litter inquiry";
+    const message =
+      placeholderSummary != null
+        ? `${baseMsg}\nPreferred puppy slot: ${placeholderSummary}`
+        : baseMsg;
+
     const payload: UpcomingLitterInquiryPayload = {
       name: name.trim(),
       email: email.trim(),
@@ -96,11 +141,11 @@ export function UpcomingLitterInquiryForm({
       city: city.trim(),
       state: state.trim(),
       subject: SUBJECT_UPCOMING_LITTER,
-      message: selectedLitter
-        ? `Upcoming litter inquiry: ${getLitterLabel(selectedLitter)}`
-        : "Upcoming litter inquiry",
+      message,
       upcoming_litter_id: selectedLitterId,
       upcoming_litter_label: selectedLitter ? getLitterLabel(selectedLitter) : null,
+      upcoming_puppy_placeholder_id: selectedPlaceholder?.id ?? null,
+      upcoming_puppy_placeholder_summary: placeholderSummary,
       interest_options: interestOptions,
     };
     await onSubmit(payload);
@@ -175,7 +220,10 @@ export function UpcomingLitterInquiryForm({
         <Label>Upcoming litter *</Label>
         <Select
           value={selectedLitterId ?? ""}
-          onValueChange={(v) => setSelectedLitterId(v || null)}
+          onValueChange={(v) => {
+            setSelectedLitterId(v || null);
+            setSelectedPlaceholderId(null);
+          }}
           required
         >
           <SelectTrigger>
@@ -190,6 +238,30 @@ export function UpcomingLitterInquiryForm({
           </SelectContent>
         </Select>
       </div>
+
+      {selectedLitter && (selectedLitter.puppy_placeholders?.length ?? 0) > 0 ? (
+        <div className="space-y-2">
+          <Label>Puppy slot (optional)</Label>
+          <Select
+            value={selectedPlaceholderId ?? "__none__"}
+            onValueChange={(v) =>
+              setSelectedPlaceholderId(v === "__none__" ? null : v)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="No specific slot" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No specific slot — entire litter</SelectItem>
+              {(selectedLitter.puppy_placeholders ?? []).map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {formatPlaceholderSummary(p)} ({p.lifecycle_status === "born" ? "Born" : "Expected"})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
 
       {selectedLitter && (birthWindowText || goHomeWindowText) && (
         <div className="rounded-md border bg-muted/50 p-3 space-y-1 text-sm text-muted-foreground">

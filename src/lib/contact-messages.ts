@@ -9,6 +9,8 @@ export interface ContactMessageInsert {
   message: string;
   upcoming_litter_id?: string | null;
   upcoming_litter_label?: string | null;
+  upcoming_puppy_placeholder_id?: string | null;
+  upcoming_puppy_placeholder_summary?: string | null;
   city?: string | null;
   state?: string | null;
   interest_options?: string[] | null;
@@ -25,6 +27,8 @@ export function upcomingLitterPayloadToRow(payload: {
   message: string;
   upcoming_litter_id: string | null;
   upcoming_litter_label: string | null;
+  upcoming_puppy_placeholder_id?: string | null;
+  upcoming_puppy_placeholder_summary?: string | null;
   interest_options?: string[];
 }): ContactMessageInsert {
   return {
@@ -37,6 +41,9 @@ export function upcomingLitterPayloadToRow(payload: {
     message: payload.message,
     upcoming_litter_id: payload.upcoming_litter_id,
     upcoming_litter_label: payload.upcoming_litter_label,
+    upcoming_puppy_placeholder_id: payload.upcoming_puppy_placeholder_id ?? null,
+    upcoming_puppy_placeholder_summary:
+      payload.upcoming_puppy_placeholder_summary ?? null,
     interest_options:
       payload.interest_options?.length > 0 ? payload.interest_options : null,
   };

@@ -2,6 +2,14 @@
 
 Chronological delivery notes for shipped development work.
 
+## 2026-04-07
+
+- **Upcoming Litters Enhancements:** Added sire/dam, due dates, estimated counts, and auto-generated puppy placeholders with reservation urgency indicators.
+- **Consolidated Flow:** Unified Available Puppies and Upcoming Litters into a single user journey.
+- **Admin UI Revamp:** Reorganized Admin Upcoming Litter form into a two-column layout with a new "Lifecycle & Post-Birth" management section, including a feature to auto-generate puppy slots.
+- **Database Schema:** Added migrations for lifecycle statuses and puppy placeholders, fixed syntax errors, and successfully pushed to the live Supabase instance.
+- **Tooling:** Installed Supabase Agent Skills via MCP.
+
 ## 2026-04-01 — Hotfix
 
 - **Production blank page fix:** `UpcomingLittersList` and `BreedingDogsList` called `supabase.from()` without importing `supabase` after Phase 5 migration. TypeScript didn't flag it (ambient re-export). Fixed by adding fetch functions to services and wiring list pages.

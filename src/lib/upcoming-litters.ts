@@ -1,39 +1,72 @@
 import { supabase } from "@/lib/supabase";
-import type { UpcomingLitter } from "@/lib/supabase";
+import type {
+  UpcomingLitter,
+  UpcomingLitterPuppyPlaceholder,
+} from "@/lib/supabase";
 
 /** Shared query key for active upcoming litters (public + contact page). */
 export const UPCOMING_LITTERS_ACTIVE_QUERY_KEY = ["upcoming-litters-active"] as const;
 
+const SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS = `*,
+  dam:breeding_dogs!dam_id(id, name, photo_path),
+  sire:breeding_dogs!sire_id(id, name, photo_path),
+  upcoming_litter_puppy_placeholders(
+    id,
+    upcoming_litter_id,
+    public_ref_code,
+    slot_index,
+    sex,
+    offspring_breed_label,
+    lifecycle_status,
+    created_at,
+    updated_at
+  )`;
+
+const SELECT_LITTER_WITH_PARENTS = `*,
+  dam:breeding_dogs!dam_id(id, name, photo_path),
+  sire:breeding_dogs!sire_id(id, name, photo_path)`;
+
+function normalizeLitterRow(row: Record<string, unknown>): UpcomingLitter {
+  const raw = row.upcoming_litter_puppy_placeholders;
+  const placeholders = Array.isArray(raw)
+    ? (raw as UpcomingLitterPuppyPlaceholder[])
+    : [];
+  const puppy_placeholders = [...placeholders].sort(
+    (a, b) => (a.slot_index ?? 0) - (b.slot_index ?? 0)
+  );
+  const { upcoming_litter_puppy_placeholders: _drop, ...rest } = row;
+  return { ...rest, puppy_placeholders } as UpcomingLitter;
+}
+
 /**
- * Fetch active upcoming litters. Tries with dam/sire join first so card photos use
- * breeding_dogs.photo_path; if that fails (e.g. RLS or join syntax), falls back to
- * plain select so litters still load using denormalized dam_name/sire_name/dam_photo_path/sire_photo_path.
+ * Fetch active upcoming litters. Tries dam/sire join + puppy placeholders first; falls back if
+ * the placeholders table or policy is not deployed yet.
  */
 export async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
-  const base = supabase
-    .from("upcoming_litters")
-    .select(
-      `*,
-      dam:breeding_dogs!dam_id(id, name, photo_path),
-      sire:breeding_dogs!sire_id(id, name, photo_path)`
-    )
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false });
+  let lastErr: Error | null = null;
 
-  const { data, error } = await base;
-
-  if (error) {
-    // Fallback: fetch without join so public page still shows litters (denormalized fields only).
-    const fallback = await supabase
+  for (const selectStmt of [
+    SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS,
+    SELECT_LITTER_WITH_PARENTS,
+    "*",
+  ]) {
+    const { data, error } = await supabase
       .from("upcoming_litters")
-      .select("*")
+      .select(selectStmt)
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
-    if (fallback.error) throw fallback.error;
-    return (fallback.data ?? []) as UpcomingLitter[];
+
+    if (!error) {
+      const rows = (data ?? []) as Record<string, unknown>[];
+      return rows.map((row) =>
+        selectStmt === SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS
+          ? normalizeLitterRow(row)
+          : ({ ...row, puppy_placeholders: [] } as UpcomingLitter)
+      );
+    }
+    lastErr = error ?? new Error("Unknown error loading upcoming litters");
   }
 
-  return (data ?? []) as UpcomingLitter[];
+  throw lastErr ?? new Error("Failed to load upcoming litters");
 }

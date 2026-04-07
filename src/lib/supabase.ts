@@ -103,6 +103,8 @@ export interface ContactMessage {
   followed_up_at?: string | null;
   upcoming_litter_id?: string | null;
   upcoming_litter_label?: string | null;
+  upcoming_puppy_placeholder_id?: string | null;
+  upcoming_puppy_placeholder_summary?: string | null;
   city?: string | null;
   state?: string | null;
   interest_options?: string[] | null;
@@ -131,6 +133,19 @@ export interface UpcomingLitterParent {
   photo_path?: string | null;
 }
 
+/** Pre-birth puppy slot on an upcoming litter (public reservation UI). */
+export interface UpcomingLitterPuppyPlaceholder {
+  id: string;
+  upcoming_litter_id: string;
+  public_ref_code: string;
+  slot_index: number;
+  sex: 'Male' | 'Female';
+  offspring_breed_label: string;
+  lifecycle_status: 'expected' | 'born';
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface UpcomingLitter {
   id?: string;
   breed: string;
@@ -153,16 +168,31 @@ export interface UpcomingLitter {
   display_breed?: string | null;
   dam_photo_path?: string | null;
   sire_photo_path?: string | null;
+  /** How many deposit spots are shown as filled (0..max_deposit_slots). */
+  deposits_reserved_count?: number;
+  /** Maximum concurrent deposits offered for this litter (typically 4). */
+  max_deposit_slots?: number;
   /** Fetched via join from breeding_dogs when present; use for dam/sire photo (single source of truth). */
   dam?: UpcomingLitterParent | null;
   sire?: UpcomingLitterParent | null;
   example_puppy_image_paths?: string[] | null;
   breeding_date?: string | null;
   expected_whelping_date?: string | null;
+  date_of_birth?: string | null;
+  total_puppy_count?: number | null;
+  lifecycle_status?: 'pre_birth' | 'post_birth' | 'previous';
   min_expected_puppies?: number | null;
   max_expected_puppies?: number | null;
+  /** Populated by fetchActiveUpcomingLitters (sorted by slot_index). */
+  puppy_placeholders?: UpcomingLitterPuppyPlaceholder[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SiteSettings {
+  id: number;
+  previous_litters_visibility: 'current_only' | 'previous_only' | 'both';
+  updated_at: string;
 }
 
 export interface Litter {
@@ -210,6 +240,7 @@ export interface Puppy {
   display_order?: number;
   listing_date?: string; // Date added to website (YYYY-MM-DD)
   litter_id?: string | null;
+  upcoming_litter_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }

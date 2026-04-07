@@ -6,6 +6,29 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-04-07
+
+### Added
+
+- **Upcoming Litters Enhancements** — Added dog's name (sire/dam), estimated due date, and estimated puppy count to the public upcoming litters display.
+- **Puppy Placeholders** — Implemented auto-generated puppy placeholders for upcoming litters, showing unique IDs, breed, and gender.
+- **Reservation Urgency** — Added a display showing "X out of Y reserve spots have been deposited" to create urgency.
+- **Consolidated Flow** — Added a link from the Available Puppies page to the Upcoming Litters section to unify the user journey.
+- **Admin Lifecycle Management** — Reorganized the admin Upcoming Litter form into a two-column layout. Added a "Lifecycle & Post-Birth" section to manage pre-birth, post-birth, and previous litters.
+- **Auto-Generate Puppy Slots** — Added a button in the admin dashboard to automatically generate puppy records based on the `total_puppy_count` for post-birth litters.
+- **Supabase Agent Skills** — Installed Supabase MCP agent skills for better database management.
+
+### Changed
+
+- **Database Schema** — Added `site_settings` table, `upcoming_litter_puppy_placeholders` table, and new columns (`lifecycle_status`, `date_of_birth`, `total_puppy_count`, `deposits_reserved_count`, `max_deposit_slots`) to `upcoming_litters`. Added `upcoming_litter_id` to `puppies`.
+- **Public UI** — Replaced the upcoming litters table with a card-based layout featuring a "family tree" style display with pink/blue puppy silhouettes.
+
+### Fixed
+
+- **Migration Syntax Error** — Fixed a syntax error in the `20250407120000_upcoming_litter_placeholders_deposits.sql` migration file and successfully pushed it to the live database.
+
+---
+
 ## 2026-04-01 — Hotfix
 
 ### Fixed

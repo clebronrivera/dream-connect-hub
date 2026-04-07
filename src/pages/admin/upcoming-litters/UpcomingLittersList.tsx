@@ -1,10 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { UpcomingLitter } from '@/lib/supabase';
+import type { UpcomingLitter, SiteSettings } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { fetchAdminUpcomingLitters, deleteUpcomingLitter } from '@/lib/admin/upcoming-litters-service';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Settings } from 'lucide-react';
 import { DataTable } from '@/components/admin/DataTable';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +27,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
+function getStoragePublicUrl(path: string): string {
+  return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
+}
+
 export default function UpcomingLittersList() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -26,6 +38,29 @@ export default function UpcomingLittersList() {
   const { data: litters, isLoading } = useQuery({
     queryKey: ['admin-upcoming-litters'],
     queryFn: fetchAdminUpcomingLitters,
+  });
+
+  const { data: siteSettings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('site_settings').select('*').eq('id', 1).single();
+      if (error) throw error;
+      return data as SiteSettings;
+    },
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (visibility: 'current_only' | 'previous_only' | 'both') => {
+      const { error } = await supabase.from('site_settings').update({ previous_litters_visibility: visibility }).eq('id', 1);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['site-settings'] });
+      toast({ title: 'Visibility updated' });
+    },
+    onError: (e: Error) => {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -50,6 +85,11 @@ export default function UpcomingLittersList() {
       header: 'Display breed',
       cell: (row: UpcomingLitter) => row.display_breed || row.breed || '—',
     },
+    {
+      header: 'Dam / Sire',
+      cell: (row: UpcomingLitter) =>
+        [row.dam_name, row.sire_name].filter(Boolean).join(' / ') || '—',
+    },
     { header: 'Due', accessorKey: 'due_label' as keyof UpcomingLitter },
     { header: 'Price', accessorKey: 'price_label' as keyof UpcomingLitter },
     {
@@ -64,13 +104,24 @@ export default function UpcomingLittersList() {
           : '-',
     },
     {
-      header: 'Status',
+      header: 'Deposits (shown)',
       cell: (row: UpcomingLitter) =>
-        row.is_active ? (
-          <Badge variant="default">Active</Badge>
-        ) : (
-          <Badge variant="secondary">Inactive</Badge>
-        ),
+        `${row.deposits_reserved_count ?? 0} / ${row.max_deposit_slots ?? 4}`,
+    },
+    {
+      header: 'Status',
+      cell: (row: UpcomingLitter) => (
+        <div className="flex flex-col gap-1 items-start">
+          {row.is_active ? (
+            <Badge variant="default">Active</Badge>
+          ) : (
+            <Badge variant="secondary">Inactive</Badge>
+          )}
+          <Badge variant="outline" className="text-[10px]">
+            {row.lifecycle_status === 'pre_birth' ? 'Pre-birth' : row.lifecycle_status === 'post_birth' ? 'Post-birth' : 'Previous'}
+          </Badge>
+        </div>
+      ),
     },
     { header: 'Sort', accessorKey: 'sort_order' as keyof UpcomingLitter },
     {
@@ -113,24 +164,81 @@ export default function UpcomingLittersList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <h1 className="text-3xl font-bold">Upcoming Litters</h1>
-        <Link to="/admin/upcoming-litters/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Upcoming Litter
-          </Button>
-        </Link>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-muted/50 p-2 rounded-lg border">
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Public visibility:</span>
+            <Select
+              value={siteSettings?.previous_litters_visibility ?? 'both'}
+              onValueChange={(v) => updateSettingsMutation.mutate(v as 'current_only' | 'previous_only' | 'both')}
+              disabled={isLoadingSettings || updateSettingsMutation.isPending}
+            >
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">Show Both</SelectItem>
+                <SelectItem value="current_only">Current Only</SelectItem>
+                <SelectItem value="previous_only">Previous Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Link to="/admin/upcoming-litters/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Upcoming Litter
+            </Button>
+          </Link>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        These appear on the public Upcoming Litters page. Only active rows are shown to visitors.
+        These appear on the public Upcoming Litters page based on the visibility setting above. Only active rows are shown.
       </p>
       {isLoading ? (
         <div className="flex justify-center min-h-[300px] items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
         </div>
       ) : (
-        <DataTable columns={columns} data={litters ?? []} sortable storageKey="admin-upcoming-litters-sort" />
+        <DataTable
+          columns={columns}
+          data={litters ?? []}
+          sortable
+          storageKey="admin-upcoming-litters-sort"
+          renderSubComponent={(row) => (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Past dogs from this line (Slots)</h3>
+                <Link to={`/admin/upcoming-litters/${row.id}/edit`}>
+                  <Button variant="outline" size="sm">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Litter & Slots
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Note: These are from previous litters. You can add up to 3 images to show what puppies from this pairing look like.
+              </p>
+              {(!row.example_puppy_image_paths || row.example_puppy_image_paths.length === 0) ? (
+                <div className="text-sm text-muted-foreground py-4 border-2 border-dashed rounded-lg text-center">
+                  No previous litter photos uploaded yet.
+                </div>
+              ) : (
+                <div className="flex gap-4">
+                  {row.example_puppy_image_paths.map((path, i) => (
+                    <img
+                      key={i}
+                      src={getStoragePublicUrl(path)}
+                      alt={`Past dog ${i + 1}`}
+                      className="h-24 w-24 rounded-lg object-cover border"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        />
       )}
     </div>
   );

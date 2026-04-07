@@ -44,6 +44,7 @@ import { usePuppyFilters } from "@/hooks/use-puppy-filters";
 import { PuppyCard } from "./PuppyCard";
 import { PuppyDetailModal } from "./PuppyDetailModal";
 import { PuppyShareDialog } from "./PuppyShareDialog";
+import { UpcomingLittersSection } from "@/components/upcoming/UpcomingLittersSection";
 
 export default function Puppies() {
   const { t } = useLanguage();
@@ -153,9 +154,14 @@ export default function Puppies() {
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             {t("puppiesHeroDescription")}
           </p>
-          <Button size="lg" variant="secondary" className="mt-6 text-foreground" asChild>
-            <Link to="/contact">{t("puppiesInquireButton")}</Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mt-6">
+            <Button size="lg" variant="secondary" className="text-foreground" asChild>
+              <Link to="/contact">{t("puppiesInquireButton")}</Link>
+            </Button>
+            <Button size="lg" variant="outline" className="border-primary-foreground/40 text-primary-foreground bg-transparent hover:bg-primary-foreground/10" asChild>
+              <Link to="#upcoming-litters">{t("puppiesSeeUpcomingAnchor")}</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -463,6 +469,12 @@ export default function Puppies() {
           }}
           puppy={sharePuppy ?? detailPuppy}
         />
+      </section>
+
+      <section id="upcoming-litters" className="scroll-mt-24 bg-muted/40 border-t py-16">
+        <div className="container">
+          <UpcomingLittersSection embedded />
+        </div>
       </section>
     </Layout>
   );

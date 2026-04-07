@@ -178,6 +178,15 @@ export function ContactMessageDetailDialog({
           {(message.upcoming_litter_label || message.upcoming_litter_id) && (
             <Section title="Upcoming litter">
               <Field label="Selected litter" value={message.upcoming_litter_label ?? (message.upcoming_litter_id ? 'Litter selected' : null)} />
+              {(message.upcoming_puppy_placeholder_summary || message.upcoming_puppy_placeholder_id) && (
+                <Field
+                  label="Puppy slot"
+                  value={
+                    message.upcoming_puppy_placeholder_summary ??
+                    (message.upcoming_puppy_placeholder_id ? 'Slot selected' : null)
+                  }
+                />
+              )}
               <Field label="Interest option(s)" value={interestText} />
             </Section>
           )}
