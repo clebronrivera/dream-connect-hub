@@ -2,6 +2,11 @@
 
 Chronological delivery notes for shipped development work.
 
+## 2026-04-08
+
+- **Placeholder count fix:** DB seed + backfill used expected puppy range capped at six tiles; now uses `max_deposit_slots` only. Migration trims/fills placeholder rows to match.
+- **Post-birth puppies:** Save (or Sync) creates sibling `puppies` records when DOB + total count + post-birth/previous; copies price from price label into `base_price`.
+
 ## 2026-04-07
 
 - **Upcoming Litters Enhancements:** Added sire/dam, due dates, estimated counts, and auto-generated puppy placeholders with reservation urgency indicators.

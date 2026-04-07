@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase, type UpcomingLitter, type BreedingDog } from '@/lib/supabase';
 import {
@@ -24,6 +24,14 @@ import { getBreedingDogPhotoUrl, uploadPuppyPhoto } from '@/lib/puppy-photos';
 
 function getStoragePublicUrl(path: string): string {
   return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
+}
+
+/** First numeric price in the label (e.g. "$1,500–$2,000" → 1500). */
+function parsePriceLabelToBasePrice(priceLabel: string | null | undefined): number | undefined {
+  if (!priceLabel?.trim()) return undefined;
+  const matches = priceLabel.replace(/,/g, '').match(/\d+(?:\.\d+)?/g);
+  if (!matches?.length) return undefined;
+  return Math.round(Number.parseFloat(matches[0]));
 }
 
 const schema = z.object({
@@ -66,6 +74,7 @@ export default function UpcomingLitterForm() {
   const isNew = !id || id === 'new';
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: row, isLoading } = useQuery({
     queryKey: ['upcoming-litter', id],
@@ -240,6 +249,93 @@ export default function UpcomingLitterForm() {
     };
   };
 
+  /**
+   * When the litter is born (post-birth or previous), DOB and total_puppy_count are set:
+   * create/update `puppies` rows linked via upcoming_litter_id (siblings), carry breed + price from this form.
+   */
+  const syncPostBirthPuppyRecords = async (
+    data: FormValues,
+    opts?: { throwIfSkipped?: boolean }
+  ): Promise<{ created: number; deleted: number } | null> => {
+    if (!id || isNew) return null;
+    if (data.lifecycle_status !== 'post_birth' && data.lifecycle_status !== 'previous') {
+      if (opts?.throwIfSkipped) {
+        throw new Error('Set status to Post-birth (or Previous) before creating puppy records.');
+      }
+      return null;
+    }
+    if (!data.date_of_birth?.trim()) {
+      if (opts?.throwIfSkipped) throw new Error('Enter the litter date of birth first.');
+      return null;
+    }
+    const total = data.total_puppy_count;
+    if (total == null || total <= 0) {
+      if (opts?.throwIfSkipped) throw new Error('Enter total puppy count (how many were born).');
+      return null;
+    }
+
+    const breed = data.display_breed?.trim() || 'Unknown';
+    const dob = data.date_of_birth;
+    const basePrice = parsePriceLabelToBasePrice(data.price_label);
+    const listingDate = format(new Date(), 'yyyy-MM-dd');
+
+    const { data: rows, error: selErr } = await supabase
+      .from('puppies')
+      .select('id, created_at')
+      .eq('upcoming_litter_id', id)
+      .order('created_at', { ascending: true });
+
+    if (selErr) throw selErr;
+
+    const existing = rows ?? [];
+    let deleted = 0;
+
+    if (existing.length > total) {
+      const sorted = [...existing].sort(
+        (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+      );
+      const remove = sorted.slice(0, existing.length - total);
+      const ids = remove.map((r) => r.id).filter(Boolean) as string[];
+      if (ids.length) {
+        const { error: delErr } = await supabase.from('puppies').delete().in('id', ids);
+        if (delErr) throw delErr;
+        deleted = ids.length;
+      }
+    }
+
+    const { data: after } = await supabase
+      .from('puppies')
+      .select('id')
+      .eq('upcoming_litter_id', id);
+
+    const n = after?.length ?? 0;
+    const toCreate = total - n;
+    let created = 0;
+
+    if (toCreate > 0) {
+      const newRows = Array.from({ length: toCreate }).map((_, i) => ({
+        upcoming_litter_id: id,
+        name: `Puppy ${n + i + 1}`,
+        breed,
+        date_of_birth: dob,
+        status: 'Available' as const,
+        ...(basePrice != null ? { base_price: basePrice } : {}),
+        listing_date: listingDate,
+      }));
+      const { error: insErr } = await supabase.from('puppies').insert(newRows);
+      if (insErr) throw insErr;
+      created = toCreate;
+    }
+
+    const patch: Record<string, unknown> = { date_of_birth: dob, breed };
+    if (basePrice != null) patch.base_price = basePrice;
+
+    const { error: upErr } = await supabase.from('puppies').update(patch).eq('upcoming_litter_id', id);
+    if (upErr) throw upErr;
+
+    return { created, deleted };
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       const paths: string[] = [];
@@ -273,8 +369,24 @@ export default function UpcomingLitterForm() {
       const payload = buildPayload(data, paths.length ? paths : null);
       await updateUpcomingLitter(id!, payload as Record<string, unknown>);
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       toast({ title: 'Upcoming litter updated' });
+      try {
+        const r = await syncPostBirthPuppyRecords(data);
+        await queryClient.invalidateQueries({ queryKey: ['admin-puppies'] });
+        if (r && (r.created > 0 || r.deleted > 0)) {
+          toast({
+            title: 'Puppy records synced',
+            description: `Created ${r.created}, removed ${r.deleted}. Open Puppies to add names, color, and photos.`,
+          });
+        }
+      } catch (e) {
+        toast({
+          title: 'Could not sync puppy records',
+          description: (e as Error).message,
+          variant: 'destructive',
+        });
+      }
     },
     onError: (e: Error) => {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -283,40 +395,15 @@ export default function UpcomingLitterForm() {
 
   const generatePuppiesMutation = useMutation({
     mutationFn: async () => {
-      if (!id || isNew) return;
-      const count = form.getValues('total_puppy_count');
-      if (!count || count <= 0) throw new Error('Enter a valid total puppy count first.');
-      const dob = form.getValues('date_of_birth') || null;
-      const breed = form.getValues('display_breed') || 'Unknown';
-      
-      // Fetch existing puppies to avoid duplicates or know where to start numbering
-      const { data: existing } = await supabase
-        .from('puppies')
-        .select('id')
-        .eq('upcoming_litter_id', id);
-        
-      const existingCount = existing?.length || 0;
-      const toCreate = count - existingCount;
-      if (toCreate <= 0) throw new Error(`Already have ${existingCount} puppies generated for this litter.`);
-
-      const newPuppies = Array.from({ length: toCreate }).map((_, i) => ({
-        upcoming_litter_id: id,
-        name: `Puppy ${existingCount + i + 1}`,
-        breed,
-        gender: 'Unknown',
-        date_of_birth: dob,
-        status: 'Available',
-      }));
-
-      const { error } = await supabase.from('puppies').insert(newPuppies);
-      if (error) throw error;
+      await syncPostBirthPuppyRecords(form.getValues(), { throwIfSkipped: true });
     },
-    onSuccess: () => {
-      toast({ title: 'Puppy slots generated successfully!' });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-puppies'] });
+      toast({ title: 'Puppy records synced' });
     },
     onError: (e: Error) => {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
-    }
+    },
   });
 
   const onSubmit = (data: FormValues) => {
@@ -538,7 +625,7 @@ export default function UpcomingLitterForm() {
                   />
                 </FormControl>
                 <p className="text-xs text-muted-foreground">
-                  Typically 4: we only collect deposits for up to four picks per litter.
+                  Sets how many reservation puppy tiles appear on the public site (and “X of Y” deposit slots). Not the same as expected litter size—adjust min/max expected puppies separately.
                 </p>
                 <FormMessage />
               </FormItem>
@@ -874,11 +961,13 @@ export default function UpcomingLitterForm() {
                           disabled={generatePuppiesMutation.isPending}
                         >
                           <Wand2 className="h-4 w-4 mr-2" />
-                          Generate Slots
+                          Sync puppy records
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Actual number born.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Actual number born. Requires date of birth above. Saving the form (or Sync below) creates that many sibling records in Puppies—price comes from the price label when possible.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

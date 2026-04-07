@@ -6,6 +6,15 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-04-08
+
+### Changed
+
+- **Upcoming litter placeholders** — Public reservation tiles are driven by **Max deposit slots** (1–8), not min/max expected puppy count capped at six. Existing litters are trimmed/filled to match on migration.
+- **Post-birth puppy records** — Saving an upcoming litter (or **Sync puppy records**) creates or updates `puppies` rows when status is Post-birth or Previous, date of birth is set, and total puppy count is positive; breed and parsed **price label** → `base_price` copy to each pup; siblings share `upcoming_litter_id`.
+
+---
+
 ## 2026-04-07
 
 ### Added
