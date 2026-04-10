@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { format, parseISO, isValid } from "date-fns";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,6 +25,7 @@ import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@
 import { insertContactMessage, upcomingLitterPayloadToRow } from "@/lib/contact-messages";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { UpcomingPuppySilhouette } from "@/components/upcoming/UpcomingPuppySilhouette";
+import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
 
 const DEFAULT_DEPOSIT_AMOUNT = 300;
 
@@ -49,12 +50,6 @@ function getStoragePublicUrl(path: string): string {
 function photoPathOrNull(path: string | null | undefined): string | null {
   const s = typeof path === "string" ? path.trim() : "";
   return s || null;
-}
-
-function formatPickupSummary(litter: UpcomingLitter): string {
-  const w = getGoHomeWindow(litter.breeding_date);
-  if (!w) return "—";
-  return `${format(w.earliest, "MMM d")} – ${format(w.latest, "MMM d")}`;
 }
 
 export interface UpcomingLittersSectionProps {
@@ -108,12 +103,12 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
   return (
     <>
       {embedded ? (
-        <div className="mb-8 text-center space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">{t("upcomingHeroTitle")}</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
+        <div className="mb-6 text-center space-y-1.5">
+          <h2 className="text-2xl font-bold tracking-tight">{t("upcomingHeroTitle")}</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto text-xs sm:text-sm leading-snug">
             {t("upcomingHeroDescription")}
           </p>
-          <Button variant="link" asChild className="text-primary">
+          <Button variant="link" asChild className="text-primary text-sm h-auto py-0">
             <Link to="/upcoming-litters">{t("upcomingFullPageLink")}</Link>
           </Button>
         </div>
@@ -134,12 +129,12 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
           {t("upcomingEmptySuffix")}
         </div>
       ) : (
-        <div className="space-y-10">
-          <p className="text-sm text-muted-foreground border-l-4 border-primary/40 pl-4 py-1">
+        <div className="space-y-5 max-w-3xl mx-auto">
+          <p className="text-xs text-muted-foreground text-center leading-relaxed px-1">
             {t("upcomingDepositPolicy")}
           </p>
 
-          <div className="space-y-10">
+          <div className="space-y-5">
             {litters.map((litter) => {
               const imageUrl = getPlaceholderImageUrl(litter.placeholder_image_path);
               const dam = Array.isArray(litter.dam)
@@ -168,181 +163,168 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
               const placeholders = litter.puppy_placeholders ?? [];
 
               return (
-                <Card key={litter.id} className="overflow-hidden flex flex-col">
-                  <div className="p-4 md:p-6 space-y-6">
-                    <div className="flex flex-col md:flex-row gap-4 items-stretch">
-                      <div className="flex-1 grid grid-cols-2 gap-3">
-                        <div className="relative rounded-lg overflow-hidden border aspect-[4/3] bg-muted">
-                          <img
-                            src={damHeroImage}
-                            alt={`${litter.dam_name || "Dam"} photo`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
-                            }}
-                          />
-                          <Badge className="absolute bottom-2 left-2" variant="outline">
-                            {t("upcomingLabelDam")}
-                          </Badge>
-                        </div>
-                        <div className="relative rounded-lg overflow-hidden border aspect-[4/3] bg-muted">
-                          <img
-                            src={sireHeroImage}
-                            alt={`${litter.sire_name || "Sire"} photo`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
-                            }}
-                          />
-                          <Badge className="absolute bottom-2 left-2" variant="outline">
-                            {t("upcomingLabelSire")}
-                          </Badge>
-                        </div>
+                <Card key={litter.id} className="overflow-hidden flex flex-col border-border/80 shadow-sm">
+                  <div className="p-3 md:p-4 space-y-3">
+                    <div className="text-center space-y-1">
+                      <CardTitle className="text-lg font-semibold leading-tight">{displayBreedLabel}</CardTitle>
+                      <Badge variant="secondary" className="text-[10px] font-normal">
+                        {t("upcomingLitterBadge")}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                      <div className="relative rounded-md overflow-hidden border aspect-[4/3] bg-muted max-h-36">
+                        <img
+                          src={damHeroImage}
+                          alt={`${litter.dam_name || "Dam"} photo`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
+                          }}
+                        />
+                        <Badge className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0" variant="outline">
+                          {t("upcomingLabelDam")}
+                        </Badge>
                       </div>
-                      <div className="flex-1 flex flex-col justify-center space-y-2 min-w-0">
-                        <CardTitle className="text-2xl">{displayBreedLabel}</CardTitle>
-                        {(damLabel || sireLabel) && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                            {damLabel && (
-                              <p>
-                                <span className="font-medium text-muted-foreground">
-                                  {t("upcomingTableDam")}:
-                                </span>{" "}
-                                {damLabel}
-                              </p>
-                            )}
-                            {sireLabel && (
-                              <p>
-                                <span className="font-medium text-muted-foreground">
-                                  {t("upcomingTableSire")}:
-                                </span>{" "}
-                                {sireLabel}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">{t("upcomingOffspringType")}:</span>{" "}
-                          {displayBreedLabel}
-                        </p>
-                        <Badge variant="secondary" className="w-fit">
-                          {t("upcomingLitterBadge")}
+                      <div className="relative rounded-md overflow-hidden border aspect-[4/3] bg-muted max-h-36">
+                        <img
+                          src={sireHeroImage}
+                          alt={`${litter.sire_name || "Sire"} photo`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
+                          }}
+                        />
+                        <Badge className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0" variant="outline">
+                          {t("upcomingLabelSire")}
                         </Badge>
                       </div>
                     </div>
 
-                    <div className="flex justify-center">
-                      <div className="h-8 w-px bg-border relative">
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full w-48 h-px bg-border" />
+                    {(damLabel || sireLabel) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 text-center text-[11px] sm:text-xs text-muted-foreground leading-snug max-w-lg mx-auto">
+                        {damLabel && (
+                          <p>
+                            <span className="font-medium text-foreground">{t("upcomingTableDam")}:</span>{" "}
+                            {damLabel}
+                          </p>
+                        )}
+                        {sireLabel && (
+                          <p>
+                            <span className="font-medium text-foreground">{t("upcomingTableSire")}:</span>{" "}
+                            {sireLabel}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                    <p className="text-center text-xs text-muted-foreground uppercase tracking-wide">
+                    )}
+
+                    <p className="text-center text-[11px] text-muted-foreground">
+                      <span className="font-medium text-foreground">{t("upcomingOffspringType")}:</span>{" "}
+                      {displayBreedLabel}
+                    </p>
+
+                    <p className="text-center text-[10px] text-muted-foreground tracking-wide uppercase">
                       {t("upcomingFamilyTreeCaption")}
                     </p>
 
                     {placeholders.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {placeholders.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => openReserve(litter, p)}
-                            className="text-left rounded-lg border bg-muted/30 hover:bg-muted/60 hover:border-primary/40 transition-colors p-3 space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <UpcomingPuppySilhouette
-                              className="w-full aspect-square"
-                              title={`${p.sex} ${t("upcomingPlaceholderSlot")} ${p.public_ref_code}`}
-                            />
-                            <p className="text-xs font-mono font-semibold text-foreground truncate">
-                              {p.public_ref_code}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{p.sex}</p>
-                            <p className="text-xs line-clamp-2">{p.offspring_breed_label}</p>
-                            <Badge
-                              variant={p.lifecycle_status === "born" ? "default" : "outline"}
-                              className="text-[10px]"
+                      <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 pt-1">
+                        {placeholders.map((p) => {
+                          const pickLabel = pickDepositLabel(p.slot_index, t);
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => openReserve(litter, p)}
+                              className="flex flex-col items-center text-center rounded-lg border bg-muted/25 hover:bg-muted/50 hover:border-primary/35 transition-colors p-2 w-[130px] sm:w-[140px] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
                             >
-                              {p.lifecycle_status === "born"
-                                ? t("upcomingStatusBorn")
-                                : t("upcomingStatusExpected")}
-                            </Badge>
-                            {goHomeWindow ? (
-                              <p className="text-[10px] text-muted-foreground">
-                                {t("upcomingPickupApprox")}: {formatPickupSummary(litter)}
+                              <UpcomingPuppySilhouette
+                                className="w-full max-w-[88px] aspect-square mx-auto"
+                                title={pickLabel}
+                              />
+                              <p className="text-[11px] sm:text-xs font-medium text-foreground leading-tight text-balance mt-1.5 px-0.5">
+                                {pickLabel}
                               </p>
-                            ) : null}
-                          </button>
-                        ))}
+                              <Badge
+                                variant={p.lifecycle_status === "born" ? "default" : "outline"}
+                                className="text-[9px] mt-1 px-1.5 py-0"
+                              >
+                                {p.lifecycle_status === "born"
+                                  ? t("upcomingStatusBorn")
+                                  : t("upcomingStatusExpected")}
+                              </Badge>
+                            </button>
+                          );
+                        })}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">
+                      <p className="text-xs text-muted-foreground text-center py-2">
                         {t("upcomingNoPlaceholders")}
                       </p>
                     )}
-                  </div>
 
-                  <CardHeader className="pt-0">
-                    <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 space-y-1 text-[11px] sm:text-xs text-muted-foreground text-center leading-snug">
                       {birthWindow ? (
-                        <p className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 flex-shrink-0" />
-                          {t("upcomingBirthWindow")}: {format(birthWindow.earliest, "MMM d")} –{" "}
-                          {format(birthWindow.latest, "MMM d")}
+                        <p className="flex items-start justify-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                          <span>
+                            {t("upcomingBirthWindow")}: {format(birthWindow.earliest, "MMM d")} –{" "}
+                            {format(birthWindow.latest, "MMM d")}
+                          </span>
                         </p>
                       ) : null}
                       {goHomeWindow ? (
-                        <p className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 flex-shrink-0" />
-                          {t("upcomingGoHomeWindow")}: {format(goHomeWindow.earliest, "MMM d")} –{" "}
-                          {format(goHomeWindow.latest, "MMM d")}
+                        <p className="flex items-start justify-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                          <span>
+                            {t("upcomingGoHomeWindow")}: {format(goHomeWindow.earliest, "MMM d")} –{" "}
+                            {format(goHomeWindow.latest, "MMM d")}
+                          </span>
                         </p>
                       ) : null}
                       <p>
-                        {t("upcomingDepositAmountLabel")}: ${depositAmount}.{" "}
-                        {t("upcomingReserveSpotsLabel")}: {litter.deposits_reserved_count ?? 0}{" "}
-                        {t("upcomingOf")} {litter.max_deposit_slots ?? 4}.
+                        {t("upcomingDepositAmountLabel")}: ${depositAmount}. {t("upcomingReserveSpotsLabel")}:{" "}
+                        {litter.deposits_reserved_count ?? 0} {t("upcomingOf")} {litter.max_deposit_slots ?? 4}.
                       </p>
-                      {refundableAmount != null && (
-                        <p className="text-sm">
+                      {refundableAmount != null ? (
+                        <p>
                           {t("upcomingRefundableLabel")}: ${refundableAmount}. {t("upcomingRefundableRest")}
                         </p>
-                      )}
-                      {refundableAmount == null && (
-                        <p className="text-sm italic">{t("upcomingRefundableGeneric")}</p>
+                      ) : (
+                        <p className="italic text-[10px]">{t("upcomingRefundableGeneric")}</p>
                       )}
                     </div>
-                  </CardHeader>
 
-                  {(litter.example_puppy_image_paths?.length ?? 0) > 0 && (
-                    <CardContent className="pt-0 space-y-2">
-                      <p className="text-sm font-medium">{t("upcomingPastPuppies")}</p>
-                      <div className="flex gap-2 flex-wrap">
-                        {litter.example_puppy_image_paths!.slice(0, 3).map((path, i) => (
-                          <img
-                            key={path}
-                            src={getStoragePublicUrl(path)}
-                            alt={`Past puppy ${i + 1}`}
-                            className="h-16 w-16 rounded object-cover shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
-                            }}
-                          />
-                        ))}
+                    {(litter.example_puppy_image_paths?.length ?? 0) > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-center">{t("upcomingPastPuppies")}</p>
+                        <div className="flex gap-1.5 flex-wrap justify-center">
+                          {litter.example_puppy_image_paths!.slice(0, 3).map((path, i) => (
+                            <img
+                              key={path}
+                              src={getStoragePublicUrl(path)}
+                              alt={`Past puppy ${i + 1}`}
+                              className="h-12 w-12 rounded object-cover shrink-0 border"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </CardContent>
-                  )}
+                    )}
 
-                  <CardFooter>
                     <Button
                       type="button"
                       variant="default"
-                      className="w-full"
+                      size="sm"
+                      className="w-full h-9 text-sm"
                       onClick={() => openReserve(litter, null)}
                     >
-                      <UserPlus className="mr-2 h-4 w-4" />
+                      <UserPlus className="mr-2 h-3.5 w-3.5" />
                       {JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT}
                     </Button>
-                  </CardFooter>
+                  </div>
                 </Card>
               );
             })}

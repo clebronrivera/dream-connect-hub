@@ -36,6 +36,9 @@ const KitsList = lazy(() => import("./pages/admin/inventory/KitsList"));
 const KitForm = lazy(() => import("./pages/admin/inventory/KitForm"));
 const Inquiries = lazy(() => import("./pages/admin/Inquiries"));
 const BusinessModes = lazy(() => import("./pages/admin/BusinessModes"));
+const DepositAgreement = lazy(() => import("./pages/DepositAgreement"));
+const AgreementsPage = lazy(() => import("./pages/admin/AgreementsPage"));
+const PaymentMethodsSettings = lazy(() => import("./pages/admin/PaymentMethodsSettings"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -75,6 +78,7 @@ export function AppRoutes() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/upcoming-litters" element={<UpcomingLitters />} />
         <Route path="/breeds" element={<Breeds />} />
+        <Route path="/deposit" element={<DepositAgreement />} />
 
         {/* Admin login */}
         <Route path="/admin/login" element={<Login />} />
@@ -101,6 +105,8 @@ export function AppRoutes() {
             <Route path="inventory/kits/:id/edit" element={<KitForm />} />
             <Route path="inquiries" element={<Inquiries />} />
             <Route path="business-modes" element={<BusinessModes />} />
+            <Route path="agreements" element={<AgreementsPage />} />
+            <Route path="payment-settings" element={<PaymentMethodsSettings />} />
           </Route>
         </Route>
 

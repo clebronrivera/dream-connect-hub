@@ -13,6 +13,8 @@ import {
   CalendarHeart,
   BarChart2,
   Heart,
+  FileSignature,
+  CreditCard,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -26,7 +28,9 @@ export function AdminLayout() {
     { name: 'Upcoming Litters', href: '/admin/upcoming-litters', icon: CalendarHeart },
     { name: 'Products', href: '/admin/inventory/products', icon: Package },
     { name: 'Kits', href: '/admin/inventory/kits', icon: Box },
+    { name: 'Agreements', href: '/admin/agreements', icon: FileSignature },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
+    { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
     { name: 'Business Modes', href: '/admin/business-modes', icon: BarChart2 },
   ];
 

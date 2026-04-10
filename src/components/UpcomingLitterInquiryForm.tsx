@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "lucide-react";
 import type { UpcomingLitter, UpcomingLitterPuppyPlaceholder } from "@/lib/supabase";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
 import { formatBirthWindow, formatGoHomeWindow } from "@/lib/litter-timeline";
 import { SUBJECT_UPCOMING_LITTER } from "@/lib/inquiry-subjects";
 import { US_STATES } from "@/data/statesData";
@@ -27,10 +29,12 @@ function getLitterLabel(litter: UpcomingLitter): string {
   return litter.due_label ? `${breed}, ${litter.due_label}` : breed;
 }
 
+/** Human-readable line for forms and admin (includes expected breed). */
 export function formatPlaceholderSummary(
-  ph: UpcomingLitterPuppyPlaceholder
+  ph: UpcomingLitterPuppyPlaceholder,
+  t: (key: string) => string
 ): string {
-  return `${ph.public_ref_code} • ${ph.sex} • ${ph.offspring_breed_label}`;
+  return `${pickDepositLabel(ph.slot_index, t)} • ${ph.offspring_breed_label}`;
 }
 
 export interface UpcomingLitterInquiryPayload {
@@ -67,6 +71,7 @@ export function UpcomingLitterInquiryForm({
   isSubmitting,
   submitLabel = "Submit",
 }: UpcomingLitterInquiryFormProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -124,7 +129,7 @@ export function UpcomingLitterInquiryForm({
     if (waitlistPreviewChecked) interestOptions.push(INTEREST_OPTION_WAITLIST_PREVIEW);
 
     const placeholderSummary = selectedPlaceholder
-      ? formatPlaceholderSummary(selectedPlaceholder)
+      ? formatPlaceholderSummary(selectedPlaceholder, t)
       : null;
     const baseMsg = selectedLitter
       ? `Upcoming litter inquiry: ${getLitterLabel(selectedLitter)}`
@@ -255,7 +260,8 @@ export function UpcomingLitterInquiryForm({
               <SelectItem value="__none__">No specific slot — entire litter</SelectItem>
               {(selectedLitter.puppy_placeholders ?? []).map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {formatPlaceholderSummary(p)} ({p.lifecycle_status === "born" ? "Born" : "Expected"})
+                  {formatPlaceholderSummary(p, t)} (
+                  {p.lifecycle_status === "born" ? t("upcomingStatusBorn") : t("upcomingStatusExpected")})
                 </SelectItem>
               ))}
             </SelectContent>

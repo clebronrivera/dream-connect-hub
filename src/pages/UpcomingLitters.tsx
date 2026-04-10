@@ -10,17 +10,17 @@ export default function UpcomingLitters() {
   return (
     <Layout>
       <Seo pageId="upcomingLitters" />
-      <section className="bg-primary py-16">
-        <div className="container text-center">
-          <Calendar className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">{t("upcomingHeroTitle")}</h1>
-          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
+      <section className="bg-primary py-10 md:py-12">
+        <div className="container text-center px-4">
+          <Calendar className="h-10 w-10 mx-auto mb-3 text-primary-foreground" />
+          <h1 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-3">{t("upcomingHeroTitle")}</h1>
+          <p className="text-sm md:text-base text-primary-foreground/85 max-w-xl mx-auto leading-snug">
             {t("upcomingHeroDescription")}
           </p>
         </div>
       </section>
 
-      <section className="container py-12">
+      <section className="container py-8 md:py-10">
         <UpcomingLittersSection />
       </section>
     </Layout>
