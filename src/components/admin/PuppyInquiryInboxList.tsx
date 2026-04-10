@@ -115,6 +115,7 @@ export function PuppyInquiryInboxList({
           </ToggleGroup>
         </div>
       )}
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -169,6 +170,7 @@ export function PuppyInquiryInboxList({
           )}
         </TableBody>
       </Table>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">

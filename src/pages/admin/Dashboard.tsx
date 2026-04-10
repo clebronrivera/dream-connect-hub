@@ -254,11 +254,11 @@ export default function Dashboard() {
       ) : recentError ? (
         <SectionError message="Could not load recent inquiries." />
       ) : (
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium">Date</th>
+                <th className="text-left p-3 font-medium whitespace-nowrap">Date</th>
                 <th className="text-left p-3 font-medium">Name</th>
                 <th className="text-left p-3 font-medium">Type / Subject</th>
                 <th className="text-left p-3 font-medium">Source</th>
@@ -285,8 +285,8 @@ export default function Dashboard() {
                       <td className="p-3">{formatShortDate(row.createdAt)}</td>
                       <td className="p-3">{row.name}</td>
                       <td className="p-3">{row.typeSubject}</td>
-                      <td className="p-3">{row.source}</td>
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">{row.source}</td>
+                      <td className="p-3 whitespace-nowrap">
                         {row.status === 'New' ? (
                           <span className="font-medium text-amber-600">New</span>
                         ) : (

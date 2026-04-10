@@ -474,7 +474,7 @@ export default function UpcomingLitterForm() {
               <p className="mt-1">{format(goHomeWindow.earliest, 'MMM d')} – {format(goHomeWindow.latest, 'MMM d')}</p>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="min_expected_puppies"
