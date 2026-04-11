@@ -34,5 +34,13 @@ supabase/.temp/
 *.sln
 *.sw?
 
+# Business documents — store in Google Drive / Dropbox, not in the repo
+*.docx
+*.xlsx
+*.xls
+*.pptx
+*.pdf
+.~lock.*
+
 # Claude Code / AI tools
 .claude/
