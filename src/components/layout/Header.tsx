@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
-import { Menu, PawPrint, Mail } from "lucide-react";
+import { Menu, PawPrint, Mail, Phone } from "lucide-react";
+import { BUSINESS } from "@/lib/constants/business";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -20,6 +21,9 @@ export function Header() {
     { to: "/puppies", label: t("navAvailablePuppies") },
     { to: "/upcoming-litters", label: t("navUpcomingLitters") },
     { to: "/breeds", label: t("navOurBreeds") },
+    { to: "/dreamy-reviews", label: "Dreamy Reviews" },
+    { to: "/training-plan", label: "Training Plans" },
+    { to: "/faq", label: "FAQ" },
     { to: "/contact", label: t("navContact") },
   ];
 
@@ -28,10 +32,16 @@ export function Header() {
       {/* Top Info Bar */}
       <div className="bg-primary text-primary-foreground py-2 text-sm">
         <div className="container flex flex-col sm:flex-row items-center justify-between gap-2">
-          <a href="mailto:Dreampuppies22@gmail.com" className="flex items-center gap-2 hover:underline">
-            <Mail className="h-4 w-4" />
-            Dreampuppies22@gmail.com
-          </a>
+          <div className="flex items-center gap-4">
+            <a href={`tel:${BUSINESS.phoneRaw}`} className="flex items-center gap-2 hover:underline">
+              <Phone className="h-4 w-4" />
+              {BUSINESS.phone}
+            </a>
+            <a href={`mailto:${BUSINESS.email}`} className="flex items-center gap-2 hover:underline">
+              <Mail className="h-4 w-4" />
+              {BUSINESS.email}
+            </a>
+          </div>
           <p className="text-center text-primary-foreground/90">
             {t("topBarServiceAreas")}
           </p>

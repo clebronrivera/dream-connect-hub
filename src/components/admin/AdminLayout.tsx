@@ -23,6 +23,8 @@ import {
   FileSignature,
   CreditCard,
   Menu,
+  HelpCircle,
+  Star,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -45,6 +47,8 @@ export function AdminLayout() {
     { name: 'Agreements', href: '/admin/agreements', icon: FileSignature },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
     { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
+    { name: 'Dreamy Reviews', href: '/admin/testimonials', icon: Star },
+    { name: 'FAQ', href: '/admin/faq', icon: HelpCircle },
     { name: 'Business Modes', href: '/admin/business-modes', icon: BarChart2 },
   ];
 

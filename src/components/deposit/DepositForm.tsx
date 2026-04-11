@@ -32,6 +32,8 @@ import { AUTHORIZED_SELLERS } from '@/lib/constants/deposit';
 import { submitDepositAgreement, fetchPuppyForDeposit, fetchLitterForDeposit } from '@/lib/deposit-service';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
 import type { SplitPaymentDetail } from '@/types/deposit';
+import { Checkbox } from '@/components/ui/checkbox';
+import { LEGAL_REFERENCES } from '@/lib/constants/business';
 import { CheckCircle2 } from 'lucide-react';
 
 // --- Zod schema ---
@@ -58,6 +60,30 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
   const [splitDetails, setSplitDetails] = useState<SplitPaymentDetail[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [agreementNumber, setAgreementNumber] = useState<string>('');
+
+  // Acknowledgment checkboxes (Article IX) — each stores timestamp when checked
+  const [acks, setAcks] = useState<Record<string, string | null>>({
+    full_agreement: null,
+    statutory_rights: null,
+    esign_valid: null,
+    genetic_disclaimer: null,
+    arbitration: null,
+    age_accuracy: null,
+    welfare_responsibility: null,
+  });
+  const [arbitrationPhrase, setArbitrationPhrase] = useState('');
+
+  const REQUIRED_ARBITRATION_PHRASE = 'I understand and agree to arbitration';
+  const allAcksChecked = Object.values(acks).every((v) => v !== null);
+  const arbitrationValid = arbitrationPhrase.toLowerCase().trim() === REQUIRED_ARBITRATION_PHRASE.toLowerCase();
+  const canSubmit = allAcksChecked && arbitrationValid;
+
+  function toggleAck(key: string) {
+    setAcks((prev) => ({
+      ...prev,
+      [key]: prev[key] ? null : new Date().toISOString(),
+    }));
+  }
 
   // Fetch puppy data if puppyId provided
   const { data: puppy } = useQuery({
@@ -172,9 +198,19 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
       deposit_payment_detail: values.deposit_payment_method === 'split' ? splitDetails : undefined,
       final_payment_method_intended: values.final_payment_method_intended as PaymentMethodKey | undefined,
       proposed_pickup_date: values.proposed_pickup_date,
-      authorized_seller: values.authorized_seller as 'carlos_lebron_rivera' | 'yolanda_labran_rivera',
+      authorized_seller: values.authorized_seller as 'carlos_lebron_rivera' | 'yolanda_lebron_rivera',
       buyer_signature_text: values.buyer_signature_text,
       buyer_signature_font: 'Dancing Script',
+      // Audit trail fields
+      ack_full_agreement_at: acks.full_agreement || undefined,
+      ack_statutory_rights_at: acks.statutory_rights || undefined,
+      ack_esign_valid_at: acks.esign_valid || undefined,
+      ack_genetic_disclaimer_at: acks.genetic_disclaimer || undefined,
+      ack_arbitration_at: acks.arbitration || undefined,
+      ack_age_accuracy_at: acks.age_accuracy || undefined,
+      ack_welfare_responsibility_at: acks.welfare_responsibility || undefined,
+      arbitration_typed_phrase: arbitrationPhrase,
+      arbitration_typed_at: arbitrationValid ? new Date().toISOString() : undefined,
     });
   }
 
@@ -340,6 +376,68 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
             </div>
           </div>
 
+          {/* Required Acknowledgments (Article IX) */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Required Acknowledgments</h3>
+            <p className="text-xs text-gray-500">Please review and check each acknowledgment individually.</p>
+
+            <div className="space-y-3 rounded border border-gray-200 bg-gray-50 p-4">
+              {[
+                { key: 'full_agreement', label: 'I have read and understand the full agreement.' },
+                { key: 'statutory_rights', label: (
+                  <>I have reviewed my Florida statutory rights under{' '}
+                    <a href={LEGAL_REFERENCES.FLA_828_29} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Fla. Stat. § 828.29</a>.
+                  </>
+                )},
+                { key: 'esign_valid', label: (
+                  <>I acknowledge that electronic signatures are valid under{' '}
+                    <a href={LEGAL_REFERENCES.FLA_CH_668} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Fla. Stat. Ch. 668</a>.
+                  </>
+                )},
+                { key: 'genetic_disclaimer', label: (
+                  <>I understand canine genetic outcomes cannot be guaranteed ({' '}
+                    <a href={LEGAL_REFERENCES.GENETICS_REF} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Axelsson et al.</a>).
+                  </>
+                )},
+                { key: 'arbitration', label: 'I understand and agree to binding arbitration for any disputes.' },
+                { key: 'age_accuracy', label: 'I am at least 18 years old and all information provided is accurate.' },
+                { key: 'welfare_responsibility', label: "I accept full responsibility for the puppy's welfare and actions after transfer." },
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={acks[key] !== null}
+                    onCheckedChange={() => toggleAck(key)}
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm text-gray-700">{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Arbitration Typed Phrase */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Arbitration Agreement</h3>
+            <p className="text-xs text-gray-500 uppercase font-bold">
+              DISPUTES ARISING UNDER THIS AGREEMENT SHALL BE RESOLVED BY BINDING ARBITRATION IN ACCORDANCE WITH FLORIDA LAW (
+              <a href={LEGAL_REFERENCES.FLA_CH_682} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">FLA. STAT. CH. 682</a>
+              ).
+            </p>
+            <Label htmlFor="arbitration_phrase" className="text-sm">
+              Please type: <em className="text-gray-900">&quot;{REQUIRED_ARBITRATION_PHRASE}&quot;</em>
+            </Label>
+            <Input
+              id="arbitration_phrase"
+              value={arbitrationPhrase}
+              onChange={(e) => setArbitrationPhrase(e.target.value)}
+              placeholder={REQUIRED_ARBITRATION_PHRASE}
+              className={arbitrationValid ? 'border-green-500' : ''}
+            />
+            {arbitrationPhrase.length > 0 && !arbitrationValid && (
+              <p className="text-xs text-red-500">Please type the phrase exactly as shown above.</p>
+            )}
+          </div>
+
           {/* Buyer Signature */}
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Your Signature</h3>
@@ -359,11 +457,16 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
           <Button
             type="submit"
             className="w-full bg-gray-900 text-white hover:bg-gray-700"
-            disabled={submitMutation.isPending}
+            disabled={submitMutation.isPending || !canSubmit}
             size="lg"
           >
             {submitMutation.isPending ? 'Submitting...' : `Submit Deposit — $${depositAmount.toFixed(2)}`}
           </Button>
+          {!canSubmit && (
+            <p className="text-xs text-center text-amber-600">
+              Please complete all acknowledgments and the arbitration agreement above before submitting.
+            </p>
+          )}
 
           <p className="text-xs text-center text-gray-400">
             Dream Puppies — hobby breeding program

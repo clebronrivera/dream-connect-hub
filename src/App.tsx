@@ -39,6 +39,11 @@ const BusinessModes = lazy(() => import("./pages/admin/BusinessModes"));
 const DepositAgreement = lazy(() => import("./pages/DepositAgreement"));
 const AgreementsPage = lazy(() => import("./pages/admin/AgreementsPage"));
 const PaymentMethodsSettings = lazy(() => import("./pages/admin/PaymentMethodsSettings"));
+const FaqPage = lazy(() => import("./pages/FaqPage"));
+const FaqManager = lazy(() => import("./pages/admin/FaqManager"));
+const DreamyReviews = lazy(() => import("./pages/DreamyReviews"));
+const TestimonialsList = lazy(() => import("./pages/admin/TestimonialsList"));
+const TrainingPlanPage = lazy(() => import("./pages/TrainingPlanPage"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -79,6 +84,10 @@ export function AppRoutes() {
         <Route path="/upcoming-litters" element={<UpcomingLitters />} />
         <Route path="/breeds" element={<Breeds />} />
         <Route path="/deposit" element={<DepositAgreement />} />
+        <Route path="/faq" element={<FaqPage />} />
+        <Route path="/dreamy-reviews" element={<DreamyReviews />} />
+        <Route path="/training-plan" element={<TrainingPlanPage />} />
+        <Route path="/training-plan/:problemType" element={<TrainingPlanPage />} />
 
         {/* Admin login */}
         <Route path="/admin/login" element={<Login />} />
@@ -107,6 +116,8 @@ export function AppRoutes() {
             <Route path="business-modes" element={<BusinessModes />} />
             <Route path="agreements" element={<AgreementsPage />} />
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />
+            <Route path="faq" element={<FaqManager />} />
+            <Route path="testimonials" element={<TestimonialsList />} />
           </Route>
         </Route>
 

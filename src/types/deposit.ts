@@ -42,6 +42,34 @@ export interface DepositAgreement {
   admin_signature_svg?: string;
   admin_signature_name?: string;
   admin_signed_at?: string;
+  // Audit trail
+  buyer_ip_address?: string;
+  buyer_user_agent?: string;
+  buyer_signed_server_ts?: string;
+  admin_ip_address?: string;
+  admin_user_agent?: string;
+  admin_signed_server_ts?: string;
+  // 7 acknowledgment timestamps (Article IX)
+  ack_full_agreement_at?: string;
+  ack_statutory_rights_at?: string;
+  ack_esign_valid_at?: string;
+  ack_genetic_disclaimer_at?: string;
+  ack_arbitration_at?: string;
+  ack_age_accuracy_at?: string;
+  ack_welfare_responsibility_at?: string;
+  // Arbitration
+  arbitration_typed_phrase?: string;
+  arbitration_typed_at?: string;
+  // Warranty
+  warranty_illness_expiry?: string;
+  warranty_genetic_expiry?: string;
+  // Signed PDF
+  signed_pdf_storage_path?: string;
+  confirmation_email_sent_at?: string;
+  confirmation_email_opened_at?: string;
+  // Vet visit
+  vet_visit_acknowledged?: boolean;
+  vet_visit_acknowledged_at?: string;
   // Finalization
   admin_approved_at?: string;
   payment_confirmed_at?: string;

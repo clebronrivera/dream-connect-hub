@@ -36,13 +36,8 @@ export const REMINDER_MAX_COUNT = 5;
 // Agreement number prefix
 export const AGREEMENT_NUMBER_PREFIX = 'DP';
 
-// Authorized sellers — used in agreement forms, admin dashboard, and PDF generation
-export const AUTHORIZED_SELLERS = [
-  { id: 'carlos_lebron_rivera', name: 'Carlos Lebron Rivera' },
-  { id: 'yolanda_labran_rivera', name: 'Yolanda La Bran Rivera' },
-] as const;
-
-export type AuthorizedSellerId = (typeof AUTHORIZED_SELLERS)[number]['id'];
+// Authorized sellers — re-exported from business.ts (single source of truth)
+export { AUTHORIZED_SELLERS, type AuthorizedSellerId } from './business';
 
 // Payment methods — SINGLE SOURCE OF TRUTH
 export const PAYMENT_METHODS = [

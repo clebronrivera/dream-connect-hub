@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Dog, Phone, Mail, MapPin, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BUSINESS } from "@/lib/constants/business";
 
 export function Footer() {
   const { t } = useLanguage();
@@ -37,19 +38,19 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">{t("footerContactUs")}</h4>
             <div className="flex flex-col gap-3">
-              <a 
-                href="tel:321-697-8864" 
+              <a
+                href={`tel:${BUSINESS.phoneRaw}`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Phone className="h-4 w-4" />
-                321-697-8864
+                {BUSINESS.phone}
               </a>
-              <a 
-                href="mailto:Dreampuppies22@gmail.com" 
+              <a
+                href={`mailto:${BUSINESS.email}`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Mail className="h-4 w-4" />
-                Dreampuppies22@gmail.com
+                {BUSINESS.email}
               </a>
             </div>
           </div>
@@ -73,7 +74,13 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t flex flex-col items-center gap-2">
           <p className="text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Dream Enterprises LLC. {t("footerCopyrightSuffix")}
+            {BUSINESS.footerLine}
+          </p>
+          <p className="text-center text-xs text-muted-foreground/70">
+            {BUSINESS.phone} · {BUSINESS.website} · {BUSINESS.tagline}
+          </p>
+          <p className="text-center text-sm text-muted-foreground">
+            © {new Date().getFullYear()} {BUSINESS.legalName}. {t("footerCopyrightSuffix")}
           </p>
           <Link
             to="/admin/login"
