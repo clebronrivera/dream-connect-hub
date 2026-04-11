@@ -1,0 +1,28 @@
+# ── Block business / office documents from being committed ──
+BLOCKED=$(git diff --cached --name-only --diff-filter=ACR | grep -iE '\.(docx|xlsx|xls|pptx|pdf)$|^\.~lock\.' || true)
+
+if [ -n "$BLOCKED" ]; then
+  echo ""
+  echo "COMMIT BLOCKED — the following files should not be in this repo:"
+  echo ""
+  echo "$BLOCKED" | while read -r f; do echo "   - $f"; done
+  echo ""
+  echo "Remove them from staging with:  git reset HEAD <file>"
+  echo "Store business documents in Google Drive / Dropbox instead."
+  echo ""
+  exit 1
+fi
+
+# ── Block .env files with real secrets ──
+ENV_FILES=$(git diff --cached --name-only --diff-filter=ACR | grep -E '^\.env$|^\.env\.local$|^\.env\.[^e]' || true)
+
+if [ -n "$ENV_FILES" ]; then
+  echo ""
+  echo "COMMIT BLOCKED — environment files with potential secrets detected:"
+  echo ""
+  echo "$ENV_FILES" | while read -r f; do echo "   - $f"; done
+  echo ""
+  echo "Only .env.example and .env.local.example should be committed."
+  echo ""
+  exit 1
+fi
