@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BUSINESS } from '@/lib/constants/business';
-import { Clock, Target, AlertTriangle, Heart, Dog, RotateCcw } from 'lucide-react';
+import { Clock, Target, AlertTriangle, Heart, Dog, RotateCcw, MessageCircle } from 'lucide-react';
 
 interface Props {
   plan: PlanType;
@@ -50,6 +50,27 @@ export function TrainingPlanResult({ plan, onReset }: Props) {
           ))}
         </CardContent>
       </Card>
+
+      {/* Commands to Use */}
+      {plan.commands_to_use && plan.commands_to_use.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Commands to Use
+            </h3>
+            <div className="space-y-4">
+              {plan.commands_to_use.map((cmd, i) => (
+                <div key={i} className="rounded-lg border p-3">
+                  <p className="font-semibold text-primary">&ldquo;{cmd.command}&rdquo;</p>
+                  <p className="text-sm text-muted-foreground mt-1"><strong>When:</strong> {cmd.when_to_use}</p>
+                  <p className="text-sm text-muted-foreground mt-1"><strong>How to teach:</strong> {cmd.how_to_teach}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Daily Schedule */}
       <Card>

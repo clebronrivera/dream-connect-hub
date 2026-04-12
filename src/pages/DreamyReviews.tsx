@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Star, Camera, Send, Heart } from 'lucide-react';
 import { toast } from 'sonner';
+import { MAIN_BREEDS, OTHER_BREED_OPTION } from '@/lib/breed-utils';
+import { US_STATES, resolveStateLabel } from '@/data/statesData';
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const hasPhoto = !!testimonial.photo_path;
@@ -68,7 +71,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
             <div>
               <p className="font-medium text-foreground">{testimonial.customer_name}</p>
               <p className="text-muted-foreground text-xs">
-                {[testimonial.puppy_name, testimonial.breed, testimonial.city && testimonial.state ? `${testimonial.city}, ${testimonial.state}` : null]
+                {[testimonial.puppy_name, testimonial.breed, testimonial.city && testimonial.state ? `${testimonial.city}, ${resolveStateLabel(testimonial.state)}` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -91,6 +94,7 @@ function SubmitDialog() {
     city: '',
     state: '',
   });
+  const [customBreed, setCustomBreed] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -107,6 +111,7 @@ function SubmitDialog() {
 
   function resetForm() {
     setForm({ customer_name: '', puppy_name: '', breed: '', message: '', city: '', state: '' });
+    setCustomBreed('');
     setPhoto(null);
     setPhotoPreview(null);
   }
@@ -121,11 +126,16 @@ function SubmitDialog() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const resolvedBreed = form.breed === OTHER_BREED_OPTION ? customBreed.trim() : form.breed;
     mutation.mutate({
       ...form,
+      breed: resolvedBreed || undefined,
       photo: photo ?? undefined,
     });
   }
+
+  const isOtherBreed = form.breed === OTHER_BREED_OPTION;
+  const breedValid = !isOtherBreed || customBreed.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
@@ -163,11 +173,24 @@ function SubmitDialog() {
             </div>
             <div>
               <label className="text-sm font-medium">Breed</label>
-              <Input
-                value={form.breed}
-                onChange={(e) => setForm((f) => ({ ...f, breed: e.target.value }))}
-                placeholder="e.g. Goldendoodle"
-              />
+              <Select value={form.breed} onValueChange={(v) => { setForm((f) => ({ ...f, breed: v })); if (v !== OTHER_BREED_OPTION) setCustomBreed(''); }}>
+                <SelectTrigger><SelectValue placeholder="Select breed..." /></SelectTrigger>
+                <SelectContent>
+                  {MAIN_BREEDS.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                  <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
+                </SelectContent>
+              </Select>
+              {isOtherBreed && (
+                <Input
+                  className="mt-2"
+                  value={customBreed}
+                  onChange={(e) => setCustomBreed(e.target.value)}
+                  placeholder="Enter breed name"
+                  required
+                />
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -181,11 +204,14 @@ function SubmitDialog() {
             </div>
             <div>
               <label className="text-sm font-medium">State</label>
-              <Input
-                value={form.state}
-                onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
-                placeholder="e.g. Florida"
-              />
+              <Select value={form.state} onValueChange={(v) => setForm((f) => ({ ...f, state: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select state..." /></SelectTrigger>
+                <SelectContent>
+                  {US_STATES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div>
@@ -218,7 +244,7 @@ function SubmitDialog() {
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={mutation.isPending} className="gap-2">
+            <Button type="submit" disabled={mutation.isPending || !breedValid} className="gap-2">
               <Send className="h-4 w-4" />
               {mutation.isPending ? 'Submitting...' : 'Submit Review'}
             </Button>

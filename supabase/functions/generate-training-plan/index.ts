@@ -17,6 +17,10 @@ interface TrainingPlanRequest {
   has_other_pets?: boolean;
   experience_level?: string;
   time_per_day?: string;
+  dog_location?: string;
+  uses_crate?: string;
+  uses_pee_pads?: string;
+  leash_trained?: string;
   problem_type: string;
   problem_description?: string;
   frequency?: string;
@@ -37,7 +41,7 @@ const PROBLEM_LABELS: Record<string, string> = {
 function buildPrompt(data: TrainingPlanRequest): string {
   const problemLabel = PROBLEM_LABELS[data.problem_type] ?? data.problem_type;
   const parts: string[] = [
-    `You are a certified professional dog trainer creating a personalized training plan.`,
+    `You are a certified professional dog trainer creating a personalized, actionable training plan.`,
     ``,
     `## Dog Profile`,
     `- Name: ${data.dog_name}`,
@@ -51,6 +55,10 @@ function buildPrompt(data: TrainingPlanRequest): string {
     `- Other pets: ${data.has_other_pets === true ? "Yes" : data.has_other_pets === false ? "No" : "Not specified"}`,
     `- Experience level: ${data.experience_level || "Not specified"}`,
     `- Training time per day: ${data.time_per_day || "Not specified"}`,
+    `- Dog stays: ${data.dog_location || "Not specified"}`,
+    `- Uses a crate: ${data.uses_crate || "Not specified"}`,
+    `- Uses pee pads: ${data.uses_pee_pads || "Not specified"}`,
+    `- Leash trained: ${data.leash_trained || "Not specified"}`,
     ``,
     `## Challenge: ${problemLabel}`,
     `- Frequency: ${data.frequency || "Not specified"}`,
@@ -66,20 +74,28 @@ function buildPrompt(data: TrainingPlanRequest): string {
   parts.push(
     ``,
     `## Instructions`,
-    `Create a detailed, personalized training plan. Be specific to the breed, age, and living situation. Use positive reinforcement only. The owner's name is not known — address them in second person.`,
+    `Create a detailed, personalized training plan. Requirements:`,
+    `- Be SPECIFIC to this breed, age, weight, and living situation — no generic advice.`,
+    `- Use positive reinforcement only.`,
+    `- Include exact verbal commands the owner should use (e.g. "Sit", "Place", "Leave it") with the exact tone and timing.`,
+    `- Describe specific socialization activities appropriate for the dog's breed and age.`,
+    `- Structure steps as week-by-week progressions with clear behavior chains (step-by-step sequences).`,
+    `- Each step description should be 4-6 sentences with actionable detail.`,
+    `- Address the owner in second person.`,
     ``,
     `Return ONLY valid JSON matching this exact schema (no markdown, no code fences):`,
     `{`,
-    `  "steps": [{ "title": "string", "description": "string (2-3 sentences)", "pro_tip": "string" }],`,
+    `  "steps": [{ "title": "string", "description": "string (4-6 sentences, specific and actionable)", "pro_tip": "string" }],`,
     `  "daily_schedule": [{ "time": "string (Morning/Midday/Afternoon/Evening/Bedtime)", "activity": "string" }],`,
+    `  "commands_to_use": [{ "command": "string (exact verbal command)", "when_to_use": "string", "how_to_teach": "string (step-by-step)" }],`,
     `  "mistakes_to_avoid": ["string"],`,
-    `  "breed_note": "string (breed-specific insight, 1-2 sentences)",`,
+    `  "breed_note": "string (breed-specific insight, 2-3 sentences)",`,
     `  "encouragement": "string (motivating closing message mentioning the dog by name)",`,
     `  "difficulty": "string (Easy/Moderate/Challenging)",`,
     `  "timeline": "string (e.g. '1-2 weeks', '2-4 weeks')"`,
     `}`,
     ``,
-    `Provide 5-7 steps, 4-5 schedule entries, and 4-5 mistakes. Tailor everything to this specific dog.`
+    `Provide 5-7 steps (with week-by-week progression), 4-5 schedule entries, 3-5 commands, and 4-5 mistakes. Tailor everything to ${data.dog_name}.`
   );
 
   return parts.join("\n");
