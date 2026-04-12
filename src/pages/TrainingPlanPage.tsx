@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Seo } from '@/components/seo/Seo';
 import { TrainingPlanForm, type TrainingPlanResult as PlanResult } from '@/components/trainingPlan/TrainingPlanForm';
 import { TrainingPlanResult } from '@/components/trainingPlan/TrainingPlanResult';
-import { getProblemTypeBySlug, PROBLEM_TYPES } from '@/lib/constants/trainingPlan';
+import { getProblemTypeBySlug } from '@/lib/constants/trainingPlan';
 import { BUSINESS } from '@/lib/constants/business';
 import { GraduationCap, Phone } from 'lucide-react';
 

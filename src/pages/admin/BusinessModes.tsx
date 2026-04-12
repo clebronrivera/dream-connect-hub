@@ -4,7 +4,6 @@ import {
   fetchBusinessEvents,
   createBusinessEvent,
   deleteBusinessEvent,
-  type BusinessEventRow,
 } from '@/lib/admin/business-events-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -76,7 +76,7 @@ export function ContactMessageInboxList({
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentIndex = selectedId ? messages.findIndex((m) => m.id === selectedId) : -1;
-  const currentMessage = currentIndex >= 0 ? messages[currentIndex] ?? null : null;
+  const _currentMessage = currentIndex >= 0 ? messages[currentIndex] ?? null : null;
 
   // When opened from dashboard link (?open=id&source=…), select that message and clear URL
   useEffect(() => {

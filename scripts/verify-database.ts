@@ -37,7 +37,7 @@ const requiredTables = [
   'profiles',
 ];
 
-const tableSchemas: Record<string, string[]> = {
+const _tableSchemas: Record<string, string[]> = {
   contact_messages: ['id', 'name', 'email', 'phone', 'subject', 'message', 'status', 'created_at'],
   consultation_requests: ['id', 'pet_name', 'pet_type', 'breed', 'age', 'behavioral_concerns', 'goals', 'preferred_contact', 'name', 'email', 'phone', 'status', 'created_at'],
   product_inquiries: ['id', 'product_name', 'name', 'email', 'phone', 'message', 'status', 'created_at'],
@@ -103,13 +103,13 @@ async function verifyDatabase() {
               // Try direct query if RPC doesn't work
               console.log(`Executing: ${statement.substring(0, 50)}...`);
             }
-          } catch (err) {
+          } catch (_err) {
             // Ignore errors for now - SQL execution through JS client is limited
             console.log('Note: Some SQL statements may need to be run manually in Supabase SQL Editor');
           }
         }
       }
-    } catch (err) {
+    } catch (_err) {
       console.log('⚠️  Could not auto-create tables. Please run supabase-schema.sql manually in Supabase SQL Editor');
     }
   }
@@ -120,7 +120,7 @@ async function verifyDatabase() {
   for (const table of requiredTables) {
     if (!missingTables.includes(table)) {
       try {
-        const { data, error } = await supabaseAdmin
+        const { error } = await supabaseAdmin
           .from(table)
           .select('*')
           .limit(0);
