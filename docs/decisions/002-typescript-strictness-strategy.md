@@ -1,6 +1,6 @@
 # ADR-002: TypeScript strictness strategy
 
-**Status**: Accepted
+**Status**: Accepted (updated 2026-04-12)
 **Date**: 2026-04-12
 
 ## Context
@@ -18,22 +18,20 @@ to `false`, causing IDE behavior to diverge from the build.
 
 ## Decision
 
-1. **Immediately**: Remove contradictory overrides from root `tsconfig.json`.
-   The root uses project references and should not set strictness flags that
-   override the app config.
+1. **Done**: Removed contradictory overrides from root `tsconfig.json`.
 
-2. **Current state**: Keep `"strict": false` with individual flags enabled.
-   This is the enforced baseline right now.
+2. **Done**: Enabled `"strict": true` in `tsconfig.app.json`. The
+   individually enabled flags already covered the strict set — flipping
+   to `strict: true` introduced zero new type errors. Removed the
+   now-redundant individual `strictNullChecks` and `noImplicitAny` flags.
 
-3. **Future**: Move to `"strict": true` in a dedicated cleanup branch. This
-   will additionally enable `strictBindCallApply`, `strictFunctionTypes`,
-   `strictPropertyInitialization`, `noImplicitThis`, `alwaysStrict`, and
-   `useUnknownInCatchVariables`. Each should be evaluated for the number
-   of errors it introduces.
+3. The app config now enforces the full strict suite: `strictNullChecks`,
+   `noImplicitAny`, `strictBindCallApply`, `strictFunctionTypes`,
+   `strictPropertyInitialization`, `noImplicitThis`, `alwaysStrict`,
+   and `useUnknownInCatchVariables`.
 
 ## Consequences
 
-- IDE and build now agree on type checking rules.
-- The codebase is not yet fully strict, but the path is clear.
-- The strict-mode migration should be a separate branch, not mixed with
-  feature work.
+- IDE and build agree on type checking rules.
+- Full strict mode is enforced — new code must be strict-compliant.
+- No behavior changes were needed; this was a config-only change.
