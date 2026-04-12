@@ -26,3 +26,19 @@ if [ -n "$ENV_FILES" ]; then
   echo ""
   exit 1
 fi
+
+# ── Scan staged changes for secrets with gitleaks ──
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --verbose 2>&1
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "COMMIT BLOCKED — gitleaks detected potential secrets in staged files."
+    echo "Review the findings above. If they are false positives, add their"
+    echo "fingerprints to .gitleaksignore and try again."
+    echo ""
+    exit 1
+  fi
+else
+  echo "WARNING: gitleaks is not installed. Skipping secret scan."
+  echo "Install with: brew install gitleaks"
+fi
