@@ -90,6 +90,8 @@ export const LIVING_SITUATIONS = [
   { value: 'apartment', label: 'Apartment' },
   { value: 'house_yard', label: 'House with Yard' },
   { value: 'house_no_yard', label: 'House without Yard' },
+  { value: 'roommate', label: 'Shared / Roommate' },
+  { value: 'single_room', label: 'Single Room' },
   { value: 'farm', label: 'Farm / Rural' },
 ] as const;
 
@@ -100,8 +102,11 @@ export const EXPERIENCE_LEVELS = [
 ] as const;
 
 export const TIME_OPTIONS = [
+  { value: '5min', label: '5 minutes' },
+  { value: '10min', label: '10 minutes' },
   { value: '15min', label: '15 minutes' },
   { value: '30min', label: '30 minutes' },
+  { value: '45min', label: '45 minutes' },
   { value: '1hr', label: '1 hour' },
   { value: '2hr_plus', label: '2+ hours' },
 ] as const;
@@ -111,4 +116,25 @@ export const FREQUENCY_OPTIONS = [
   { value: 'sometimes', label: 'Sometimes' },
   { value: 'often', label: 'Often' },
   { value: 'always', label: 'Always / Daily' },
+] as const;
+
+export const WEIGHT_RANGES = [
+  { value: 'under_5', label: 'Under 5 lbs' },
+  { value: '5_10', label: '5–10 lbs' },
+  { value: '10_20', label: '10–20 lbs' },
+  { value: '20_30', label: '20–30 lbs' },
+  { value: '30_50', label: '30–50 lbs' },
+  { value: '50_plus', label: '50+ lbs' },
+] as const;
+
+export const DOG_LOCATION_OPTIONS = [
+  { value: 'inside', label: 'Mostly Inside' },
+  { value: 'outside', label: 'Mostly Outside' },
+  { value: 'both', label: 'Both' },
+] as const;
+
+export const YES_NO_UNSURE = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'not_sure', label: 'Not Sure' },
 ] as const;

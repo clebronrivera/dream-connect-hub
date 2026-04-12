@@ -54,3 +54,11 @@ export const US_STATES = [
 ] as const;
 
 export type StateValue = (typeof US_STATES)[number]["value"];
+
+/** Resolve a state value to its display label. Handles both 2-letter codes and full names (old records). */
+export function resolveStateLabel(state: string | null | undefined): string {
+  if (!state) return '';
+  const match = US_STATES.find((s) => s.value === state);
+  if (match) return match.label;
+  return state; // already a full name (old record) — pass through
+}

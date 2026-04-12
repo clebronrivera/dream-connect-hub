@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Star, CheckCircle, XCircle, Image } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolveStateLabel } from '@/data/statesData';
 
 type FilterTab = 'all' | 'pending' | 'approved';
 
@@ -132,7 +133,7 @@ export default function TestimonialsList() {
                     <p className="text-sm text-muted-foreground line-clamp-2">{t.message}</p>
                     {(t.city || t.state) && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        {[t.city, t.state].filter(Boolean).join(', ')}
+                        {[t.city, resolveStateLabel(t.state)].filter(Boolean).join(', ')}
                       </p>
                     )}
                   </div>

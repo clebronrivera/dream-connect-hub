@@ -15,8 +15,12 @@ import {
   EXPERIENCE_LEVELS,
   TIME_OPTIONS,
   FREQUENCY_OPTIONS,
+  WEIGHT_RANGES,
+  DOG_LOCATION_OPTIONS,
+  YES_NO_UNSURE,
   type ProblemTypeKey,
 } from '@/lib/constants/trainingPlan';
+import { MAIN_BREEDS, OTHER_BREED_OPTION } from '@/lib/breed-utils';
 
 type FormData = {
   // Step 1 - Dog info
@@ -30,6 +34,10 @@ type FormData = {
   has_other_pets: boolean | null;
   experience_level: string;
   time_per_day: string;
+  dog_location: string;
+  uses_crate: string;
+  uses_pee_pads: string;
+  leash_trained: string;
   // Step 3 - Challenge + email
   problem_type: string;
   problem_description: string;
@@ -48,6 +56,10 @@ const initialForm: FormData = {
   has_other_pets: null,
   experience_level: '',
   time_per_day: '',
+  dog_location: '',
+  uses_crate: '',
+  uses_pee_pads: '',
+  leash_trained: '',
   problem_type: '',
   problem_description: '',
   frequency: '',
@@ -71,6 +83,7 @@ export type TrainingPlanResult = {
   encouragement: string;
   difficulty: string;
   timeline: string;
+  commands_to_use?: Array<{ command: string; when_to_use: string; how_to_teach: string }>;
 };
 
 export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: TrainingPlanFormProps) {
@@ -79,6 +92,11 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
     ...initialForm,
     problem_type: defaultProblemType ?? '',
   });
+  const [customBreed, setCustomBreed] = useState('');
+
+  const isOtherBreed = form.breed === OTHER_BREED_OPTION;
+  const resolvedBreed = isOtherBreed ? customBreed.trim() : form.breed;
+  const breedValid = !isOtherBreed || customBreed.trim().length > 0;
 
   const update = (key: keyof FormData, value: unknown) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -88,7 +106,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
       const payload = {
         email: form.email,
         dog_name: form.dog_name,
-        breed: form.breed || null,
+        breed: resolvedBreed || null,
         age: form.age || null,
         weight: form.weight || null,
         living_situation: form.living_situation || null,
@@ -96,6 +114,10 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
         has_other_pets: form.has_other_pets,
         experience_level: form.experience_level || null,
         time_per_day: form.time_per_day || null,
+        dog_location: form.dog_location || null,
+        uses_crate: form.uses_crate || null,
+        uses_pee_pads: form.uses_pee_pads || null,
+        leash_trained: form.leash_trained || null,
         problem_type: form.problem_type,
         problem_description: form.problem_description || null,
         frequency: form.frequency || null,
@@ -109,12 +131,14 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
 
       if (error || !data) {
         // Fallback: save lead capture directly, return a static plan
-        await supabase.from('training_plan_submissions').insert(payload);
+        // Only insert columns that exist in the DB table (exclude prompt-only fields)
+        const { dog_location: _dl, uses_crate: _uc, uses_pee_pads: _up, leash_trained: _lt, ...dbPayload } = payload;
+        await supabase.from('training_plan_submissions').insert(dbPayload);
 
         const problemInfo = PROBLEM_TYPES.find((p) => p.key === form.problem_type);
         return {
           dog_name: form.dog_name,
-          breed: form.breed || 'Mixed Breed',
+          breed: resolvedBreed || 'Mixed Breed',
           problem_label: problemInfo?.label ?? form.problem_type,
           difficulty: 'Moderate',
           timeline: '2-4 weeks',
@@ -137,8 +161,8 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
             'Training sessions that are too long',
             'Expecting results too quickly',
           ],
-          breed_note: form.breed
-            ? `${form.breed}s are known for their intelligence and may pick up training quickly, but they can also be stubborn. Stay patient and keep sessions fun.`
+          breed_note: resolvedBreed
+            ? `${resolvedBreed}s are known for their intelligence and may pick up training quickly, but they can also be stubborn. Stay patient and keep sessions fun.`
             : 'Every dog learns at their own pace. Focus on building a positive relationship.',
           encouragement: `You're already taking a great step by seeking guidance for ${form.dog_name}! With consistency and patience, you'll see real progress.`,
         } satisfies TrainingPlanResult;
@@ -155,7 +179,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
     },
   });
 
-  const canAdvanceStep1 = form.dog_name.trim().length > 0;
+  const canAdvanceStep1 = form.dog_name.trim().length > 0 && breedValid;
   const canAdvanceStep2 = true; // All step 2 fields are optional
   const canSubmitStep3 = form.problem_type && form.email.includes('@');
 
@@ -196,11 +220,23 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Breed</Label>
-                <Input
-                  value={form.breed}
-                  onChange={(e) => update('breed', e.target.value)}
-                  placeholder="e.g. Goldendoodle"
-                />
+                <Select value={form.breed} onValueChange={(v) => { update('breed', v); if (v !== OTHER_BREED_OPTION) setCustomBreed(''); }}>
+                  <SelectTrigger><SelectValue placeholder="Select breed..." /></SelectTrigger>
+                  <SelectContent>
+                    {MAIN_BREEDS.map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                    <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
+                  </SelectContent>
+                </Select>
+                {isOtherBreed && (
+                  <Input
+                    className="mt-2"
+                    value={customBreed}
+                    onChange={(e) => setCustomBreed(e.target.value)}
+                    placeholder="Enter breed name"
+                  />
+                )}
               </div>
               <div>
                 <Label>Age</Label>
@@ -213,11 +249,14 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
             </div>
             <div>
               <Label>Weight (optional)</Label>
-              <Input
-                value={form.weight}
-                onChange={(e) => update('weight', e.target.value)}
-                placeholder="e.g. 15 lbs"
-              />
+              <Select value={form.weight} onValueChange={(v) => update('weight', v)}>
+                <SelectTrigger><SelectValue placeholder="Select weight range..." /></SelectTrigger>
+                <SelectContent>
+                  {WEIGHT_RANGES.map((w) => (
+                    <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end">
               <Button onClick={() => setStep(2)} disabled={!canAdvanceStep1}>
@@ -294,6 +333,52 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
                   <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>
                     {TIME_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Where does your dog stay?</Label>
+              <Select value={form.dog_location} onValueChange={(v) => update('dog_location', v)}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  {DOG_LOCATION_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Using a crate?</Label>
+                <Select value={form.uses_crate} onValueChange={(v) => update('uses_crate', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {YES_NO_UNSURE.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Using pee pads?</Label>
+                <Select value={form.uses_pee_pads} onValueChange={(v) => update('uses_pee_pads', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {YES_NO_UNSURE.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Leash trained?</Label>
+                <Select value={form.leash_trained} onValueChange={(v) => update('leash_trained', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {YES_NO_UNSURE.map((o) => (
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
