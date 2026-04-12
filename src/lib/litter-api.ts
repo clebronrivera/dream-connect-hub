@@ -148,7 +148,6 @@ export async function bulkCreatePuppiesFromLitter(
 
   const L = litter as Litter;
   const basePrice = L.base_price ?? 0;
-  const ids: string[] = [];
   let index = 0;
 
   const insertRow = (gender: 'Male' | 'Female') => {

@@ -1,21 +1,19 @@
 // src/components/deposit/DepositForm.tsx
 // Full customer deposit form — handles the buyer-facing deposit submission flow.
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 
 import { BuyerSignature } from '@/components/signatures/BuyerSignature';
 import { DepositSummary } from '@/components/deposit/DepositSummary';
@@ -113,7 +111,6 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
     handleSubmit,
     control,
     watch,
-    setValue,
     formState: { errors },
   } = useForm<DepositFormValues>({
     resolver: zodResolver(depositFormSchema),
@@ -131,12 +128,10 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
   });
 
   const buyerName = watch('buyer_name');
-  const paymentMethod = watch('deposit_payment_method') as PaymentMethodKey;
   const proposedPickupDate = watch('proposed_pickup_date');
   const paymentMemo = generatePaymentMemo(buyerName || 'Your Name', puppyName);
 
   // Re-evaluate tier at submit time (Build Rule #2)
-  const currentTier = getDepositTier(puppyDob);
   const depositAmount = calculateDepositAmount(purchasePrice, puppyDob);
 
   // Pickup date validation

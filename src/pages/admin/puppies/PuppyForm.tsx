@@ -2,7 +2,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Puppy } from '@/lib/supabase';
 import {
   fetchAdminPuppy,
   fetchPuppyNames,
@@ -23,7 +22,7 @@ import { MAIN_BREEDS, OTHER_BREED_OPTION } from '@/lib/breed-utils';
 import { getSuggestedPuppyName } from '@/lib/puppy-name-generator';
 import { generatePuppyDescription } from '@/lib/puppy-description-generator';
 import { useState, useEffect } from 'react';
-import { Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw } from 'lucide-react';
 import * as React from 'react';
 import { puppySchema, type PuppyFormValues } from './puppy-form-schema';
 import { getPuppyFormDefaults, puppyToFormValues } from './puppy-form-defaults';

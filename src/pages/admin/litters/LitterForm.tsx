@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import type { Litter } from '@/lib/supabase';
 import { fetchLitter, updateLitter } from '@/lib/admin/litters-service';
 import { applyLitterDefaultsToLittermates } from '@/lib/litter-api';
 import { Button } from '@/components/ui/button';

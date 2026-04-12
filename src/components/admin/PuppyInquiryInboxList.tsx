@@ -65,7 +65,7 @@ export function PuppyInquiryInboxList({
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentIndex = selectedId ? inquiries.findIndex((i) => i.id === selectedId) : -1;
-  const currentInquiry = currentIndex >= 0 ? inquiries[currentIndex] ?? null : null;
+  const _currentInquiry = currentIndex >= 0 ? inquiries[currentIndex] ?? null : null;
 
   // When opened from dashboard link (?open=id&source=puppy-inquiry), select that inquiry and clear URL
   useEffect(() => {

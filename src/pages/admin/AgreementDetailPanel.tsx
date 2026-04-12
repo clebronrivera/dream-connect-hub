@@ -25,7 +25,7 @@ import {
   cancelAgreement,
 } from '@/lib/admin/agreements-service';
 import type { DepositAgreement } from '@/types/deposit';
-import { CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 interface AgreementDetailPanelProps {
   agreement: DepositAgreement;

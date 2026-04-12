@@ -10,10 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ClipboardList, Video, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { ClipboardList, Video, FileText, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import type { ConsultationType, SourcePage, IntakePayload } from "@/lib/supabase";
+import type { ConsultationType, SourcePage } from "@/lib/supabase";
 
 const steps = [
   { icon: ClipboardList, title: "Complete Intake", description: "Fill out the short form for your consultation type." },

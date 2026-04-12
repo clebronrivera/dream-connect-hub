@@ -9,7 +9,6 @@ import {
   type Testimonial,
   type SubmitTestimonialInput,
 } from '@/lib/testimonials-api';
-import { BUSINESS } from '@/lib/constants/business';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';

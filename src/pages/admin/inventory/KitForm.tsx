@@ -33,7 +33,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Image as ImageIcon, Upload, X, Plus, Trash2 } from 'lucide-react';
-import type { Kit } from '@/lib/supabase';
 
 const kitSchema = z.object({
   name: z.string().min(1, 'Name is required'),
