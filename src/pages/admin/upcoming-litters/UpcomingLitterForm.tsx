@@ -257,6 +257,9 @@ export default function UpcomingLitterForm() {
     data: FormValues,
     opts?: { throwIfSkipped?: boolean }
   ): Promise<{ created: number; deleted: number } | null> => {
+    if (!data) {
+      throw new Error('syncPostBirthPuppyRecords called without form data');
+    }
     if (!id || isNew) return null;
     if (data.lifecycle_status !== 'post_birth' && data.lifecycle_status !== 'previous') {
       if (opts?.throwIfSkipped) {
@@ -368,6 +371,7 @@ export default function UpcomingLitterForm() {
       }
       const payload = buildPayload(data, paths.length ? paths : null);
       await updateUpcomingLitter(id!, payload as Record<string, unknown>);
+      return data;
     },
     onSuccess: async (data) => {
       toast({ title: 'Upcoming litter updated' });
