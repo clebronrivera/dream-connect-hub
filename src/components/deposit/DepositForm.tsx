@@ -102,11 +102,19 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   // Derive pricing and DOB
   const purchasePrice = puppy?.final_price ?? puppy?.base_price ?? 0;
   const puppyDob = puppy?.date_of_birth ? new Date(puppy.date_of_birth) : (litter?.date_of_birth ? new Date(litter.date_of_birth) : null);
+  // Fallback when puppy isn't born yet: the litter's expected whelping date (or
+  // the breeding date, which pairs with the project's own +63d helper).
+  const expectedWhelpingDate = litter?.expected_whelping_date
+    ? new Date(litter.expected_whelping_date)
+    : null;
   const puppyName = puppy?.name ?? 'Undecided';
   const breed = puppy?.breed ?? litter?.breed ?? '';
 
-  const earliestPickup = useMemo(() => getEarliestPickupDate(puppyDob), [puppyDob]);
-  const earliestPickupStr = format(earliestPickup, 'yyyy-MM-dd');
+  const earliestPickup = useMemo(
+    () => getEarliestPickupDate(puppyDob, expectedWhelpingDate),
+    [puppyDob, expectedWhelpingDate]
+  );
+  const earliestPickupStr = earliestPickup ? format(earliestPickup, 'yyyy-MM-dd') : '';
 
   const {
     register,
@@ -140,11 +148,12 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   const pickupDateError = useMemo(() => {
     if (!proposedPickupDate) return null;
     const proposed = new Date(proposedPickupDate);
-    if (!isValidPickupDate(proposed, puppyDob)) {
+    if (!isValidPickupDate(proposed, puppyDob, expectedWhelpingDate)) {
+      if (!earliestPickup) return null;
       return `Pickup date must be on or after ${format(earliestPickup, 'MMM d, yyyy')} — puppies go home at 8 weeks.`;
     }
     return null;
-  }, [proposedPickupDate, puppyDob, earliestPickup]);
+  }, [proposedPickupDate, puppyDob, expectedWhelpingDate, earliestPickup]);
 
   const submitMutation = useMutation({
     mutationFn: submitDepositAgreement,
@@ -291,7 +300,9 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
               <p className="text-xs text-red-500">{errors.proposed_pickup_date.message}</p>
             )}
             <p className="text-xs text-gray-500">
-              Earliest pickup: {format(earliestPickup, 'MMM d, yyyy')} (puppies go home at 8 weeks)
+              {earliestPickup
+                ? `Earliest pickup: ${format(earliestPickup, 'MMM d, yyyy')} (puppies go home at 8 weeks)`
+                : 'Pick any date — earliest pickup will be set once the litter is born (puppies go home 8 weeks after birth).'}
             </p>
           </div>
 

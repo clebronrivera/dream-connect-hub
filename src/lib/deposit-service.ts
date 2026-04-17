@@ -142,7 +142,9 @@ export async function fetchPuppyForDeposit(puppyId: string) {
 export async function fetchLitterForDeposit(litterId: string) {
   const { data, error } = await supabase
     .from('upcoming_litters')
-    .select('id, breed, deposit_amount, price_label, due_label, date_of_birth')
+    .select(
+      'id, breed, deposit_amount, price_label, due_label, date_of_birth, expected_whelping_date, breeding_date'
+    )
     .eq('id', litterId)
     .single();
 

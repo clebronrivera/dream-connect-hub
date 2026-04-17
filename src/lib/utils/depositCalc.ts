@@ -30,11 +30,22 @@ export function calculateBalanceDue(purchasePrice: number, depositAmount: number
 }
 
 /**
- * Returns the earliest valid pickup date (puppy must be >= 8 weeks old).
- * If puppyDob is null, returns today + 56 days as a conservative minimum.
+ * Returns the earliest valid pickup date: birth-reference + 8 weeks.
+ *
+ * Preference order for the birth reference:
+ *   1. `puppyDob` — actual date of birth (post-birth litters, available puppies)
+ *   2. `expectedWhelpingDate` — upcoming litter's projected whelping date
+ *
+ * If neither is provided, returns null: no minimum is enforceable yet and the
+ * caller should not reject any user-picked date on the ground of being too early.
  */
-export function getEarliestPickupDate(puppyDob: Date | null): Date {
-  const base = puppyDob ? new Date(puppyDob) : new Date();
+export function getEarliestPickupDate(
+  puppyDob: Date | null,
+  expectedWhelpingDate?: Date | null
+): Date | null {
+  const ref = puppyDob ?? expectedWhelpingDate ?? null;
+  if (!ref) return null;
+  const base = new Date(ref);
   base.setDate(base.getDate() + PUPPY_GO_HOME_AGE_DAYS);
   return base;
 }
@@ -62,9 +73,16 @@ export function getPickupDeadline(clockStart: Date): Date {
 
 /**
  * Returns true if the proposed pickup date is valid (>= earliest pickup date).
+ * When no birth reference is known, no lower bound is enforceable → always true.
  */
-export function isValidPickupDate(proposedDate: Date, puppyDob: Date | null): boolean {
-  return proposedDate >= getEarliestPickupDate(puppyDob);
+export function isValidPickupDate(
+  proposedDate: Date,
+  puppyDob: Date | null,
+  expectedWhelpingDate?: Date | null
+): boolean {
+  const earliest = getEarliestPickupDate(puppyDob, expectedWhelpingDate);
+  if (!earliest) return true;
+  return proposedDate >= earliest;
 }
 
 /**
