@@ -6,7 +6,8 @@ Internal operations app for Dream Puppies (DBA of Dream Enterprises LLC).
 Manages puppies, contacts, meet-and-greets, sales workflows, documents,
 policies, breeding dogs, litters, and upcoming litters. Includes a public
 buyer portal, PDF purchase agreement generation, email notifications via
-EmailJS, and AI-powered training plan generation via Supabase edge functions.
+Resend (from Supabase Edge Functions), and AI-powered training plan
+generation via Supabase edge functions.
 
 ## Stack
 

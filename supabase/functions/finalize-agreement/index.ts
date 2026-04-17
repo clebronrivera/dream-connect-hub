@@ -3,16 +3,14 @@
 // Verifies conditions, updates status, sends confirmation emails.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
+import {
+  adminAgreementFinalized,
+  agreementFinalizedBuyer,
+} from "../_shared/email/templates.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const NOTIFY_EMAILS = (Deno.env.get("NOTIFY_EMAIL") ?? "")
-  .split(",")
-  .map((e) => e.trim())
-  .filter(Boolean);
-const RESEND_FROM =
-  Deno.env.get("RESEND_FROM") ?? "Dream Puppies <onboarding@resend.dev>";
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
@@ -51,17 +49,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .single();
 
   if (fetchErr || !agreement) {
-    return new Response(
-      JSON.stringify({ error: "Agreement not found" }),
-      { status: 404, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Agreement not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   // Verify all three conditions (Build Rule #4)
   const missing: string[] = [];
   if (!agreement.buyer_signed_at) missing.push("buyer_signed_at");
   if (!agreement.admin_signed_at) missing.push("admin_signed_at");
-  if (agreement.deposit_status !== "admin_confirmed") missing.push("deposit_status must be admin_confirmed");
+  if (agreement.deposit_status !== "admin_confirmed")
+    missing.push("deposit_status must be admin_confirmed");
 
   if (missing.length > 0) {
     return new Response(
@@ -81,75 +80,54 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   if (updateErr) {
     return new Response(
-      JSON.stringify({ error: "Failed to update agreement", details: updateErr }),
+      JSON.stringify({
+        error: "Failed to update agreement",
+        details: updateErr,
+      }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 
   // Send confirmation email to buyer
-  if (RESEND_API_KEY && agreement.buyer_email) {
-    try {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: RESEND_FROM,
-          to: [agreement.buyer_email],
-          subject: `Deposit Confirmed — Agreement ${agreement.agreement_number}`,
-          html: `
-            <h2>Your deposit has been confirmed!</h2>
-            <p>Hi ${escapeHtml(agreement.buyer_name)},</p>
-            <p>Great news! Your deposit for <strong>${escapeHtml(agreement.puppy_name)}</strong> has been fully confirmed.</p>
-            <table style="border-collapse: collapse; margin: 16px 0;">
-              <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Agreement #</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${escapeHtml(agreement.agreement_number)}</td></tr>
-              <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Deposit</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">$${Number(agreement.deposit_amount).toFixed(2)}</td></tr>
-              <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Balance Due</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">$${Number(agreement.balance_due).toFixed(2)}</td></tr>
-              <tr><td style="padding: 6px 12px; border: 1px solid #eee;"><strong>Pickup Date</strong></td><td style="padding: 6px 12px; border: 1px solid #eee;">${agreement.confirmed_pickup_date ?? agreement.proposed_pickup_date}</td></tr>
-            </table>
-            <p>We'll be in touch with next steps as your pickup date approaches.</p>
-            <p style="color: #888; font-size: 12px;">Dream Puppies — hobby breeding program</p>
-          `.trim(),
-        }),
-      });
-    } catch (emailErr) {
-      console.error("Failed to send buyer email:", emailErr);
-    }
+  if (agreement.buyer_email) {
+    const tpl = agreementFinalizedBuyer({
+      buyerName: agreement.buyer_name,
+      agreementNumber: agreement.agreement_number,
+      puppyName: agreement.puppy_name,
+      depositAmount: Number(agreement.deposit_amount),
+      balanceDue: Number(agreement.balance_due),
+      pickupDate:
+        agreement.confirmed_pickup_date ?? agreement.proposed_pickup_date,
+    });
+    const r = await sendEmail({
+      to: agreement.buyer_email,
+      subject: tpl.subject,
+      html: tpl.html,
+    });
+    if (!r.ok) console.error("Failed to send buyer email:", r.error);
   }
 
   // Send admin notification
-  if (RESEND_API_KEY && NOTIFY_EMAILS.length > 0) {
-    try {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: RESEND_FROM,
-          to: NOTIFY_EMAILS,
-          subject: `Agreement Finalized: ${agreement.agreement_number}`,
-          html: `<p>Agreement <strong>${escapeHtml(agreement.agreement_number)}</strong> for ${escapeHtml(agreement.buyer_name)} / ${escapeHtml(agreement.puppy_name)} is now finalized.</p>`,
-        }),
-      });
-    } catch (emailErr) {
-      console.error("Failed to send admin email:", emailErr);
-    }
+  const admins = getAdminRecipients();
+  if (admins.length > 0) {
+    const tpl = adminAgreementFinalized({
+      agreementNumber: agreement.agreement_number,
+      buyerName: agreement.buyer_name,
+      puppyName: agreement.puppy_name,
+    });
+    const r = await sendEmail({
+      to: admins,
+      subject: tpl.subject,
+      html: tpl.html,
+    });
+    if (!r.ok) console.error("Failed to send admin email:", r.error);
   }
 
   return new Response(
-    JSON.stringify({ success: true, agreement_number: agreement.agreement_number }),
+    JSON.stringify({
+      success: true,
+      agreement_number: agreement.agreement_number,
+    }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
 });
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}

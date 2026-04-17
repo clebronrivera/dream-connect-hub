@@ -27,7 +27,8 @@ export async function fetchAgreement(id: string): Promise<DepositAgreement> {
   return data as DepositAgreement;
 }
 
-/** Confirm deposit payment (admin) */
+/** Confirm deposit payment (admin). Sends standalone deposit receipt to the
+ * buyer (O12). Email failures are logged but do not roll back the confirmation. */
 export async function confirmDepositPayment(id: string): Promise<void> {
   const { error } = await supabase
     .from('deposit_agreements')
@@ -38,6 +39,18 @@ export async function confirmDepositPayment(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) return;
+    await supabase.functions.invoke('send-deposit-receipt', {
+      body: { agreement_id: id },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch (err) {
+    console.error('send-deposit-receipt failed:', err);
+  }
 }
 
 /** Save admin signature */

@@ -69,7 +69,27 @@ export async function fetchDepositRequestCounts(): Promise<DepositRequestCounts>
   return counts;
 }
 
-/** Accept a pending request. */
+/** Fire-and-forget customer email via send-request-decision edge function.
+ * Email failure must NOT roll back the DB status change — we log and continue. */
+async function notifyCustomerOfDecision(
+  id: string,
+  decision: "accepted" | "declined",
+  reason?: string
+): Promise<void> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) return;
+    await supabase.functions.invoke("send-request-decision", {
+      body: { deposit_request_id: id, decision, reason },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch (err) {
+    console.error("send-request-decision failed:", err);
+  }
+}
+
+/** Accept a pending request. Sends customer "link coming" email (O4). */
 export async function acceptDepositRequest(id: string): Promise<void> {
   const { error } = await supabase
     .from("deposit_requests")
@@ -79,9 +99,10 @@ export async function acceptDepositRequest(id: string): Promise<void> {
     })
     .eq("id", id);
   if (error) throw error;
+  await notifyCustomerOfDecision(id, "accepted");
 }
 
-/** Decline a request with a reason. */
+/** Decline a request with a reason. Sends customer closure email. */
 export async function declineDepositRequest(
   id: string,
   reason: string
@@ -95,6 +116,7 @@ export async function declineDepositRequest(
     })
     .eq("id", id);
   if (error) throw error;
+  await notifyCustomerOfDecision(id, "declined", reason);
 }
 
 /** Save admin notes. */

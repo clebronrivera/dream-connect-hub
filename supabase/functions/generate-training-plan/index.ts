@@ -1,6 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
+import {
+  escape as escHtml,
+  heading as hEl,
+} from "../_shared/email/components.ts";
+import {
+  adminNewTrainingLead,
+  trainingPlanDelivery,
+} from "../_shared/email/templates.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -265,8 +274,159 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .order("created_at", { ascending: false })
     .limit(1);
 
+  // --- O3: Email plan to customer (fire-and-log; don't block response on failure) ---
+  try {
+    const planHtml = renderPlanHtml(plan, problemLabel);
+    const tpl = trainingPlanDelivery({
+      customerName: body.dog_name, // greet with dog's name fallback — we don't collect owner name
+      dogName: body.dog_name,
+      planHtml,
+    });
+    const r = await sendEmail({
+      to: body.email,
+      subject: tpl.subject,
+      html: tpl.html,
+    });
+    if (!r.ok) console.error("Customer plan email failed:", r.error);
+  } catch (err) {
+    console.error("Customer plan email threw:", err);
+  }
+
+  // --- G12: Notify admin of new lead ---
+  try {
+    const admins = getAdminRecipients();
+    if (admins.length > 0) {
+      const tpl = adminNewTrainingLead({
+        customerEmail: body.email,
+        dogName: body.dog_name,
+        breed: body.breed || "Unknown",
+        problemType: problemLabel,
+      });
+      const r = await sendEmail({
+        to: admins,
+        subject: tpl.subject,
+        html: tpl.html,
+      });
+      if (!r.ok) console.error("Admin lead email failed:", r.error);
+    }
+  } catch (err) {
+    console.error("Admin lead email threw:", err);
+  }
+
   return new Response(JSON.stringify(result), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
+
+// Render the Claude plan JSON as inline HTML for the email body.
+// Safe: every user-derived string is escaped via escHtml() before injection.
+function renderPlanHtml(
+  plan: Record<string, unknown>,
+  problemLabel: string
+): string {
+  const steps = Array.isArray(plan.steps) ? plan.steps : [];
+  const schedule = Array.isArray(plan.daily_schedule)
+    ? plan.daily_schedule
+    : [];
+  const commands = Array.isArray(plan.commands_to_use)
+    ? plan.commands_to_use
+    : [];
+  const mistakes = Array.isArray(plan.mistakes_to_avoid)
+    ? plan.mistakes_to_avoid
+    : [];
+  const breedNote = typeof plan.breed_note === "string" ? plan.breed_note : "";
+  const encouragement =
+    typeof plan.encouragement === "string" ? plan.encouragement : "";
+  const difficulty =
+    typeof plan.difficulty === "string" ? plan.difficulty : "";
+  const timeline = typeof plan.timeline === "string" ? plan.timeline : "";
+
+  const parts: string[] = [];
+  parts.push(hEl(`Focus: ${problemLabel}`, 3));
+  if (difficulty || timeline) {
+    parts.push(
+      `<p style="margin:0 0 14px 0;color:#6B7280;font-size:14px;">${
+        difficulty ? `Difficulty: <strong>${escHtml(difficulty)}</strong>` : ""
+      }${difficulty && timeline ? " · " : ""}${
+        timeline ? `Timeline: <strong>${escHtml(timeline)}</strong>` : ""
+      }</p>`
+    );
+  }
+
+  if (steps.length > 0) {
+    parts.push(hEl("Step-by-step plan", 3));
+    for (const step of steps) {
+      if (!step || typeof step !== "object") continue;
+      const s = step as Record<string, unknown>;
+      const title = typeof s.title === "string" ? s.title : "";
+      const desc = typeof s.description === "string" ? s.description : "";
+      const tip = typeof s.pro_tip === "string" ? s.pro_tip : "";
+      parts.push(
+        `<div style="margin:0 0 14px 0;padding:12px 14px;background:#FAFAFA;border-left:3px solid #E94B3C;border-radius:4px;">` +
+          `<div style="font-weight:700;color:#1A1A1A;margin-bottom:4px;">${escHtml(title)}</div>` +
+          `<div style="color:#1A1A1A;font-size:14px;line-height:1.55;">${escHtml(desc)}</div>` +
+          (tip
+            ? `<div style="margin-top:8px;color:#6B7280;font-size:13px;font-style:italic;">Pro tip: ${escHtml(tip)}</div>`
+            : "") +
+          `</div>`
+      );
+    }
+  }
+
+  if (commands.length > 0) {
+    parts.push(hEl("Commands to use", 3));
+    for (const cmd of commands) {
+      if (!cmd || typeof cmd !== "object") continue;
+      const c = cmd as Record<string, unknown>;
+      parts.push(
+        `<div style="margin:0 0 10px 0;">` +
+          `<strong>"${escHtml(String(c.command ?? ""))}"</strong> — ${escHtml(String(c.when_to_use ?? ""))}` +
+          (c.how_to_teach
+            ? `<div style="font-size:13px;color:#6B7280;margin-top:2px;">${escHtml(String(c.how_to_teach))}</div>`
+            : "") +
+          `</div>`
+      );
+    }
+  }
+
+  if (schedule.length > 0) {
+    parts.push(hEl("Daily schedule", 3));
+    const rows = schedule
+      .map((s) => {
+        if (!s || typeof s !== "object") return "";
+        const r = s as Record<string, unknown>;
+        return `<tr><td style="padding:6px 10px;border:1px solid #E8E3E3;font-weight:600;">${escHtml(String(r.time ?? ""))}</td><td style="padding:6px 10px;border:1px solid #E8E3E3;">${escHtml(String(r.activity ?? ""))}</td></tr>`;
+      })
+      .join("");
+    parts.push(
+      `<table style="border-collapse:collapse;width:100%;margin:8px 0 14px 0;font-size:14px;">${rows}</table>`
+    );
+  }
+
+  if (mistakes.length > 0) {
+    parts.push(hEl("Mistakes to avoid", 3));
+    const items = mistakes
+      .map(
+        (m) =>
+          `<li style="margin-bottom:6px;">${escHtml(String(m ?? ""))}</li>`
+      )
+      .join("");
+    parts.push(
+      `<ul style="margin:0 0 14px 18px;padding:0;color:#1A1A1A;font-size:14px;line-height:1.55;">${items}</ul>`
+    );
+  }
+
+  if (breedNote) {
+    parts.push(
+      `<div style="margin:16px 0;padding:12px 14px;background:#FDF5F4;border-left:3px solid #E94B3C;border-radius:4px;"><strong>Breed note:</strong> ${escHtml(breedNote)}</div>`
+    );
+  }
+  if (encouragement) {
+    parts.push(
+      `<p style="margin:16px 0 0 0;font-size:15px;line-height:1.55;color:#1A1A1A;font-style:italic;">${escHtml(encouragement)}</p>`
+    );
+  }
+
+  return parts.join("\n");
+}

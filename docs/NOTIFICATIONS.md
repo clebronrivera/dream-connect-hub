@@ -1,15 +1,20 @@
 # Email & SMS notifications
 
-The site currently has four notification-style edge functions, all using **Resend** for email and (for the deposit link function) **Twilio** for SMS.
+All emails are sent through **Resend** from Supabase Edge Functions. One function (`send-deposit-link`) also sends SMS via Twilio. Every email renders through the shared branded template module at `supabase/functions/_shared/email/` (red primary `#E94B3C`, paw logo header, unified footer).
 
-| Function | Trigger | Channel(s) | Recipient |
+| Function | Trigger | Channel(s) | Recipient(s) |
 |---|---|---|---|
-| `notify-puppy-inquiry` | Database webhook on `puppy_inquiries` INSERT | Email (Resend) | Admins (`NOTIFY_EMAIL`) |
-| `notify-contact-message` | Database webhook on `contact_messages` INSERT | Email (Resend) | Admins (`NOTIFY_EMAIL`) |
-| `notify-deposit-request` | Database webhook on `deposit_requests` INSERT | Email (Resend) | Admins (`NOTIFY_EMAIL`) |
-| `send-deposit-link` | Admin-invoked from `/admin/deposit-requests` | Email (Resend) + SMS (Twilio) | Customer |
+| `notify-puppy-inquiry` | DB webhook on `puppy_inquiries` INSERT | Email | Admin (`NOTIFY_EMAIL`) |
+| `notify-contact-message` | DB webhook on `contact_messages` INSERT | Email | Admin + Customer ack |
+| `notify-deposit-request` | DB webhook on `deposit_requests` INSERT | Email | Admin + Customer ack |
+| `send-deposit-link` | Admin-invoked from `/admin/deposit-requests` | Email + SMS (Twilio) | Customer |
+| `finalize-agreement` | Admin-invoked once buyer-signed + admin-signed + deposit confirmed | Email | Customer + Admin |
+| `send-pending-reminders` | Scheduled cron | Email | Admin |
+| `send-deposit-receipt` | Admin-invoked when `deposit_status = admin_confirmed` | Email | Customer |
+| `send-request-decision` | Admin-invoked on accept/decline of a deposit request | Email | Customer |
+| `generate-training-plan` | Public POST — returns plan JSON AND emails copy to customer + admin lead alert | Email | Customer + Admin |
 
-The first three are admin-notification webhooks (one-way alerts to staff). The fourth is the customer-facing deposit link delivery. See `docs/DEPOSIT_REQUEST_FLOW.md` for the full deposit request workflow.
+The admin-facing functions are one-way alerts to staff. Customer-facing functions send branded acknowledgment and status emails. See `docs/DEPOSIT_REQUEST_FLOW.md` for the full deposit request workflow.
 
 ## 1. Resend setup
 
@@ -28,6 +33,13 @@ supabase login
 supabase link --project-ref YOUR_PROJECT_REF   # if not already linked
 supabase functions deploy notify-puppy-inquiry
 supabase functions deploy notify-contact-message
+supabase functions deploy notify-deposit-request
+supabase functions deploy send-deposit-link
+supabase functions deploy finalize-agreement
+supabase functions deploy send-pending-reminders
+supabase functions deploy send-deposit-receipt
+supabase functions deploy send-request-decision
+supabase functions deploy generate-training-plan
 ```
 
 Set the required secrets (and optional ones) in the Supabase Dashboard or via CLI:
