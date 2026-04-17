@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useRef } from 'react';
 import { Loader2, Eye, Upload, X, Wand2 } from 'lucide-react';
 import { getBreedingDogPhotoUrl, uploadPuppyPhoto } from '@/lib/puppy-photos';
+import { buildDefaultPuppyName } from '@/lib/utils/puppyNaming';
 
 function getStoragePublicUrl(path: string): string {
   return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
@@ -316,9 +317,13 @@ export default function UpcomingLitterForm() {
     let created = 0;
 
     if (toCreate > 0) {
+      const damFromId = data.dam_id ? dams.find((d) => d.id === data.dam_id)?.name : null;
+      const sireFromId = data.sire_id ? sires.find((s) => s.id === data.sire_id)?.name : null;
+      const damName = damFromId || row?.dam_name || null;
+      const sireName = sireFromId || row?.sire_name || null;
       const newRows = Array.from({ length: toCreate }).map((_, i) => ({
         upcoming_litter_id: id,
-        name: `Puppy ${n + i + 1}`,
+        name: buildDefaultPuppyName({ damName, sireName, index: n + i + 1 }),
         breed,
         date_of_birth: dob,
         status: 'Available' as const,
