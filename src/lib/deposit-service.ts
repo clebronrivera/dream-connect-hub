@@ -26,14 +26,33 @@ export interface CreateDepositPayload {
   full_pay_flow?: boolean;
   buyer_signature_text: string;
   buyer_signature_font?: string;
+  /** Optional — links this agreement back to the deposit_requests row that initiated it. */
+  deposit_request_id?: string;
 }
 
-/** Submit a new deposit agreement (buyer-facing) */
+/** Submit a new deposit agreement (buyer-facing). If deposit_request_id is set,
+ * also updates the originating deposit_requests row to 'converted'. */
 export async function submitDepositAgreement(payload: CreateDepositPayload): Promise<DepositAgreement> {
+  const { deposit_request_id, ...agreementFields } = payload;
+
+  // Pre-flight: if a request is being linked, make sure it isn't already converted.
+  // This gives a clearer client-side error than the unique partial index would.
+  if (deposit_request_id) {
+    const { data: existingRequest } = await supabase
+      .from('deposit_requests')
+      .select('request_status, deposit_agreement_id')
+      .eq('id', deposit_request_id)
+      .maybeSingle();
+    if (existingRequest?.request_status === 'converted' || existingRequest?.deposit_agreement_id) {
+      throw new Error('This deposit request has already been converted to an agreement.');
+    }
+  }
+
   const { data, error } = await supabase
     .from('deposit_agreements')
     .insert({
-      ...payload,
+      ...agreementFields,
+      deposit_request_id: deposit_request_id ?? null,
       agreement_status: 'sent',
       deposit_status: 'pending',
       buyer_signed_at: new Date().toISOString(),
@@ -42,7 +61,57 @@ export async function submitDepositAgreement(payload: CreateDepositPayload): Pro
     .single();
 
   if (error) throw error;
+
+  // Close the loop: mark the originating request as converted.
+  // Done client-side for transparency. Failures here are non-fatal — the
+  // agreement still exists; the admin can fix the linkage manually if needed.
+  if (deposit_request_id && data?.id) {
+    const { error: linkError } = await supabase
+      .from('deposit_requests')
+      .update({
+        request_status: 'converted',
+        deposit_agreement_id: data.id,
+        converted_at: new Date().toISOString(),
+      })
+      .eq('id', deposit_request_id);
+    if (linkError) {
+      // Log but don't throw — agreement was created successfully.
+      // eslint-disable-next-line no-console
+      console.warn('Failed to mark deposit request as converted:', linkError);
+    }
+  }
+
   return data as DepositAgreement;
+}
+
+/**
+ * Validate a deposit request link. Returns the request if valid (status is
+ * deposit_link_sent and the litter matches), otherwise null.
+ * Used by DepositAgreement page to warn customers when a link is stale.
+ */
+export async function validateDepositRequest(
+  requestId: string,
+  expectedLitterId?: string
+): Promise<{ valid: boolean; reason?: string }> {
+  const { data, error } = await supabase
+    .from('deposit_requests')
+    .select('id, request_status, upcoming_litter_id, deposit_agreement_id')
+    .eq('id', requestId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { valid: false, reason: 'Request not found' };
+  }
+  if (data.request_status === 'converted' || data.deposit_agreement_id) {
+    return { valid: false, reason: 'Request already converted' };
+  }
+  if (data.request_status !== 'deposit_link_sent') {
+    return { valid: false, reason: `Request status is ${data.request_status}` };
+  }
+  if (expectedLitterId && data.upcoming_litter_id !== expectedLitterId) {
+    return { valid: false, reason: 'Litter mismatch' };
+  }
+  return { valid: true };
 }
 
 /** Fetch enabled payment methods for the deposit form */

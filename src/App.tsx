@@ -44,6 +44,8 @@ const FaqManager = lazy(() => import("./pages/admin/FaqManager"));
 const DreamyReviews = lazy(() => import("./pages/DreamyReviews"));
 const TestimonialsList = lazy(() => import("./pages/admin/TestimonialsList"));
 const TrainingPlanPage = lazy(() => import("./pages/TrainingPlanPage"));
+const DepositRequests = lazy(() => import("./pages/admin/DepositRequests"));
+const RequestDeposit = lazy(() => import("./pages/RequestDeposit"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -84,6 +86,7 @@ export function AppRoutes() {
         <Route path="/upcoming-litters" element={<UpcomingLitters />} />
         <Route path="/breeds" element={<Breeds />} />
         <Route path="/deposit" element={<DepositAgreement />} />
+        <Route path="/request-deposit" element={<RequestDeposit />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />
         <Route path="/training-plan" element={<TrainingPlanPage />} />
@@ -115,6 +118,7 @@ export function AppRoutes() {
             <Route path="inquiries" element={<Inquiries />} />
             <Route path="business-modes" element={<BusinessModes />} />
             <Route path="agreements" element={<AgreementsPage />} />
+            <Route path="deposit-requests" element={<DepositRequests />} />
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />
             <Route path="faq" element={<FaqManager />} />
             <Route path="testimonials" element={<TestimonialsList />} />

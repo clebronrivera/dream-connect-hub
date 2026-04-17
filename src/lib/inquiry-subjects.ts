@@ -20,6 +20,15 @@ export const SLUG_CONTACT_MESSAGE = "contact-message";
 export const JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT =
   "Join waitlist and inquire about deposit";
 
+/** New CTA label: direct deposit reservation request (replaces inquiry flow on litter cards). */
+export const REQUEST_DEPOSIT_RESERVATION = "Request a Deposit Reservation";
+
+/** Subject/source label used in admin views for deposit requests. */
+export const SUBJECT_DEPOSIT_REQUEST = "Deposit Request";
+
+/** URL slug for deposit requests. */
+export const SLUG_DEPOSIT_REQUEST = "deposit-request";
+
 /** Display source labels used in Dashboard recent inquiries. */
 export type InquirySourceLabel = "Puppy Inquiry" | "Upcoming Litter" | "Contact Message";
 

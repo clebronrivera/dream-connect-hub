@@ -25,6 +25,7 @@ import {
   Menu,
   HelpCircle,
   Star,
+  ClipboardCheck,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -45,6 +46,7 @@ export function AdminLayout() {
     { name: 'Products', href: '/admin/inventory/products', icon: Package },
     { name: 'Kits', href: '/admin/inventory/kits', icon: Box },
     { name: 'Agreements', href: '/admin/agreements', icon: FileSignature },
+    { name: 'Deposit Requests', href: '/admin/deposit-requests', icon: ClipboardCheck },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
     { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
     { name: 'Dreamy Reviews', href: '/admin/testimonials', icon: Star },

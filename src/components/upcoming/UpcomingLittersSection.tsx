@@ -15,14 +15,15 @@ import {
 import { supabase, type UpcomingLitter, type UpcomingLitterPuppyPlaceholder } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Loader2, UserPlus } from "lucide-react";
-import {
-  UpcomingLitterInquiryForm,
-  type UpcomingLitterInquiryPayload,
-} from "@/components/UpcomingLitterInquiryForm";
-import { JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT } from "@/lib/inquiry-subjects";
+import { DepositRequestForm } from "@/components/DepositRequestForm";
+import { REQUEST_DEPOSIT_RESERVATION } from "@/lib/inquiry-subjects";
 import { getBirthWindow, getGoHomeWindow } from "@/lib/litter-timeline";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
-import { insertContactMessage, upcomingLitterPayloadToRow } from "@/lib/contact-messages";
+import {
+  insertDepositRequest,
+  depositRequestPayloadToRow,
+  type DepositRequestPayload,
+} from "@/lib/deposit-requests";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { UpcomingPuppySilhouette } from "@/components/upcoming/UpcomingPuppySilhouette";
 import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
@@ -79,14 +80,15 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
     setReservePlaceholderId(null);
   };
 
-  const handleInquirySubmit = async (payload: UpcomingLitterInquiryPayload) => {
+  const handleDepositRequestSubmit = async (payload: DepositRequestPayload) => {
     setReserveSubmitting(true);
     try {
-      const { error: err } = await insertContactMessage(upcomingLitterPayloadToRow(payload));
+      const { error: err } = await insertDepositRequest(depositRequestPayloadToRow(payload));
       if (err) throw err;
       toast({
-        title: "Submitted",
-        description: "We'll be in touch about the waitlist and deposit options.",
+        title: "Deposit request submitted",
+        description:
+          "We'll review and send your agreement link via email and text within 24–48 hours.",
       });
       closeReserve();
     } catch (err) {
@@ -322,7 +324,7 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
                       onClick={() => openReserve(litter, null)}
                     >
                       <UserPlus className="mr-2 h-3.5 w-3.5" />
-                      {JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT}
+                      {REQUEST_DEPOSIT_RESERVATION}
                     </Button>
                   </div>
                 </Card>
@@ -348,7 +350,7 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
       >
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{JOIN_WAITLIST_AND_INQUIRE_ABOUT_DEPOSIT}</DialogTitle>
+            <DialogTitle>{REQUEST_DEPOSIT_RESERVATION}</DialogTitle>
             <DialogDescription>
               {reserveLitter
                 ? `${t("upcomingDialogIntro")} ${getDisplayBreed(reserveLitter)}${t("upcomingDialogWithBreedSuffix")}`
@@ -356,13 +358,12 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
             </DialogDescription>
           </DialogHeader>
           {litters?.length ? (
-            <UpcomingLitterInquiryForm
+            <DepositRequestForm
               litters={litters}
               initialLitterId={reserveLitter?.id ?? null}
               initialPlaceholderId={reservePlaceholderId}
-              onSubmit={handleInquirySubmit}
+              onSubmit={handleDepositRequestSubmit}
               isSubmitting={reserveSubmitting}
-              submitLabel={t("upcomingFormSubmit")}
             />
           ) : (
             <div className="flex items-center justify-center py-8">

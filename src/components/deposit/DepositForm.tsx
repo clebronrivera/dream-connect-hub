@@ -52,9 +52,11 @@ type DepositFormValues = z.infer<typeof depositFormSchema>;
 interface DepositFormProps {
   puppyId?: string;
   litterId?: string;
+  /** Optional — links the resulting agreement back to a deposit_requests row. */
+  requestId?: string;
 }
 
-export function DepositForm({ puppyId, litterId }: DepositFormProps) {
+export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) {
   const [splitDetails, setSplitDetails] = useState<SplitPaymentDetail[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [agreementNumber, setAgreementNumber] = useState<string>('');
@@ -206,6 +208,8 @@ export function DepositForm({ puppyId, litterId }: DepositFormProps) {
       ack_welfare_responsibility_at: acks.welfare_responsibility || undefined,
       arbitration_typed_phrase: arbitrationPhrase,
       arbitration_typed_at: arbitrationValid ? new Date().toISOString() : undefined,
+      // Link this agreement back to its originating deposit request, if any.
+      deposit_request_id: requestId,
     });
   }
 
