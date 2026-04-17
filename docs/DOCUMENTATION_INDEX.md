@@ -20,7 +20,7 @@ Quick reference for where to find **changes, mistakes, additions, and problems**
 | Document | Purpose |
 |---------|--------|
 | **[README.md](../README.md)** | Project overview, setup, environment variables, build/deploy, deployment troubleshooting, tech stack, links to other docs. |
-| **[docs/NOTIFICATIONS.md](NOTIFICATIONS.md)** | Email notifications (puppy inquiry, contact message): Supabase Edge Functions, webhooks, Resend. |
+| **[docs/NOTIFICATIONS.md](NOTIFICATIONS.md)** | Email + SMS notifications: Supabase Edge Functions (`notify-puppy-inquiry`, `notify-contact-message`, `notify-deposit-request`, `send-deposit-link`), webhooks, Resend, Twilio. |
 | **[supabase/migrations/README_MIGRATION.md](../supabase/migrations/README_MIGRATION.md)** | How to run and manage Supabase migrations. |
 
 ---
@@ -34,6 +34,7 @@ Quick reference for where to find **changes, mistakes, additions, and problems**
 | **[docs/TRANSLATIONS_PUBLIC_SITE.md](TRANSLATIONS_PUBLIC_SITE.md)** | i18n strategy: `LanguageContext` + `translations.ts` (EN/ES/PT) is the authoritative system; Google Translate is a runtime layer. i18next confirmed unused and removed. |
 | **[docs/PLAN_GOLDENDOODLE_NAMES_DESCRIPTIONS.md](PLAN_GOLDENDOODLE_NAMES_DESCRIPTIONS.md)** | Plan for Goldendoodle names/descriptions (and audit note). |
 | **[docs/IMPLEMENTATION_PLAN_UPCOMING_FEATURES.md](IMPLEMENTATION_PLAN_UPCOMING_FEATURES.md)** | Plan for upcoming features. |
+| **[docs/DEPOSIT_REQUEST_FLOW.md](DEPOSIT_REQUEST_FLOW.md)** | End-to-end deposit request → approval → agreement workflow. State machine, RLS, edge functions (`notify-deposit-request`, `send-deposit-link`), Twilio integration, key files, verification checklist. |
 
 ---
 

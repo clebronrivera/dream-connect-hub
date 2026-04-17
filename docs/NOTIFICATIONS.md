@@ -1,10 +1,15 @@
-# Email notifications (puppy inquiries & contact messages)
+# Email & SMS notifications
 
-You can get an email whenever someone submits a **puppy inquiry** or a **Contact Us** message. Both use the same Resend setup and the same recipient list (`NOTIFY_EMAIL`).
+The site currently has four notification-style edge functions, all using **Resend** for email and (for the deposit link function) **Twilio** for SMS.
 
-- **Puppy inquiries:** Edge Function `notify-puppy-inquiry` + webhook on table `puppy_inquiries` (Insert).
-- **Contact Us messages:** Edge Function `notify-contact-message` + webhook on table `contact_messages` (Insert).
-- **Resend** – delivers the emails (free tier is enough for typical volume).
+| Function | Trigger | Channel(s) | Recipient |
+|---|---|---|---|
+| `notify-puppy-inquiry` | Database webhook on `puppy_inquiries` INSERT | Email (Resend) | Admins (`NOTIFY_EMAIL`) |
+| `notify-contact-message` | Database webhook on `contact_messages` INSERT | Email (Resend) | Admins (`NOTIFY_EMAIL`) |
+| `notify-deposit-request` | Database webhook on `deposit_requests` INSERT | Email (Resend) | Admins (`NOTIFY_EMAIL`) |
+| `send-deposit-link` | Admin-invoked from `/admin/deposit-requests` | Email (Resend) + SMS (Twilio) | Customer |
+
+The first three are admin-notification webhooks (one-way alerts to staff). The fourth is the customer-facing deposit link delivery. See `docs/DEPOSIT_REQUEST_FLOW.md` for the full deposit request workflow.
 
 ## 1. Resend setup
 
@@ -59,9 +64,31 @@ Create **two** webhooks in [Supabase Dashboard](https://supabase.com/dashboard) 
 - **Type**: HTTP Request
 - **URL**: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/notify-contact-message`
 
-After this, new puppy inquiries and Contact Us submissions will trigger the respective Edge Function and send an email to all addresses in `NOTIFY_EMAIL`.
+**Webhook 3 – Deposit requests**
+- **Name**: e.g. `Notify on deposit request`
+- **Table**: `deposit_requests`
+- **Events**: **Insert**
+- **Type**: HTTP Request
+- **URL**: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/notify-deposit-request`
 
-## 4. Local testing (optional)
+After this, new puppy inquiries, Contact Us submissions, and deposit requests will trigger the respective Edge Function and send an email to all addresses in `NOTIFY_EMAIL`.
+
+## 4. Twilio (SMS) setup — for `send-deposit-link`
+
+The `send-deposit-link` function delivers the deposit agreement URL to the customer via email and SMS. Twilio handles the SMS side. See `docs/DEPOSIT_REQUEST_FLOW.md` for the full flow.
+
+Required secrets (Project Settings → Edge Functions → Secrets):
+
+```
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_AUTH_TOKEN=...
+TWILIO_PHONE_NUMBER=+1XXXXXXXXXX   # E.164 format, with the +
+SITE_URL=https://puppyheavenllc.com  # base URL used to build the deposit link
+```
+
+**Trial caveat:** Twilio trial accounts can only send SMS to phone numbers verified in the Twilio Console (Phone Numbers → Manage → **Verified Caller IDs**). To send to any US number, upgrade the Twilio account.
+
+## 5. Local testing (optional)
 
 To test the function locally with the Supabase CLI:
 

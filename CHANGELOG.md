@@ -6,6 +6,38 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-04-15
+
+### Added
+
+- **Deposit Request Flow** — End-to-end request → approval → agreement workflow that bridges the gap between a customer expressing interest and the existing legal deposit form. See `docs/DEPOSIT_REQUEST_FLOW.md` for full details.
+  - Public-facing **"Request a Deposit Reservation"** form replaces the prior generic inquiry modal on `/upcoming-litters`. Phone is now required (used for SMS). Includes 24-48hr review messaging, "no guarantee of placement" disclaimer, and an expedite phone CTA.
+  - New admin page at `/admin/deposit-requests` with status badges (Pending / Accepted / Link Sent / Converted / Declined), search, expandable cards, and contextual actions per status.
+  - Admin can **Accept**, **Decline with reason**, **Send Deposit Link** (email + SMS), or **Resend Link**.
+  - Admin-initiated requests via **"+ New Request"** dialog — creates request and sends link in one action.
+  - When the customer completes the deposit agreement form (now linked via `?request=...`), the originating request is automatically marked `converted` and linked to the new agreement.
+  - Dashboard stat card showing pending deposit requests count.
+- **Twilio SMS integration** — New edge function `send-deposit-link` sends the deposit agreement link via Resend (email) and Twilio (SMS) with partial-failure handling. Required new secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `SITE_URL`.
+- **Database webhook + admin notification** — New edge function `notify-deposit-request` fires on `deposit_requests` INSERT and emails `NOTIFY_EMAIL` recipients with request details and a deep link to `/admin/deposit-requests`.
+
+### Changed
+
+- **Database Schema** — Added `deposit_requests` table with phone E.164 normalization trigger and state-machine enforcement trigger. Added `deposit_request_id` FK column to `deposit_agreements`. Two unique partial indexes enforce 1-to-1 linkage between requests and agreements.
+- **`src/lib/deposit-service.ts`** — `submitDepositAgreement` now accepts an optional `deposit_request_id` and writes the conversion update. Added `validateDepositRequest` helper used by `/deposit` to validate stale links and show a non-blocking warning banner when the link can't be verified.
+- **Admin nav** — Added "Deposit Requests" link between Agreements and Inquiries.
+
+### Fixed
+
+- **`deposit_agreements` RLS bug (pre-existing)** — Prior to today, the `deposit_agreements` table had no public INSERT policy, so the `/deposit` form could not actually be submitted by buyers. Migration `20260415000000_deposit_agreements_public_insert.sql` adds a constrained public INSERT policy (admin/finalization fields must remain null) and a narrow time-window SELECT policy so the buyer's success screen can read the agreement number after submitting.
+
+### Known issues
+
+- **Twilio trial limitation** — SMS only delivers to phone numbers verified in the Twilio Console (Phone Numbers → Manage → Verified Caller IDs). Upgrade Twilio (~$20 credit) to send to any US number.
+- **Deposit link domain** — `SITE_URL` is set to the production domain `https://puppyheavenllc.com`. For local testing, temporarily set it to `http://localhost:8080` in Edge Function secrets so email/SMS links route to the running dev server.
+- **Notification email link only valid post-deploy** — The "Review in Admin" button in the new-request notification email points to `${SITE_URL}/admin/deposit-requests`, which won't resolve until the production site is deployed (or `SITE_URL` is flipped to localhost during testing).
+
+---
+
 ## 2026-04-08
 
 ### Changed
