@@ -37,7 +37,11 @@ export const REMINDER_MAX_COUNT = 5;
 export const AGREEMENT_NUMBER_PREFIX = 'DP';
 
 // Authorized sellers — re-exported from business.ts (single source of truth)
-export { AUTHORIZED_SELLERS, type AuthorizedSellerId } from './business';
+export {
+  AUTHORIZED_SELLERS,
+  DEFAULT_AUTHORIZED_SELLER,
+  type AuthorizedSellerId,
+} from './business';
 
 // Payment methods — SINGLE SOURCE OF TRUTH
 export const PAYMENT_METHODS = [

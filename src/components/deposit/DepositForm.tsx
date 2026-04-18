@@ -26,7 +26,7 @@ import {
   isValidPickupDate,
   generatePaymentMemo,
 } from '@/lib/utils/depositCalc';
-import { AUTHORIZED_SELLERS } from '@/lib/constants/deposit';
+import { DEFAULT_AUTHORIZED_SELLER } from '@/lib/constants/deposit';
 import { submitDepositAgreement, fetchPuppyForDeposit, fetchLitterForDeposit } from '@/lib/deposit-service';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
 import type { SplitPaymentDetail } from '@/types/deposit';
@@ -44,7 +44,9 @@ const depositFormSchema = z.object({
   deposit_payment_method: z.string().min(1, 'Payment method is required'),
   final_payment_method_intended: z.string().optional(),
   buyer_signature_text: z.string().min(2, 'Signature is required — type your full legal name'),
-  authorized_seller: z.string().min(1, 'Please select an authorized seller'),
+  // Seller is no longer picked by the buyer — the form auto-fills
+  // DEFAULT_AUTHORIZED_SELLER on submit so the DB constraint is satisfied.
+  authorized_seller: z.string().optional(),
 });
 
 type DepositFormValues = z.infer<typeof depositFormSchema>;
@@ -99,8 +101,11 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
     enabled: !!litterId,
   });
 
-  // Derive pricing and DOB
+  // Derive pricing and DOB. Purchase price comes from the selected puppy; if
+  // no puppy is linked yet (admin-initiated against an upcoming litter) we
+  // fall back to the litter's own deposit_amount for the check below.
   const purchasePrice = puppy?.final_price ?? puppy?.base_price ?? 0;
+  const litterFallbackDeposit = Number(litter?.deposit_amount) || 0;
   const puppyDob = puppy?.date_of_birth ? new Date(puppy.date_of_birth) : (litter?.date_of_birth ? new Date(litter.date_of_birth) : null);
   // Fallback when puppy isn't born yet: the litter's expected whelping date (or
   // the breeding date, which pairs with the project's own +63d helper).
@@ -141,8 +146,12 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   const proposedPickupDate = watch('proposed_pickup_date');
   const paymentMemo = generatePaymentMemo(buyerName || 'Your Name', puppyName);
 
-  // Re-evaluate tier at submit time (Build Rule #2)
-  const depositAmount = calculateDepositAmount(purchasePrice, puppyDob);
+  // Re-evaluate tier at submit time (Build Rule #2).
+  // If the puppy has a price, compute tiered deposit; else fall back to the
+  // litter's configured deposit_amount so the form still works for upcoming
+  // litters with no per-puppy price yet.
+  const depositAmount =
+    purchasePrice > 0 ? calculateDepositAmount(purchasePrice, puppyDob) : litterFallbackDeposit;
 
   // Pickup date validation
   const pickupDateError = useMemo(() => {
@@ -175,7 +184,15 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
     // Re-evaluate tier at submit time (Build Rule #2)
     const tier = getDepositTier(puppyDob);
-    const amount = calculateDepositAmount(purchasePrice, puppyDob);
+    const amount =
+      purchasePrice > 0 ? calculateDepositAmount(purchasePrice, puppyDob) : litterFallbackDeposit;
+
+    if (!(amount > 0)) {
+      toast.error(
+        'No deposit amount is configured for this puppy or litter. Please contact the breeder to set the deposit amount before submitting.'
+      );
+      return;
+    }
 
     // Validate split total
     if (values.deposit_payment_method === 'split') {
@@ -204,7 +221,9 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       deposit_payment_detail: values.deposit_payment_method === 'split' ? splitDetails : undefined,
       final_payment_method_intended: values.final_payment_method_intended as PaymentMethodKey | undefined,
       proposed_pickup_date: values.proposed_pickup_date,
-      authorized_seller: values.authorized_seller as 'carlos_lebron_rivera' | 'yolanda_lebron_rivera',
+      authorized_seller:
+        (values.authorized_seller as 'carlos_lebron_rivera' | 'yolanda_lebron_rivera') ||
+        DEFAULT_AUTHORIZED_SELLER,
       buyer_signature_text: values.buyer_signature_text,
       buyer_signature_font: 'Dancing Script',
       // Audit trail fields
@@ -304,28 +323,6 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 ? `Earliest pickup: ${format(earliestPickup, 'MMM d, yyyy')} (puppies go home at 8 weeks)`
                 : 'Pick any date — earliest pickup will be set once the litter is born (puppies go home 8 weeks after birth).'}
             </p>
-          </div>
-
-          {/* Authorized Seller */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Seller Representative</h3>
-            <Controller
-              name="authorized_seller"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select seller..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AUTHORIZED_SELLERS.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.authorized_seller && <p className="text-xs text-red-500">{errors.authorized_seller.message}</p>}
           </div>
 
           {/* Payment Method */}

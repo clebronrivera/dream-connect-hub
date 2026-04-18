@@ -28,6 +28,13 @@ export const AUTHORIZED_SELLERS = [
 
 export type AuthorizedSellerId = (typeof AUTHORIZED_SELLERS)[number]['id'];
 
+/**
+ * Default seller used when the customer-facing form does not ask the buyer
+ * to pick one. Kept so the DB NOT-NULL/CHECK constraint on
+ * `deposit_agreements.authorized_seller` is always satisfied.
+ */
+export const DEFAULT_AUTHORIZED_SELLER: AuthorizedSellerId = 'carlos_lebron_rivera';
+
 export const LEGAL_REFERENCES = {
   FLA_828_29: 'https://www.flsenate.gov/Laws/Statutes/2024/828.29',
   FLA_CH_668: 'https://www.flsenate.gov/Laws/Statutes/2024/Chapter668',
