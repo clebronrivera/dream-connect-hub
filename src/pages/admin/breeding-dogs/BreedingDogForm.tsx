@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
 
 const schema = z.object({
@@ -66,15 +66,15 @@ export default function BreedingDogForm() {
   }, [row, form]);
 
   const currentPhotoPath = row?.photo_path;
-  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  // Derive the preview URL during render; revoke it in an effect when the file changes.
+  const filePreviewUrl = useMemo(
+    () => (photoFile ? URL.createObjectURL(photoFile) : null),
+    [photoFile],
+  );
   useEffect(() => {
-    if (photoFile) {
-      const url = URL.createObjectURL(photoFile);
-      setFilePreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    setFilePreviewUrl(null);
-  }, [photoFile]);
+    if (!filePreviewUrl) return;
+    return () => URL.revokeObjectURL(filePreviewUrl);
+  }, [filePreviewUrl]);
   const currentPhotoUrl = !removePhoto && (photoFile ? filePreviewUrl : getBreedingDogPhotoUrl(currentPhotoPath));
   const showPhotoPreview = !!currentPhotoUrl;
 

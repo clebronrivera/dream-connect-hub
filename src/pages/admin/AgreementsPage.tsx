@@ -1,7 +1,7 @@
 // src/pages/admin/AgreementsPage.tsx
 // Admin agreements management page with pending actions widget
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,14 @@ export default function AgreementsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [search, setSearch] = useState('');
+  // State-backed "24h ago" cutoff (refreshed every minute) — keeps the filter pure during render.
+  const [twentyFourHoursAgo, setTwentyFourHoursAgo] = useState(0);
+  useEffect(() => {
+    const update = () => setTwentyFourHoursAgo(Date.now() - 24 * 60 * 60 * 1000);
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const { data: agreements = [], isLoading } = useQuery({
     queryKey: ['agreements'],
@@ -45,7 +53,6 @@ export default function AgreementsPage() {
     }
 
     // Badge filter
-    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
     switch (filter) {
       case 'unconfirmed':
         return a.deposit_status === 'pending' && new Date(a.created_at).getTime() < twentyFourHoursAgo;

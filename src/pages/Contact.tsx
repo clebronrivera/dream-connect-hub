@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
@@ -59,20 +59,28 @@ export default function Contact() {
     enabled: subject === SUBJECT_UPCOMING_LITTER || !subject,
   });
 
-  useEffect(() => {
-    const subjectFromUrl = searchParams.get("subject");
+  // Adjust subject state during render when the URL ?subject= param changes.
+  const subjectFromUrl = searchParams.get("subject");
+  const [prevSubjectFromUrl, setPrevSubjectFromUrl] = useState(subjectFromUrl);
+  if (subjectFromUrl !== prevSubjectFromUrl) {
+    setPrevSubjectFromUrl(subjectFromUrl);
     if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
     if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER)
       setSubject(SUBJECT_UPCOMING_LITTER);
-  }, [searchParams]);
+  }
 
-  // Preselect litter from ?litter= id when on Upcoming Litter subject (e.g. from /contact?subject=upcoming-litter&litter=uuid)
-  useEffect(() => {
-    const litterParam = searchParams.get("litter");
-    if (!isValidUuid(litterParam) || !upcomingLitters?.length) return;
-    const found = upcomingLitters.some((l) => l.id === litterParam);
-    if (found) setUpcomingLitterId(litterParam);
-  }, [searchParams, upcomingLitters]);
+  // Preselect litter from ?litter= id when on Upcoming Litter subject (adjust state during render)
+  const litterParam = searchParams.get("litter");
+  const litterSyncKey = `${litterParam ?? ''}|${upcomingLitters?.length ?? 0}`;
+  const [prevLitterSyncKey, setPrevLitterSyncKey] = useState(litterSyncKey);
+  if (litterSyncKey !== prevLitterSyncKey) {
+    setPrevLitterSyncKey(litterSyncKey);
+    if (isValidUuid(litterParam) && upcomingLitters?.length) {
+      if (upcomingLitters.some((l) => l.id === litterParam)) {
+        setUpcomingLitterId(litterParam);
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

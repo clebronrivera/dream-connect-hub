@@ -1,7 +1,7 @@
 // Admin-side dialog: create a deposit request on behalf of a customer
 // and optionally send the deposit link in the same action.
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -80,8 +80,10 @@ export function AdminInitiateDepositDialog({ open, onOpenChange }: Props) {
     [placeholders, placeholderId]
   );
 
-  // Reset form on close
-  useEffect(() => {
+  // Reset form on close (adjusting state when `open` flips to false during render)
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (!open) {
       setName("");
       setEmail("");
@@ -94,7 +96,7 @@ export function AdminInitiateDepositDialog({ open, onOpenChange }: Props) {
       setCustomMessage("");
       setPhoneError(null);
     }
-  }, [open]);
+  }
 
   const submitMut = useMutation({
     mutationFn: async () => {

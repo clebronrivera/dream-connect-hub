@@ -18,19 +18,34 @@ interface AdminSignaturePadProps {
 
 export function AdminSignaturePad({ onSign, disabled, existingSignature, existingSellerName }: AdminSignaturePadProps) {
   const sigRef = useRef<SignatureCanvas>(null);
-  const [selectedSeller, setSelectedSeller] = useState<string>('');
-  const [isSigned, setIsSigned] = useState(false);
+  const [selectedSeller, setSelectedSeller] = useState<string>(() => {
+    if (!existingSellerName) return '';
+    return AUTHORIZED_SELLERS.find(s => s.name === existingSellerName)?.id ?? '';
+  });
+  const [isSigned, setIsSigned] = useState(() => !!existingSignature);
 
+  // Draw the existing signature onto the canvas once it's mounted. Canvas drawing
+  // is an imperative DOM operation, so this genuinely belongs in an effect.
   useEffect(() => {
     if (existingSignature && sigRef.current) {
       sigRef.current.fromDataURL(existingSignature);
-      setIsSigned(true);
     }
+  }, [existingSignature]);
+
+  // Adjust selected seller + signed flag during render when existing-* props change.
+  const [prevExistingSellerName, setPrevExistingSellerName] = useState(existingSellerName);
+  if (existingSellerName !== prevExistingSellerName) {
+    setPrevExistingSellerName(existingSellerName);
     if (existingSellerName) {
       const seller = AUTHORIZED_SELLERS.find(s => s.name === existingSellerName);
       if (seller) setSelectedSeller(seller.id);
     }
-  }, [existingSignature, existingSellerName]);
+  }
+  const [prevExistingSignature, setPrevExistingSignature] = useState(existingSignature);
+  if (existingSignature !== prevExistingSignature) {
+    setPrevExistingSignature(existingSignature);
+    if (existingSignature) setIsSigned(true);
+  }
 
   function handleClear() {
     sigRef.current?.clear();

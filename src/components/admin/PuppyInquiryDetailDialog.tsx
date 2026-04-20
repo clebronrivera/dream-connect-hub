@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -64,13 +64,14 @@ export function PuppyInquiryDetailDialog({
     inquiry?.followed_up_at ? toDatetimeLocal(inquiry.followed_up_at) : ''
   );
 
-  useEffect(() => {
-    if (inquiry) {
-      setStatus(inquiry.status ?? 'active');
-      setAdminNotes(inquiry.admin_notes ?? '');
-      setFollowedUpAt(inquiry.followed_up_at ? toDatetimeLocal(inquiry.followed_up_at) : '');
-    }
-  }, [inquiry]);
+  // Sync local editable state when loaded inquiry changes (adjusting state during render)
+  const [prevInquiryId, setPrevInquiryId] = useState<string | null>(inquiry?.id ?? null);
+  if (inquiry && inquiry.id !== prevInquiryId) {
+    setPrevInquiryId(inquiry.id);
+    setStatus(inquiry.status ?? 'active');
+    setAdminNotes(inquiry.admin_notes ?? '');
+    setFollowedUpAt(inquiry.followed_up_at ? toDatetimeLocal(inquiry.followed_up_at) : '');
+  }
 
   const updateMutation = useMutation({
     mutationFn: async (updates: { status?: string; admin_notes?: string; followed_up_at?: string | null }) => {

@@ -39,12 +39,21 @@ export default function Inquiries() {
   const [tab, setTab] = useState(() => getInitialTab(openId, openSource));
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
 
-  // When landing with ?open=id&source=…, ensure hash matches tab so the correct list is visible
+  // When landing with ?open=id&source=…, set the tab during render (adjust state on param change).
+  const landingKey = `${openId ?? ''}|${openSource ?? ''}`;
+  const [prevLandingKey, setPrevLandingKey] = useState(landingKey);
+  if (landingKey !== prevLandingKey) {
+    setPrevLandingKey(landingKey);
+    if (openId && openSource && SOURCE_TO_TAB[openSource]) {
+      setTab(SOURCE_TO_TAB[openSource]);
+    }
+  }
+
+  // Sync the URL hash to match the landing tab — DOM mutation belongs in an effect.
   useEffect(() => {
     if (openId && openSource && SOURCE_TO_TAB[openSource]) {
       const targetTab = SOURCE_TO_TAB[openSource];
       if (window.location.hash.slice(1) !== targetTab) window.location.hash = targetTab;
-      setTab(targetTab);
     }
   }, [openId, openSource]);
 

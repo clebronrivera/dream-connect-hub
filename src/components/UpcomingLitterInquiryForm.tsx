@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -85,25 +85,32 @@ export function UpcomingLitterInquiryForm({
   const [updatesChecked, setUpdatesChecked] = useState(false);
   const [waitlistPreviewChecked, setWaitlistPreviewChecked] = useState(false);
 
-  useEffect(() => {
+  // Pre-select litter from props (adjusting state during render when props/data change)
+  const [litterSyncKey, setLitterSyncKey] = useState<string>(`${initialLitterId ?? ''}|${litters.length}`);
+  const nextLitterSyncKey = `${initialLitterId ?? ''}|${litters.length}`;
+  if (nextLitterSyncKey !== litterSyncKey) {
+    setLitterSyncKey(nextLitterSyncKey);
     if (initialLitterId && litters.some((l) => l.id === initialLitterId)) {
       setSelectedLitterId(initialLitterId);
     }
-  }, [initialLitterId, litters]);
+  }
 
-  useEffect(() => {
+  const [placeholderSyncKey, setPlaceholderSyncKey] = useState<string>(`${initialPlaceholderId ?? ''}|${litters.length}`);
+  const nextPlaceholderSyncKey = `${initialPlaceholderId ?? ''}|${litters.length}`;
+  if (nextPlaceholderSyncKey !== placeholderSyncKey) {
+    setPlaceholderSyncKey(nextPlaceholderSyncKey);
     if (!initialPlaceholderId) {
       setSelectedPlaceholderId(null);
-      return;
+    } else {
+      const litter = litters.find((l) =>
+        (l.puppy_placeholders ?? []).some((p) => p.id === initialPlaceholderId)
+      );
+      if (litter?.id) {
+        setSelectedLitterId(litter.id);
+        setSelectedPlaceholderId(initialPlaceholderId);
+      }
     }
-    const litter = litters.find((l) =>
-      (l.puppy_placeholders ?? []).some((p) => p.id === initialPlaceholderId)
-    );
-    if (litter?.id) {
-      setSelectedLitterId(litter.id);
-      setSelectedPlaceholderId(initialPlaceholderId);
-    }
-  }, [initialPlaceholderId, litters]);
+  }
 
   const selectedLitter = selectedLitterId
     ? litters.find((l) => l.id === selectedLitterId)

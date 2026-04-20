@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -64,13 +64,14 @@ export function ContactMessageDetailDialog({
     message?.followed_up_at ? toDatetimeLocal(message.followed_up_at) : ''
   );
 
-  useEffect(() => {
-    if (message) {
-      setStatus(message.status ?? 'active');
-      setAdminNotes(message.admin_notes ?? '');
-      setFollowedUpAt(message.followed_up_at ? toDatetimeLocal(message.followed_up_at) : '');
-    }
-  }, [message]);
+  // Sync local editable state when loaded message changes (adjusting state during render)
+  const [prevMessageId, setPrevMessageId] = useState<string | null>(message?.id ?? null);
+  if (message && message.id !== prevMessageId) {
+    setPrevMessageId(message.id);
+    setStatus(message.status ?? 'active');
+    setAdminNotes(message.admin_notes ?? '');
+    setFollowedUpAt(message.followed_up_at ? toDatetimeLocal(message.followed_up_at) : '');
+  }
 
   const updateMutation = useMutation({
     mutationFn: async (updates: { status?: string; admin_notes?: string; followed_up_at?: string | null }) => {

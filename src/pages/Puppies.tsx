@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
@@ -81,14 +81,18 @@ export default function Puppies() {
     setSearchParams,
   } = usePuppyFilters(puppies);
 
-  // Open detail dialog when URL has /puppies/:id and we have data
-  useEffect(() => {
-    if (!puppyIdFromUrl || !puppies?.length) return;
-    const puppy = puppies.find(
-      (p) => String(p.id) === puppyIdFromUrl || p.id === puppyIdFromUrl
-    );
-    if (puppy) setDetailPuppy(puppy);
-  }, [puppyIdFromUrl, puppies]);
+  // Open detail dialog when URL has /puppies/:id and we have data (adjust state during render)
+  const detailSyncKey = `${puppyIdFromUrl ?? ''}|${puppies?.length ?? 0}`;
+  const [prevDetailSyncKey, setPrevDetailSyncKey] = useState(detailSyncKey);
+  if (detailSyncKey !== prevDetailSyncKey) {
+    setPrevDetailSyncKey(detailSyncKey);
+    if (puppyIdFromUrl && puppies?.length) {
+      const puppy = puppies.find(
+        (p) => String(p.id) === puppyIdFromUrl || p.id === puppyIdFromUrl
+      );
+      if (puppy) setDetailPuppy(puppy);
+    }
+  }
 
   const openInterestForm = (puppyId?: string) => {
     setInterestFormPuppyId(puppyId);

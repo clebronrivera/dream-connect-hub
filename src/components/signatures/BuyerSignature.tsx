@@ -14,20 +14,20 @@ interface BuyerSignatureProps {
 }
 
 export function BuyerSignature({ value, onChange, disabled, label = 'Type your full name as your electronic signature' }: BuyerSignatureProps) {
-  const [fontLoaded, setFontLoaded] = useState(false);
+  // Initialize synchronously from the DOM so repeat-mounts already have the font.
+  const [fontLoaded, setFontLoaded] = useState(
+    () => typeof document !== 'undefined' && !!document.getElementById('cursive-font-link'),
+  );
 
   useEffect(() => {
+    if (document.getElementById('cursive-font-link')) return;
     // Load Dancing Script from Google Fonts
-    if (!document.getElementById('cursive-font-link')) {
-      const link = document.createElement('link');
-      link.id = 'cursive-font-link';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap';
-      link.onload = () => setFontLoaded(true);
-      document.head.appendChild(link);
-    } else {
-      setFontLoaded(true);
-    }
+    const link = document.createElement('link');
+    link.id = 'cursive-font-link';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap';
+    link.onload = () => setFontLoaded(true);
+    document.head.appendChild(link);
   }, []);
 
   return (
