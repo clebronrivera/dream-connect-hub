@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Puppy } from '@/lib/supabase';
 import { normalizeBreedToCanonical } from '@/lib/breed-utils';
@@ -17,9 +17,12 @@ export function usePuppyFilters(puppies: Puppy[] | undefined) {
   const [breedFilter, setBreedFilter] = useState<string | undefined>(breedFromUrl);
   const [sortBy, setSortBy] = useState<SortOption>('name');
 
-  useEffect(() => {
+  // Sync breedFilter to the URL's ?breed= param when it changes (adjust state during render)
+  const [prevBreedFromUrl, setPrevBreedFromUrl] = useState(breedFromUrl);
+  if (breedFromUrl !== prevBreedFromUrl) {
+    setPrevBreedFromUrl(breedFromUrl);
     if (breedFromUrl) setBreedFilter(breedFromUrl);
-  }, [breedFromUrl]);
+  }
 
   const filteredAndSorted = useMemo(() => {
     if (!puppies) return [];

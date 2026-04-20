@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -79,17 +79,17 @@ export function ContactMessageInboxList({
   const _currentMessage = currentIndex >= 0 ? messages[currentIndex] ?? null : null;
 
   // When opened from dashboard link (?open=id&source=…), select that message and clear URL
-  useEffect(() => {
-    if (!initialOpenId) return;
-    if (messages.some((m) => m.id === initialOpenId)) {
-      setSelectedId(initialOpenId);
-      const next = new URLSearchParams(searchParams);
-      next.delete('open');
-      next.delete('source');
-      const q = next.toString();
-      navigate({ pathname: '/admin/inquiries', search: q ? `?${q}` : '' }, { replace: true });
-    }
-  }, [initialOpenId, messages, searchParams, navigate]);
+  // Adjust state during render when the dashboard link id + loaded messages first match.
+  const [appliedOpenId, setAppliedOpenId] = useState<string | null>(null);
+  if (initialOpenId && appliedOpenId !== initialOpenId && messages.some((m) => m.id === initialOpenId)) {
+    setAppliedOpenId(initialOpenId);
+    setSelectedId(initialOpenId);
+    const next = new URLSearchParams(searchParams);
+    next.delete('open');
+    next.delete('source');
+    const q = next.toString();
+    navigate({ pathname: '/admin/inquiries', search: q ? `?${q}` : '' }, { replace: true });
+  }
 
   if (isLoading) {
     return (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,27 +103,33 @@ export function DepositRequestForm({
     enabled: interestType === "available_puppy",
   });
 
-  // Pre-select litter from props
-  useEffect(() => {
+  // Pre-select litter from props (adjusting state during render when props/data change)
+  const [litterSyncKey, setLitterSyncKey] = useState<string>(`${initialLitterId ?? ''}|${litters.length}`);
+  const nextLitterSyncKey = `${initialLitterId ?? ''}|${litters.length}`;
+  if (nextLitterSyncKey !== litterSyncKey) {
+    setLitterSyncKey(nextLitterSyncKey);
     if (initialLitterId && litters.some((l) => l.id === initialLitterId)) {
       setSelectedLitterId(initialLitterId);
     }
-  }, [initialLitterId, litters]);
+  }
 
   // Pre-select placeholder from props
-  useEffect(() => {
+  const [placeholderSyncKey, setPlaceholderSyncKey] = useState<string>(`${initialPlaceholderId ?? ''}|${litters.length}`);
+  const nextPlaceholderSyncKey = `${initialPlaceholderId ?? ''}|${litters.length}`;
+  if (nextPlaceholderSyncKey !== placeholderSyncKey) {
+    setPlaceholderSyncKey(nextPlaceholderSyncKey);
     if (!initialPlaceholderId) {
       setSelectedPlaceholderId(null);
-      return;
+    } else {
+      const litter = litters.find((l) =>
+        (l.puppy_placeholders ?? []).some((p) => p.id === initialPlaceholderId)
+      );
+      if (litter?.id) {
+        setSelectedLitterId(litter.id);
+        setSelectedPlaceholderId(initialPlaceholderId);
+      }
     }
-    const litter = litters.find((l) =>
-      (l.puppy_placeholders ?? []).some((p) => p.id === initialPlaceholderId)
-    );
-    if (litter?.id) {
-      setSelectedLitterId(litter.id);
-      setSelectedPlaceholderId(initialPlaceholderId);
-    }
-  }, [initialPlaceholderId, litters]);
+  }
 
   const selectedLitter = selectedLitterId ? litters.find((l) => l.id === selectedLitterId) : null;
   const availablePlaceholders = useMemo(() => {

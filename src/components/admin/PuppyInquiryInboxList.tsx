@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -67,18 +67,18 @@ export function PuppyInquiryInboxList({
   const currentIndex = selectedId ? inquiries.findIndex((i) => i.id === selectedId) : -1;
   const _currentInquiry = currentIndex >= 0 ? inquiries[currentIndex] ?? null : null;
 
-  // When opened from dashboard link (?open=id&source=puppy-inquiry), select that inquiry and clear URL
-  useEffect(() => {
-    if (!initialOpenId) return;
-    if (inquiries.some((i) => i.id === initialOpenId)) {
-      setSelectedId(initialOpenId);
-      const next = new URLSearchParams(searchParams);
-      next.delete('open');
-      next.delete('source');
-      const q = next.toString();
-      navigate({ pathname: '/admin/inquiries', search: q ? `?${q}` : '' }, { replace: true });
-    }
-  }, [initialOpenId, inquiries, searchParams, navigate]);
+  // When opened from dashboard link (?open=id&source=puppy-inquiry), select that inquiry and clear URL.
+  // Adjust state during render when the dashboard link id + loaded inquiries first match.
+  const [appliedOpenId, setAppliedOpenId] = useState<string | null>(null);
+  if (initialOpenId && appliedOpenId !== initialOpenId && inquiries.some((i) => i.id === initialOpenId)) {
+    setAppliedOpenId(initialOpenId);
+    setSelectedId(initialOpenId);
+    const next = new URLSearchParams(searchParams);
+    next.delete('open');
+    next.delete('source');
+    const q = next.toString();
+    navigate({ pathname: '/admin/inquiries', search: q ? `?${q}` : '' }, { replace: true });
+  }
 
   if (isLoading) {
     return (
