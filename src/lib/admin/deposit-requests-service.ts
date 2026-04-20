@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase-client";
 import type {
   DepositRequest,
   DepositRequestStatus,
-  DepositRequestChannel,
   DepositRequestCounts,
 } from "@/types/deposit-request";
 

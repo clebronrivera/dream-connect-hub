@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Phone, Dog, CalendarHeart } from "lucide-react";
-import type { UpcomingLitter, UpcomingLitterPuppyPlaceholder, Puppy } from "@/lib/supabase";
+import type { UpcomingLitter, UpcomingLitterPuppyPlaceholder } from "@/lib/supabase";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
 import { formatBirthWindow, formatGoHomeWindow } from "@/lib/litter-timeline";
