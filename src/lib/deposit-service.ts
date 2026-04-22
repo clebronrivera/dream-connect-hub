@@ -62,24 +62,10 @@ export async function submitDepositAgreement(payload: CreateDepositPayload): Pro
 
   if (error) throw error;
 
-  // Close the loop: mark the originating request as converted.
-  // Done client-side for transparency. Failures here are non-fatal — the
-  // agreement still exists; the admin can fix the linkage manually if needed.
-  if (deposit_request_id && data?.id) {
-    const { error: linkError } = await supabase
-      .from('deposit_requests')
-      .update({
-        request_status: 'converted',
-        deposit_agreement_id: data.id,
-        converted_at: new Date().toISOString(),
-      })
-      .eq('id', deposit_request_id);
-    if (linkError) {
-      // Log but don't throw — agreement was created successfully.
-      // eslint-disable-next-line no-console
-      console.warn('Failed to mark deposit request as converted:', linkError);
-    }
-  }
+  // The originating deposit_request is marked 'converted' by the
+  // link_deposit_agreement_to_request() trigger (migration
+  // 20260422000000) — anon clients can't UPDATE deposit_requests
+  // under RLS, so the link is performed server-side.
 
   return data as DepositAgreement;
 }
