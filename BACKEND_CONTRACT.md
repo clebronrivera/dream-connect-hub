@@ -918,9 +918,6 @@ Setup method:
 | `SUPABASE_URL` | `scripts/verify-database.ts` fallback | alt to `VITE_SUPABASE_URL` | Optional fallback |
 | `SUPABASE_PROJECT_REF` | `scripts/setup-puppy-inquiry-notifications.sh` | derive function/webhook URLs | Optional |
 | `RESEND_API_KEY` | `scripts/set-resend-secret.js` | set secret via CLI | Optional input |
-| `AIRTABLE_API_KEY` | `scripts/download-puppy-images.js` | Airtable integration | Optional tool-only |
-| `AIRTABLE_BASE_ID` | same | Airtable integration | Optional tool-only |
-| `AIRTABLE_TABLE_PUPPIES` | same | Airtable table name | Optional |
 
 Declared env examples:
 - `.env.example`
@@ -1014,10 +1011,6 @@ Key query set (parallel):
   - SPA redirect fallback to `/index.html`
   - `SECRETS_SCAN_OMIT_KEYS=VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY`
 - Backup redirect config: `public/_redirects`
-
-### Airtable (script-only)
-- `scripts/download-puppy-images.js` fetches from Airtable API using `AIRTABLE_*`
-- Not part of runtime frontend flow
 
 ### Supabase CLI automation (ops)
 - Deployment/setup scripts for functions and secrets:

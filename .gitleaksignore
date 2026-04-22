@@ -1,4 +1,3 @@
 # Known false positives — Supabase anon keys are public/publishable by design
 da1b8fda82886ef7524c5aedab88ed2320588828:src/lib/supabase.ts:jwt:4
-b1f665506ca3739f107f4bd8b8fa8fe77baafc2c:.env.local.example:airtable-api-key:7
 b1f665506ca3739f107f4bd8b8fa8fe77baafc2c:INTEGRATION_SETUP.md:generic-api-key:26
