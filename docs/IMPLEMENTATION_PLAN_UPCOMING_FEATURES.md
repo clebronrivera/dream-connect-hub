@@ -7,7 +7,7 @@ This document outlines the plan to implement the requested behavior changes and 
 ## 1. Puppy Pricing Discount Logic
 
 ### Current State
-- **Database:** `puppies` already has `base_price`, `discount_active`, `discount_amount`, `discount_note`, `final_price` (see `supabase-puppies-table.sql` and migrations).
+- **Database:** `puppies` already has `base_price`, `discount_active`, `discount_amount`, `discount_note`, `final_price` (see `supabase-schema.sql` and `supabase/migrations/`).
 - **Types:** `Puppy` in `src/lib/supabase.ts` includes all discount fields.
 - **Admin (PuppyForm):** Has Base Price, Discount Active (checkbox), Discount Amount, and Final Price as **editable** inputs. No auto-calculation; final price is manually entered.
 - **Frontend (Puppies.tsx):** Uses `getDisplayPrice(puppy)` (final_price ?? base_price). When discount is active, shows final price bold and `(price + discount_amount)` strikethrough — **semantics are reversed** per spec (original should be strikethrough, final bold).
