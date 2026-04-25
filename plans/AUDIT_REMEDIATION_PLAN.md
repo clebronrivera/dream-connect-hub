@@ -8,13 +8,27 @@ Organized into 7 waves. Each wave should be shippable on its own. Waves 1–2 ar
 ## Status — 2026-04-25
 - **Wave 1.2**: ✅ shipped (PR #38).
 - **Wave 1.3**: ✅ shipped (PR #39); smoke test is operational.
-- **Wave 2.1 PR-A**: ✅ shipped (PR #44) — `send-pending-reminders` requires `X-Cron-Secret`; `finalize-agreement` validates JWT + admin role. **Before re-enabling reminders later**: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run.
+- **Wave 2.1 PR-A**: ✅ merged (PR #44; status doc PR #45) — **awaiting deploy** of `send-pending-reminders` and `finalize-agreement`. Before re-enabling reminders later: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run.
 - **Wave 2.1 PR-B**: ⏸ deferred — webhook gates for `notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`. Holding until Supabase dashboard verifies all three database webhooks send the service-role JWT in `Authorization`.
-- **Wave 2.2**: ✅ shipped (PR #46) — CORS allowlist replaces the `*` wildcard. Allowed: `https://puppyheavenllc.com` (canonical), `https://www.puppyheavenllc.com` (safety net for redirect edge cases), `http://localhost:8080` (Vite dev). Netlify deploy-preview origins **intentionally excluded** — add a tightly scoped regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) in a follow-up PR if preview-deploy testing of CORS-protected functions becomes necessary. **Deploy required**: edge functions are not auto-deployed by CI; run `supabase functions deploy <name>` for each of `generate-training-plan`, `send-deposit-link`, `send-deposit-receipt`, `send-request-decision` (and Wave 2.1's `send-pending-reminders`, `finalize-agreement`) before the change takes effect in production.
-- **Wave 2.6 PR-1 (Turnstile foundation + training_plan_submissions)**: 🟡 in PR — adds `_shared/turnstile.ts` verify helper, `<TurnstileWidget />` React component, and gates the `generate-training-plan` edge function with Cloudflare Turnstile. `VITE_TURNSTILE_SITE_KEY` set in Netlify; `TURNSTILE_SECRET_KEY` set in Supabase Edge Function secrets. PRs 2-4 will gate the remaining three forms. PR-5 drops the public INSERT RLS policies after all four are verified in production.
-- **Wave 2.3**: ✅ shipped (PR #42 + the cleanup PR opened today). `scripts/make-all-auth-users-admin.sql` renamed to `promote-specific-user-to-admin.sql` with a warning header. Six dangerous one-shot scripts deleted: `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js` (and its `seed:breeding-dogs` npm command), `assign-dam-sire-to-upcoming-litters.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`. `fix-rls-policies.js` was deleted earlier in PR #42.
+- **Wave 2.2**: ✅ merged (PR #46; status doc PR #47) — **awaiting deploy** of `generate-training-plan`, `send-deposit-link`, `send-deposit-receipt`, `send-request-decision`. CORS allowlist replaces the `*` wildcard. Allowed: `https://puppyheavenllc.com` (canonical), `https://www.puppyheavenllc.com` (safety net for redirect edge cases), `http://localhost:8080` (Vite dev). Netlify deploy-preview origins **intentionally excluded** — add a tightly scoped regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) in a follow-up PR if preview-deploy testing of CORS-protected functions becomes necessary.
+- **Wave 2.3**: ✅ shipped (PR #42 + PR #48) — no edge-function deploy required; the changes are repo cleanup. `scripts/make-all-auth-users-admin.sql` renamed to `promote-specific-user-to-admin.sql` with a warning header. Six dangerous one-shot scripts deleted: `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js` (and its `seed:breeding-dogs` npm command), `assign-dam-sire-to-upcoming-litters.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`. `fix-rls-policies.js` was deleted earlier in PR #42.
 - **Wave 2.4**: 🟡 partial — dangerous root SQL files retired (PR #42). `supabase-schema.sql` was **kept by decision**, not deleted: migrations under `supabase/migrations/` only `ALTER` base tables, never `CREATE` them, so this file is still the genuine fresh-DB bootstrap.
 - **Wave 2.5**: ✅ shipped (PR #43) as `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_*`).
+- **Wave 2.6 PR-1 (Turnstile foundation + training_plan_submissions)**: ✅ merged (PR #49) — **awaiting deploy** of `generate-training-plan`. Adds `_shared/turnstile.ts` verify helper, `<TurnstileWidget />` React component, and gates the function with Cloudflare Turnstile. `VITE_TURNSTILE_SITE_KEY` set in Netlify; `TURNSTILE_SECRET_KEY` set in Supabase Edge Function secrets. PRs 2-4 will gate the remaining three forms. PR-5 drops the public INSERT RLS policies after all four are verified in production.
+
+### Pending edge-function deploy bundle (single controlled pass)
+Run [`./scripts/deploy-edge-functions.sh`](../scripts/deploy-edge-functions.sh) and then exercise [`docs/ops/smoke-test.md`](../docs/ops/smoke-test.md):
+
+| Function | Activates |
+|---|---|
+| `send-pending-reminders` | Wave 2.1 PR-A — `X-Cron-Secret` gate |
+| `finalize-agreement` | Wave 2.1 PR-A — JWT + admin role gate |
+| `generate-training-plan` | **Both** Wave 2.2 CORS allowlist **and** Wave 2.6 PR-1 Turnstile gate (single deploy activates both) |
+| `send-deposit-link` | Wave 2.2 — CORS allowlist |
+| `send-deposit-receipt` | Wave 2.2 — CORS allowlist |
+| `send-request-decision` | Wave 2.2 — CORS allowlist |
+
+After the smoke test passes, move the corresponding "merged, awaiting deploy" entries above to "production-verified" with today's date.
 
 ---
 
@@ -84,7 +98,7 @@ One migration, two fixes:
 
 ### 2.6 Public-insert tightening (captcha + length caps) — 🟡 in progress
 - [x] Vendor chosen: Cloudflare Turnstile. Site key set in Netlify (`VITE_TURNSTILE_SITE_KEY`); secret key set in Supabase Edge Function secrets (`TURNSTILE_SECRET_KEY`).
-- [x] **PR-1**: shared `_shared/turnstile.ts` verify helper, `<TurnstileWidget />` React component, `generate-training-plan` edge function gated. `training_plan_submissions` form requires a valid Turnstile token before submit.
+- [x] **PR-1** (PR #49, merged 2026-04-25, **awaiting deploy**): shared `_shared/turnstile.ts` verify helper, `<TurnstileWidget />` React component, `generate-training-plan` edge function gated. `training_plan_submissions` form requires a valid Turnstile token before submit. Activates on the same deploy as Wave 2.2's `generate-training-plan` change.
 - [ ] **PR-2**: gate `testimonials` (new edge function `submit-testimonial`).
 - [ ] **PR-3**: gate `contact_messages` (new edge function `submit-contact-message` — distinct from the existing `notify-contact-message` webhook handler).
 - [ ] **PR-4**: gate `puppy_inquiries` (new edge function `submit-puppy-inquiry`).
