@@ -24,7 +24,6 @@
     "upload:puppy-images": "node scripts/upload-puppy-images-to-supabase.js",
     "verify:puppy-photos": "node scripts/verify-puppy-photos.js",
     "verify:database": "tsx scripts/verify-database.ts",
-    "seed:breeding-dogs": "node scripts/seed-breeding-dogs-and-litters.js",
     "inspect:database": "tsx scripts/inspect-database.ts",
     "db:push": "supabase db push",
     "prepare": "husky"

@@ -70,14 +70,12 @@ Read files (`.select`):
 - `src/pages/admin/Dashboard.tsx`
 - `scripts/list-puppies.js`
 - `scripts/verify-puppy-photos.js`
-- `scripts/remove-sample-puppies.js`
 
 Write files (`insert/update/delete/upsert`):
 - `src/lib/litter-api.ts` (insert/update)
 - `src/pages/admin/puppies/PuppyForm.tsx` (insert/update)
 - `src/pages/admin/puppies/PuppiesList.tsx` (delete)
 - `scripts/upload-puppy-images-to-supabase.js` (update)
-- `scripts/remove-sample-puppies.js` (delete)
 
 ---
 
@@ -391,7 +389,7 @@ Read files:
 - `src/contexts/AuthContext.tsx`
 
 Write files:
-- No runtime frontend writes. Manual/admin scripts insert rows (`scripts/make-all-auth-users-admin.sql`, migrations).
+- No runtime frontend writes. Manual/admin scripts insert rows (`scripts/promote-specific-user-to-admin.sql`, migrations).
 
 ---
 
@@ -803,9 +801,6 @@ Policy consistency flag:
   - `supabase/migrations/20250224000000_litters_table_and_puppy_litter_id.sql`
 - Policies:
   - `Admin can view/insert/update/delete litters` all based on admin in `profiles`
-- Also repeated in helper SQL:
-  - `scripts/fix-litters-rls-policies.sql`
-  - `scripts/run-litters-migration.sql`
 
 ### Storage RLS (`storage.objects`)
 - `puppy-photos`

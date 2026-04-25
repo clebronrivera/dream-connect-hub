@@ -11,7 +11,7 @@ Organized into 7 waves. Each wave should be shippable on its own. Waves 1–2 ar
 - **Wave 2.1 PR-A**: ✅ shipped (PR #44) — `send-pending-reminders` requires `X-Cron-Secret`; `finalize-agreement` validates JWT + admin role. **Before re-enabling reminders later**: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run.
 - **Wave 2.1 PR-B**: ⏸ deferred — webhook gates for `notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`. Holding until Supabase dashboard verifies all three database webhooks send the service-role JWT in `Authorization`.
 - **Wave 2.2**: ✅ shipped (PR #46) — CORS allowlist replaces the `*` wildcard. Allowed: `https://puppyheavenllc.com` (canonical), `https://www.puppyheavenllc.com` (safety net for redirect edge cases), `http://localhost:8080` (Vite dev). Netlify deploy-preview origins **intentionally excluded** — add a tightly scoped regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) in a follow-up PR if preview-deploy testing of CORS-protected functions becomes necessary. **Deploy required**: edge functions are not auto-deployed by CI; run `supabase functions deploy <name>` for each of `generate-training-plan`, `send-deposit-link`, `send-deposit-receipt`, `send-request-decision` (and Wave 2.1's `send-pending-reminders`, `finalize-agreement`) before the change takes effect in production.
-- **Wave 2.3**: 🟡 partial — only `scripts/fix-rls-policies.js` deleted (PR #42). Other dangerous scripts and the admin-promotion rename are still open.
+- **Wave 2.3**: ✅ shipped (PR #42 + the cleanup PR opened today). `scripts/make-all-auth-users-admin.sql` renamed to `promote-specific-user-to-admin.sql` with a warning header. Six dangerous one-shot scripts deleted: `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js` (and its `seed:breeding-dogs` npm command), `assign-dam-sire-to-upcoming-litters.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`. `fix-rls-policies.js` was deleted earlier in PR #42.
 - **Wave 2.4**: 🟡 partial — dangerous root SQL files retired (PR #42). `supabase-schema.sql` was **kept by decision**, not deleted: migrations under `supabase/migrations/` only `ALTER` base tables, never `CREATE` them, so this file is still the genuine fresh-DB bootstrap.
 - **Wave 2.5**: ✅ shipped (PR #43) as `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_*`).
 
@@ -65,14 +65,12 @@ One migration, two fixes:
 - **Netlify deploy-preview origins are intentionally excluded.** They can be added in a follow-up PR with a regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) if preview-deploy testing of CORS-protected functions ever becomes necessary.
 - [ ] Deploy and smoke test: run `supabase functions deploy <name>` for each affected function, then exercise the public training-plan form OR a harmless admin deposit flow once. _(operational — your call when to deploy)_
 
-### 2.3 Dangerous scripts — 🟡 partial
-- [ ] Rename `scripts/make-all-auth-users-admin.sql` → `scripts/promote-specific-user-to-admin.sql`. Add header:
-  ```sql
-  -- WARNING: do not replace VALUES (...) with a SELECT id FROM auth.users.
-  -- Promoting every auth user to admin grants read access to all customer PII.
-  ```
-- [ ] Delete (or move to `scripts/archive/`): `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js`, `assign-dam-sire-to-upcoming-litters.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`.
-- [x] `scripts/fix-rls-policies.js` deleted (PR #42).
+### 2.3 Dangerous scripts — ✅ shipped
+- [x] `scripts/make-all-auth-users-admin.sql` renamed to `scripts/promote-specific-user-to-admin.sql` with an expanded warning header documenting the specific-user-only requirement.
+- [x] All six dangerous one-shot scripts deleted: `remove-sample-puppies.js` (would delete real production puppies named Max/Luna/Bella), `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js` (hard-coded sire/dam names; one-time seed), `assign-dam-sire-to-upcoming-litters.js` (depends on the seed script; one-time wiring), `fix-litters-rls-policies.sql` (now covered by migration `20250224000000_litters_table_and_puppy_litter_id.sql`), `run-litters-migration.sql` (also covered by that migration).
+- [x] `seed:breeding-dogs` npm script removed from `package.json`.
+- [x] `scripts/fix-rls-policies.js` deleted earlier in PR #42.
+- [x] `BACKEND_CONTRACT.md` updated to drop references to deleted scripts and point at the new `promote-specific-user-to-admin.sql` filename.
 
 ### 2.4 Repo-root SQL cleanup — 🟡 partial / scope adjusted
 - [x] `supabase-puppies-table.sql` deleted (PR #42); the safe `CREATE TABLE IF NOT EXISTS puppies` bootstrap was consolidated into `supabase-schema.sql`.
