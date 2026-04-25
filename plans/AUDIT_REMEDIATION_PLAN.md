@@ -5,6 +5,14 @@ Backlog lives in `.claude/memory/audit_2026_04_22.md`.
 
 Organized into 7 waves. Each wave should be shippable on its own. Waves 1–2 are urgent; 3+ is backlog.
 
+## Status — 2026-04-25
+- **Wave 1.2**: ✅ shipped (PR #38).
+- **Wave 1.3**: ✅ shipped (PR #39); smoke test is operational.
+- **Wave 2.1**: 🟡 in progress — PR-A covers `send-pending-reminders` (X-Cron-Secret) and `finalize-agreement` (JWT + admin role). Webhook gates (notify-*) deferred to PR-B pending dashboard verification.
+- **Wave 2.3**: 🟡 partial — only `scripts/fix-rls-policies.js` deleted (PR #42). Other dangerous scripts and the admin-promotion rename are still open.
+- **Wave 2.4**: 🟡 partial — dangerous root SQL files retired (PR #42). `supabase-schema.sql` was **kept by decision**, not deleted: migrations under `supabase/migrations/` only `ALTER` base tables, never `CREATE` them, so this file is still the genuine fresh-DB bootstrap.
+- **Wave 2.5**: ✅ shipped (PR #43) as `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_*`).
+
 ---
 
 ## Wave 1 — STOP-THE-BLEED (today)
@@ -27,47 +35,47 @@ Unblocks the public deposit flow + closes the two critical credential/audit-log 
 - [ ] Update `.env.local` with the rotated values (single copy of the Resend key).
 - [ ] Redeploy production so the old anon bundle stops shipping.
 
-### 1.2 Remove Airtable PAT from the client bundle (CODE)
-- [ ] Grep for every `VITE_AIRTABLE_*` consumer in `src/`.
-- [ ] If Airtable is still needed: create `supabase/functions/airtable-proxy/` that reads the PAT from `Deno.env` and forwards the exact query the client needs. Gate with JWT.
-- [ ] If Airtable is being retired: delete callers and drop the env var entirely.
-- [ ] Rename `.env.local` keys from `VITE_AIRTABLE_API_KEY` → `AIRTABLE_API_KEY` (remove VITE_ prefix so Vite can't inline it).
-- [ ] `npm run build` and confirm the PAT no longer appears in `dist/assets/*.js`.
+### 1.2 Remove Airtable PAT from the client bundle (CODE) — ✅ shipped (PR #38)
+- [x] Grep for every `VITE_AIRTABLE_*` consumer in `src/`.
+- [x] Airtable was retired: callers deleted and env var dropped (no proxy needed).
+- [x] `.env.local` `VITE_AIRTABLE_API_KEY` → no longer required.
+- [x] `npm run build` confirms the PAT no longer appears in `dist/assets/*.js`.
 
-### 1.3 New migration: `20260422000000_fix_deposit_and_audit_rls.sql`
+### 1.3 New migration: `20260422000000_fix_deposit_and_audit_rls.sql` — ✅ shipped (PR #39)
 One migration, two fixes:
-- [ ] Add `public_insert_deposit_agreement` policy on `deposit_agreements` — mirror `public_insert_deposit_requests` shape: require a valid `deposit_request_id` whose request is in `deposit_link_sent` state, `agreement_status='sent'`, `deposit_status='pending'`, all `admin_*` and system fields NULL.
-- [ ] Drop `system_insert_audit_log` policy on `agreement_audit_log`. Only `service_role` writes audit entries; if the app needs to log from the client, route through an edge function.
-- [ ] Smoke test: submit a real deposit on staging, then confirm the agreement row exists and an audit row was written by the function, not the anon client.
+- [x] Added `public_insert_deposit_agreement` policy on `deposit_agreements`.
+- [x] Dropped `system_insert_audit_log` policy on `agreement_audit_log`. Audit writes now require `service_role`.
+- [ ] Smoke test on staging: confirm deposit submit creates the agreement row and the audit row is written by the function, not the anon client. _(operational — your call when to run)_
 
 ---
 
 ## Wave 2 — P1 security hardening (this week)
 
-### 2.1 Edge function auth gates
-- [ ] `supabase/functions/send-pending-reminders/index.ts`: require header `X-Cron-Secret` equal to `Deno.env.get('CRON_SECRET')`. Update pg_cron / Supabase cron schedule to pass it.
-- [ ] `supabase/functions/finalize-agreement/index.ts`: validate JWT via `admin.auth.getUser(jwt)` and assert `profiles.role='admin'` — copy the pattern from `send-deposit-link`.
-- [ ] `supabase/functions/notify-*` (`notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`): validate Supabase database-webhook signature OR set `verify_jwt=true` in `supabase/config.toml` if they aren't called from DB webhooks.
+### 2.1 Edge function auth gates — 🟡 PR-A in progress, PR-B deferred
+- [x] `supabase/functions/send-pending-reminders/index.ts`: requires `X-Cron-Secret` header equal to `Deno.env.get('CRON_SECRET')`. **Deployment requirement**: set `CRON_SECRET` in Supabase Edge Function secrets and update any scheduler to send the header before re-enabling reminders. (PR-A)
+- [x] `supabase/functions/finalize-agreement/index.ts`: validates JWT via `supabase.auth.getUser(jwt)` and asserts `profiles.role='admin'` (same pattern as `send-deposit-link`). (PR-A)
+- [ ] `supabase/functions/notify-*` (`notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`): set `verify_jwt=true` in `supabase/config.toml` once dashboard verifies all three webhooks send the service-role JWT. **PR-B — deferred.**
 
 ### 2.2 CORS lockdown
 - [ ] Edit `supabase/functions/_shared/cors.ts`: replace `Access-Control-Allow-Origin: *` with an allowlist `[production URL, 'http://localhost:5173']` chosen by matching request `Origin` header.
 
-### 2.3 Dangerous scripts
+### 2.3 Dangerous scripts — 🟡 partial
 - [ ] Rename `scripts/make-all-auth-users-admin.sql` → `scripts/promote-specific-user-to-admin.sql`. Add header:
   ```sql
   -- WARNING: do not replace VALUES (...) with a SELECT id FROM auth.users.
   -- Promoting every auth user to admin grants read access to all customer PII.
   ```
-- [ ] Delete (or move to `scripts/archive/`): `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js`, `assign-dam-sire-to-upcoming-litters.js`, `fix-rls-policies.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`.
+- [ ] Delete (or move to `scripts/archive/`): `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js`, `assign-dam-sire-to-upcoming-litters.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`.
+- [x] `scripts/fix-rls-policies.js` deleted (PR #42).
 
-### 2.4 Repo-root SQL cleanup
-- [ ] Delete `supabase-puppies-table.sql` (does `DROP TABLE puppies CASCADE`).
-- [ ] Delete `fix-rls-policies.sql` (duplicate blocks, references `user_roles` that no longer exists).
-- [ ] Delete `supabase-schema.sql` (conflicts with migrations on `profiles` shape).
-- [ ] Update `supabase/README_MIGRATION.md` if it points at these; make `supabase/migrations/` the sole source of truth.
+### 2.4 Repo-root SQL cleanup — 🟡 partial / scope adjusted
+- [x] `supabase-puppies-table.sql` deleted (PR #42); the safe `CREATE TABLE IF NOT EXISTS puppies` bootstrap was consolidated into `supabase-schema.sql`.
+- [x] `fix-rls-policies.sql` deleted (PR #42); its public-INSERT policies were duplicated in `supabase-schema.sql`.
+- [ ] ~~Delete `supabase-schema.sql`~~. **Decision (2026-04-25): keep.** Verified that `supabase/migrations/*.sql` only `ALTER` the base tables — none of them `CREATE` them. The file is still the genuine fresh-DB bootstrap. The `profiles` shape divergence remains a known issue tracked separately.
+- [x] `supabase/migrations/README_MIGRATION.md` and `BACKEND_CONTRACT.md` updated to drop references to the deleted files (PR #42).
 
-### 2.5 Fix invalid Postgres syntax
-- [ ] New migration `20260422010000_fix_admin_dashboard_policies.sql` that replaces the broken `CREATE POLICY IF NOT EXISTS` calls in `20250209100000_admin_dashboard_setup.sql:22-42` with `DROP POLICY IF EXISTS … ; CREATE POLICY …`. Leave the original migration file untouched (never edit applied migrations).
+### 2.5 Fix invalid Postgres syntax — ✅ shipped (PR #43)
+- [x] New migration `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_fix_admin_dashboard_policies.sql`) replaces the broken `CREATE POLICY IF NOT EXISTS` calls in `20250209100000_admin_dashboard_setup.sql:22,33` with `DROP POLICY IF EXISTS … ; CREATE POLICY …`. Original migration file left untouched per convention.
 
 ### 2.6 Public-insert tightening (captcha + length caps)
 - [ ] Add hCaptcha or Turnstile to `testimonials`, `training_plan_submissions`, `contact_messages`, `puppy_inquiries` forms. Verify token server-side via edge function that then does the insert under service role (public INSERT policy can be dropped entirely after).
