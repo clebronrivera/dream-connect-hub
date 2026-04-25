@@ -111,14 +111,15 @@ function buildPrompt(data: TrainingPlanRequest): string {
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  const cors = corsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -127,7 +128,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -138,7 +139,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -147,7 +148,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "Missing required fields: email, dog_name, problem_type" }),
       {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -204,7 +205,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "Failed to reach AI service" }),
       {
         status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -216,7 +217,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "AI service returned an error", status: claudeResponse.status }),
       {
         status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -240,7 +241,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           JSON.stringify({ error: "Failed to parse AI response" }),
           {
             status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...cors, "Content-Type": "application/json" },
           }
         );
       }
@@ -250,7 +251,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "AI response did not contain valid plan data" }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         }
       );
     }
@@ -315,7 +316,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   return new Response(JSON.stringify(result), {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 });
 

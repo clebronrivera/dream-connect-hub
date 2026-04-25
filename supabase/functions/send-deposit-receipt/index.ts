@@ -5,6 +5,7 @@
 // Verifies caller is admin INSIDE the function.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email/send.ts";
 import { depositReceipt } from "../_shared/email/templates.ts";
 
@@ -15,24 +16,18 @@ interface RequestBody {
   agreement_id: string;
 }
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Max-Age": "86400",
-};
-
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
-}
-
 Deno.serve(async (req: Request): Promise<Response> => {
+  const cors = corsHeaders(req);
+
+  function jsonResponse(status: number, body: unknown): Response {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json", ...cors },
+    });
+  }
+
   if (req.method === "OPTIONS")
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
+    return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST")
     return jsonResponse(405, { error: "Method not allowed" });
 
