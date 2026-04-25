@@ -10,7 +10,7 @@ Organized into 7 waves. Each wave should be shippable on its own. Waves 1–2 ar
 - **Wave 1.3**: ✅ shipped (PR #39); smoke test is operational.
 - **Wave 2.1 PR-A**: ✅ shipped (PR #44) — `send-pending-reminders` requires `X-Cron-Secret`; `finalize-agreement` validates JWT + admin role. **Before re-enabling reminders later**: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run.
 - **Wave 2.1 PR-B**: ⏸ deferred — webhook gates for `notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`. Holding until Supabase dashboard verifies all three database webhooks send the service-role JWT in `Authorization`.
-- **Wave 2.2**: 🟡 in PR — CORS allowlist replaces the `*` wildcard. Allowed: `https://puppyheavenllc.com`, `https://www.puppyheavenllc.com`, `http://localhost:8080`. Netlify deploy-preview origins are **intentionally excluded** — if preview-deploy testing of CORS-protected functions becomes necessary, add a tightly scoped regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) in a follow-up PR.
+- **Wave 2.2**: ✅ shipped (PR #46) — CORS allowlist replaces the `*` wildcard. Allowed: `https://puppyheavenllc.com` (canonical), `https://www.puppyheavenllc.com` (safety net for redirect edge cases), `http://localhost:8080` (Vite dev). Netlify deploy-preview origins **intentionally excluded** — add a tightly scoped regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) in a follow-up PR if preview-deploy testing of CORS-protected functions becomes necessary. **Deploy required**: edge functions are not auto-deployed by CI; run `supabase functions deploy <name>` for each of `generate-training-plan`, `send-deposit-link`, `send-deposit-receipt`, `send-request-decision` (and Wave 2.1's `send-pending-reminders`, `finalize-agreement`) before the change takes effect in production.
 - **Wave 2.3**: 🟡 partial — only `scripts/fix-rls-policies.js` deleted (PR #42). Other dangerous scripts and the admin-promotion rename are still open.
 - **Wave 2.4**: 🟡 partial — dangerous root SQL files retired (PR #42). `supabase-schema.sql` was **kept by decision**, not deleted: migrations under `supabase/migrations/` only `ALTER` base tables, never `CREATE` them, so this file is still the genuine fresh-DB bootstrap.
 - **Wave 2.5**: ✅ shipped (PR #43) as `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_*`).
@@ -58,11 +58,12 @@ One migration, two fixes:
 - [x] `supabase/functions/finalize-agreement/index.ts`: validates JWT via `supabase.auth.getUser(jwt)` and asserts `profiles.role='admin'` (same pattern as `send-deposit-link`). (PR-A)
 - [ ] `supabase/functions/notify-*` (`notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`): set `verify_jwt=true` in `supabase/config.toml` once dashboard verifies all three webhooks send the service-role JWT. **PR-B — deferred pending Supabase dashboard verification.**
 
-### 2.2 CORS lockdown — 🟡 in PR
+### 2.2 CORS lockdown — ✅ shipped (PR #46)
 - [x] `_shared/cors.ts` rewritten as a `corsHeaders(req: Request)` function backed by an allowlist: `https://puppyheavenllc.com`, `https://www.puppyheavenllc.com`, `http://localhost:8080` (dev port is 8080 per `vite.config.ts`, not 5173 as originally noted).
 - [x] Three deposit functions (`send-deposit-link`, `send-deposit-receipt`, `send-request-decision`) had their inline `CORS_HEADERS` consts removed and now use the shared helper. `generate-training-plan` already imported the shared helper; updated to call it as a function.
 - [x] Unknown origins receive an empty `Access-Control-Allow-Origin` value (browser blocks the response). Server-to-server callers without an `Origin` header fall through unaffected.
 - **Netlify deploy-preview origins are intentionally excluded.** They can be added in a follow-up PR with a regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) if preview-deploy testing of CORS-protected functions ever becomes necessary.
+- [ ] Deploy and smoke test: run `supabase functions deploy <name>` for each affected function, then exercise the public training-plan form OR a harmless admin deposit flow once. _(operational — your call when to deploy)_
 
 ### 2.3 Dangerous scripts — 🟡 partial
 - [ ] Rename `scripts/make-all-auth-users-admin.sql` → `scripts/promote-specific-user-to-admin.sql`. Add header:
