@@ -10,7 +10,7 @@
 # the deploy. Tell Netlify not to treat these keys as secrets in build output.
 [build.environment]
   NODE_VERSION = "20"
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_TURNSTILE_SITE_KEY"
 
 # SPA fallback: serve index.html for all routes so client-side React Router works
 # (backup for public/_redirects; both ensure deep links and refreshes work)

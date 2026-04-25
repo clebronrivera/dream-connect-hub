@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyTurnstileToken } from "../_shared/turnstile.ts";
 import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
 import {
   escape as escHtml,
@@ -34,6 +35,7 @@ interface TrainingPlanRequest {
   problem_description?: string;
   frequency?: string;
   whats_been_tried?: string;
+  turnstile_token?: string;
 }
 
 const PROBLEM_LABELS: Record<string, string> = {
@@ -148,6 +150,26 @@ Deno.serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: "Missing required fields: email, dog_name, problem_type" }),
       {
         status: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  // --- Turnstile verification ---
+  const remoteIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const turnstileResult = await verifyTurnstileToken(
+    body.turnstile_token,
+    remoteIp
+  );
+  if (!turnstileResult.ok) {
+    return new Response(
+      JSON.stringify({
+        error: "Captcha verification failed",
+        codes: turnstileResult.errorCodes ?? [],
+      }),
+      {
+        status: 403,
         headers: { ...cors, "Content-Type": "application/json" },
       }
     );
