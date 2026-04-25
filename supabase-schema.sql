@@ -164,3 +164,64 @@ CREATE INDEX IF NOT EXISTS idx_product_inquiries_status ON product_inquiries(sta
 CREATE INDEX IF NOT EXISTS idx_product_inquiries_created_at ON product_inquiries(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_contact_messages_status ON contact_messages(status);
 CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON contact_messages(created_at DESC);
+
+-- Puppies table (idempotent base; subsequent migrations evolve the schema)
+CREATE TABLE IF NOT EXISTS puppies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  puppy_id TEXT UNIQUE,
+  name TEXT NOT NULL,
+  breed TEXT NOT NULL,
+  gender TEXT CHECK (gender IN ('Male', 'Female')),
+  color TEXT,
+  date_of_birth DATE,
+  age_weeks INTEGER,
+  ready_date DATE,
+  base_price DECIMAL(10, 2),
+  discount_active BOOLEAN DEFAULT false,
+  discount_amount DECIMAL(10, 2),
+  discount_note TEXT,
+  final_price DECIMAL(10, 2),
+  status TEXT DEFAULT 'Available' CHECK (status IN ('Available', 'Pending', 'Sold', 'Reserved')),
+  photos TEXT[],
+  primary_photo TEXT,
+  description TEXT,
+  mom_weight_approx INTEGER,
+  dad_weight_approx INTEGER,
+  vaccinations TEXT,
+  health_certificate BOOLEAN DEFAULT false,
+  microchipped BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id),
+  featured BOOLEAN DEFAULT false,
+  display_order INTEGER DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_puppies_status ON puppies(status);
+CREATE INDEX IF NOT EXISTS idx_puppies_breed ON puppies(breed);
+CREATE INDEX IF NOT EXISTS idx_puppies_featured ON puppies(featured);
+CREATE INDEX IF NOT EXISTS idx_puppies_display_order ON puppies(display_order);
+
+ALTER TABLE puppies ENABLE ROW LEVEL SECURITY;
+
+-- Anonymous users can view puppies on the public site
+DROP POLICY IF EXISTS "Anyone can view puppies" ON puppies;
+CREATE POLICY "Anyone can view puppies"
+  ON puppies FOR SELECT
+  USING (true);
+
+-- Admin write access is granted by later migrations using profiles.role = 'admin'.
+
+CREATE OR REPLACE FUNCTION update_puppies_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_puppies_updated_at ON puppies;
+CREATE TRIGGER set_puppies_updated_at
+  BEFORE UPDATE ON puppies
+  FOR EACH ROW
+  EXECUTE FUNCTION update_puppies_updated_at();

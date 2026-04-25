@@ -71,7 +71,7 @@ async function checkRLSPolicies() {
     }
   }
   
-  console.log('\n💡 If any policies are missing, run: npm run fix:rls\n');
+  console.log('\n💡 If any policies are missing, paste supabase-schema.sql into the Supabase SQL Editor or apply migrations via `npm run db:push`.\n');
 }
 
 checkRLSPolicies().catch(console.error);

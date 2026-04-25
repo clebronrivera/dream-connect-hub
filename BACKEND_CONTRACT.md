@@ -10,15 +10,14 @@ This document reflects what the frontend currently expects from Supabase (DB, St
 ## 1. DATABASE TABLES
 
 ### Canonical-source warning
-- There are **multiple SQL sources of truth**:
-  - `supabase/migrations/*.sql` (intended migration path)
-  - `supabase-schema.sql` (manual bootstrap)
-  - `supabase-puppies-table.sql` (manual puppies table bootstrap)
-  - `fix-rls-policies.sql` (manual patch, if needed)
-- The app behavior appears aligned to migrations + current TS types in `src/lib/supabase.ts`.
+- There are **two SQL sources of truth**:
+  - `supabase/migrations/*.sql` (primary, applied via `supabase db push`)
+  - `supabase-schema.sql` (fresh-DB bootstrap; migrations only `ALTER` these tables, they don't `CREATE` them)
+- The app behavior is aligned to migrations + current TS types in `src/lib/supabase.ts`.
+- The legacy root SQL files `supabase-puppies-table.sql` and `fix-rls-policies.sql` were retired on 2026-04-25; the safe puppies bootstrap was consolidated into `supabase-schema.sql`, and the public-INSERT policy patches it duplicated are already covered there.
 
 ### `puppies`
-Source: `supabase-puppies-table.sql` + migrations `20250214000000_add_listing_date_and_admin_viewed.sql`, `20250224000000_litters_table_and_puppy_litter_id.sql`, `20250306100000_microchipped_always_true.sql`
+Source: `supabase-schema.sql` + migrations `20250214000000_add_listing_date_and_admin_viewed.sql`, `20250224000000_litters_table_and_puppy_litter_id.sql`, `20250306100000_microchipped_always_true.sql`
 
 | Column | Type | Required | Default | Notes |
 |---|---|---:|---|---|
@@ -60,7 +59,7 @@ Keys and constraints:
 - UNIQUE: `puppy_id`
 
 Derived/computed:
-- `updated_at` trigger: `update_puppies_updated_at()` in `supabase-puppies-table.sql`
+- `updated_at` trigger: `update_puppies_updated_at()` in `supabase-schema.sql`
 
 Read files (`.select`):
 - `src/pages/Puppies.tsx`
@@ -72,7 +71,6 @@ Read files (`.select`):
 - `scripts/list-puppies.js`
 - `scripts/verify-puppy-photos.js`
 - `scripts/remove-sample-puppies.js`
-- `scripts/setup-puppies-table.js`
 
 Write files (`insert/update/delete/upsert`):
 - `src/lib/litter-api.ts` (insert/update)
@@ -242,9 +240,6 @@ Keys and constraints:
 - PK: `id`
 - FK: `upcoming_litter_id -> upcoming_litters(id)`
 
-Inconsistency:
-- `fix-rls-policies.sql` contains `ALTER COLUMN subject DROP NOT NULL`; this is **not in migrations**. App UI still always sends a subject.
-
 Read files:
 - `src/pages/admin/Dashboard.tsx`
 - `src/components/admin/ContactMessageInboxList.tsx`
@@ -254,7 +249,6 @@ Read files:
 Write files:
 - `src/lib/contact-messages.ts` (insert, used by `Contact` and `UpcomingLitters` flows)
 - `src/components/admin/ContactMessageDetailDialog.tsx` (update status/admin_notes/followed_up_at/admin_viewed_at)
-- `scripts/fix-rls-policies.js` (test inserts/deletes)
 
 ---
 
@@ -699,12 +693,12 @@ Policy consistency flag:
 ## 5. ROW LEVEL SECURITY (RLS) POLICIES
 
 ### Important context
-- Some enable/policy definitions are in `supabase-schema.sql` and `fix-rls-policies.sql` (manual SQL), not only migrations.
+- Some enable/policy definitions are in `supabase-schema.sql` (manual bootstrap), not only migrations.
 - Below lists policy definitions found in repo SQL files.
 
 ### `puppies`
 - RLS enabled in:
-  - `supabase-puppies-table.sql`
+  - `supabase-schema.sql`
 - Policies:
   - `Public can view available puppies only` (SELECT, anon/authenticated): `status = 'Available'`
     - `supabase/migrations/20250208000000_consultation_puppy_flows.sql`
@@ -716,14 +710,13 @@ Policy consistency flag:
     - `supabase/migrations/20250209100000_admin_dashboard_setup.sql`
   - `Admin can delete puppies` (DELETE, authenticated): exists admin in `profiles`
     - same file
-  - Legacy user_roles-based policies appear in `supabase-puppies-table.sql` (superseded)
 
 ### `puppy_inquiries`
 - RLS enabled in:
-  - `supabase-schema.sql` and `fix-rls-policies.sql`
+  - `supabase-schema.sql`
 - Policies:
   - `Allow public insert on puppy_inquiries` (INSERT, anon/authenticated): `WITH CHECK (true)`
-    - `supabase-schema.sql` and `fix-rls-policies.sql`
+    - `supabase-schema.sql`
   - `Admin can read puppy_inquiries` (SELECT, authenticated): admin in `profiles`
     - `supabase/migrations/20250208000000_consultation_puppy_flows.sql`
   - `Admin can update puppy_inquiries` (UPDATE, authenticated): admin in `profiles`
@@ -731,30 +724,30 @@ Policy consistency flag:
 
 ### `consultation_requests`
 - RLS enabled in:
-  - `supabase-schema.sql` and `fix-rls-policies.sql`
+  - `supabase-schema.sql`
 - Policies:
   - `Allow public insert on consultation_requests` (INSERT, anon/authenticated): `WITH CHECK (true)`
-    - `supabase-schema.sql` and `fix-rls-policies.sql`
+    - `supabase-schema.sql`
   - `Admin can read consultation_requests` (SELECT): admin in `profiles`
   - `Admin can update consultation_requests` (UPDATE): admin in `profiles`
     - `supabase/migrations/20250208000000_consultation_puppy_flows.sql`
 
 ### `product_inquiries`
 - RLS enabled in:
-  - `supabase-schema.sql` and `fix-rls-policies.sql`
+  - `supabase-schema.sql`
 - Policies:
   - `Allow public insert on product_inquiries` (INSERT): `WITH CHECK (true)`
-    - `supabase-schema.sql` and `fix-rls-policies.sql`
+    - `supabase-schema.sql`
   - `Admin can read product_inquiries` (SELECT): admin in `profiles`
   - `Admin can update product_inquiries` (UPDATE): admin in `profiles`
     - `supabase/migrations/20250209100000_admin_dashboard_setup.sql`
 
 ### `contact_messages`
 - RLS enabled in:
-  - `supabase-schema.sql` and `fix-rls-policies.sql`
+  - `supabase-schema.sql`
 - Policies:
   - `Allow public insert on contact_messages` (INSERT): `WITH CHECK (true)`
-    - `supabase-schema.sql` and `fix-rls-policies.sql`
+    - `supabase-schema.sql`
   - `Admin can read contact_messages` (SELECT): admin in `profiles`
   - `Admin can update contact_messages` (UPDATE): admin in `profiles`
     - `supabase/migrations/20250208000000_consultation_puppy_flows.sql`
@@ -986,7 +979,7 @@ Key query set (parallel):
 ### RPC calls
 - Frontend app: none
 - Scripts only:
-  - `exec_sql` RPC attempted in several scripts (`scripts/setup-puppies-table.js`, `scripts/setup-puppy-photos-storage.js`, etc.)
+  - `exec_sql` RPC attempted in `scripts/setup-puppy-photos-storage.js` and similar bootstrap helpers
 
 ### Joins / nested selects
 - Essentials kits query uses nested relation:
@@ -1064,10 +1057,7 @@ Storage associations:
 - `profiles` table definition differs between `supabase-schema.sql` and migration `20250208000000_consultation_puppy_flows.sql` (PK structure differs).
 - Status model drift:
   - Legacy schema/scripts use `new/reviewed/contacted` for inquiry tables now using `active/inactive` in app and migration.
-- `contact_messages.subject` nullability drift:
-  - `fix-rls-policies.sql` drops NOT NULL, while app expects required subject.
 - Legacy `user_roles` references remain in older storage migrations/scripts; later migrations switch to `profiles`.
-- `supabase-puppies-table.sql` is not in migrations chain but still defines key table + trigger + policies.
 - Duplicate rename migrations for doodle spelling variants:
   - `20250308000000_rename_goldendoodle_1_through_5.sql`
   - `20250308100000_rename_golden_doddle_1_through_5.sql`

@@ -248,5 +248,5 @@ This is enforced by Row Level Security (RLS) policies in Supabase.
 
 If you have questions or need help:
 - Check the Supabase documentation: https://supabase.com/docs
-- Review the SQL file: `supabase-puppies-table.sql`
+- Review the bootstrap schema: `supabase-schema.sql`, plus migrations in `supabase/migrations/`
 - Contact support
