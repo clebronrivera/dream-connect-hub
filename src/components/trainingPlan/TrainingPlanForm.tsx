@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, Send, Dog } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget';
 import {
   PROBLEM_TYPES,
   LIVING_SITUATIONS,
@@ -86,6 +87,9 @@ export type TrainingPlanResult = {
   commands_to_use?: Array<{ command: string; when_to_use: string; how_to_teach: string }>;
 };
 
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
+
 export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: TrainingPlanFormProps) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({
@@ -93,6 +97,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
     problem_type: defaultProblemType ?? '',
   });
   const [customBreed, setCustomBreed] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const isOtherBreed = form.breed === OTHER_BREED_OPTION;
   const resolvedBreed = isOtherBreed ? customBreed.trim() : form.breed;
@@ -122,6 +127,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
         problem_description: form.problem_description || null,
         frequency: form.frequency || null,
         whats_been_tried: form.whats_been_tried || null,
+        turnstile_token: turnstileToken,
       };
 
       // Call edge function (handles lead capture + Claude API)
@@ -181,7 +187,8 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
 
   const canAdvanceStep1 = form.dog_name.trim().length > 0 && breedValid;
   const canAdvanceStep2 = true; // All step 2 fields are optional
-  const canSubmitStep3 = form.problem_type && form.email.includes('@');
+  const captchaSatisfied = !captchaRequired || Boolean(turnstileToken);
+  const canSubmitStep3 = form.problem_type && form.email.includes('@') && captchaSatisfied;
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -465,6 +472,16 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
                 We'll email you a copy of your PDF. We don't spam — just your plan.
               </p>
             </div>
+
+            {captchaRequired && (
+              <div className="flex justify-center">
+                <TurnstileWidget
+                  onVerify={(token) => setTurnstileToken(token)}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => setTurnstileToken(null)}
+                />
+              </div>
+            )}
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(2)}>

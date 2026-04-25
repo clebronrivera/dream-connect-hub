@@ -11,6 +11,7 @@ Organized into 7 waves. Each wave should be shippable on its own. Waves 1–2 ar
 - **Wave 2.1 PR-A**: ✅ shipped (PR #44) — `send-pending-reminders` requires `X-Cron-Secret`; `finalize-agreement` validates JWT + admin role. **Before re-enabling reminders later**: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run.
 - **Wave 2.1 PR-B**: ⏸ deferred — webhook gates for `notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`. Holding until Supabase dashboard verifies all three database webhooks send the service-role JWT in `Authorization`.
 - **Wave 2.2**: ✅ shipped (PR #46) — CORS allowlist replaces the `*` wildcard. Allowed: `https://puppyheavenllc.com` (canonical), `https://www.puppyheavenllc.com` (safety net for redirect edge cases), `http://localhost:8080` (Vite dev). Netlify deploy-preview origins **intentionally excluded** — add a tightly scoped regex match (`^https://deploy-preview-\d+--silver-moxie-59da12\.netlify\.app$`) in a follow-up PR if preview-deploy testing of CORS-protected functions becomes necessary. **Deploy required**: edge functions are not auto-deployed by CI; run `supabase functions deploy <name>` for each of `generate-training-plan`, `send-deposit-link`, `send-deposit-receipt`, `send-request-decision` (and Wave 2.1's `send-pending-reminders`, `finalize-agreement`) before the change takes effect in production.
+- **Wave 2.6 PR-1 (Turnstile foundation + training_plan_submissions)**: 🟡 in PR — adds `_shared/turnstile.ts` verify helper, `<TurnstileWidget />` React component, and gates the `generate-training-plan` edge function with Cloudflare Turnstile. `VITE_TURNSTILE_SITE_KEY` set in Netlify; `TURNSTILE_SECRET_KEY` set in Supabase Edge Function secrets. PRs 2-4 will gate the remaining three forms. PR-5 drops the public INSERT RLS policies after all four are verified in production.
 - **Wave 2.3**: ✅ shipped (PR #42 + the cleanup PR opened today). `scripts/make-all-auth-users-admin.sql` renamed to `promote-specific-user-to-admin.sql` with a warning header. Six dangerous one-shot scripts deleted: `remove-sample-puppies.js`, `delete-test-upcoming-litter.js`, `seed-breeding-dogs-and-litters.js` (and its `seed:breeding-dogs` npm command), `assign-dam-sire-to-upcoming-litters.js`, `fix-litters-rls-policies.sql`, `run-litters-migration.sql`. `fix-rls-policies.js` was deleted earlier in PR #42.
 - **Wave 2.4**: 🟡 partial — dangerous root SQL files retired (PR #42). `supabase-schema.sql` was **kept by decision**, not deleted: migrations under `supabase/migrations/` only `ALTER` base tables, never `CREATE` them, so this file is still the genuine fresh-DB bootstrap.
 - **Wave 2.5**: ✅ shipped (PR #43) as `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_*`).
@@ -81,9 +82,14 @@ One migration, two fixes:
 ### 2.5 Fix invalid Postgres syntax — ✅ shipped (PR #43)
 - [x] New migration `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_fix_admin_dashboard_policies.sql`) replaces the broken `CREATE POLICY IF NOT EXISTS` calls in `20250209100000_admin_dashboard_setup.sql:22,33` with `DROP POLICY IF EXISTS … ; CREATE POLICY …`. Original migration file left untouched per convention.
 
-### 2.6 Public-insert tightening (captcha + length caps)
-- [ ] Add hCaptcha or Turnstile to `testimonials`, `training_plan_submissions`, `contact_messages`, `puppy_inquiries` forms. Verify token server-side via edge function that then does the insert under service role (public INSERT policy can be dropped entirely after).
-- [ ] Add `storage.objects` INSERT constraint on `testimonial-photos` bucket: `WITH CHECK (storage.extension(name) IN ('jpg','jpeg','png','webp'))` and a per-object size limit.
+### 2.6 Public-insert tightening (captcha + length caps) — 🟡 in progress
+- [x] Vendor chosen: Cloudflare Turnstile. Site key set in Netlify (`VITE_TURNSTILE_SITE_KEY`); secret key set in Supabase Edge Function secrets (`TURNSTILE_SECRET_KEY`).
+- [x] **PR-1**: shared `_shared/turnstile.ts` verify helper, `<TurnstileWidget />` React component, `generate-training-plan` edge function gated. `training_plan_submissions` form requires a valid Turnstile token before submit.
+- [ ] **PR-2**: gate `testimonials` (new edge function `submit-testimonial`).
+- [ ] **PR-3**: gate `contact_messages` (new edge function `submit-contact-message` — distinct from the existing `notify-contact-message` webhook handler).
+- [ ] **PR-4**: gate `puppy_inquiries` (new edge function `submit-puppy-inquiry`).
+- [ ] **PR-5**: drop public INSERT RLS policies on all four tables once PR-1..4 are verified in production.
+- [ ] Add `storage.objects` INSERT constraint on `testimonial-photos` bucket: `WITH CHECK (storage.extension(name) IN ('jpg','jpeg','png','webp'))` and a per-object size limit. _(Likely bundled with PR-2 or its own follow-up.)_
 
 ---
 
