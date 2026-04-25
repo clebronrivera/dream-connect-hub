@@ -8,7 +8,8 @@ Organized into 7 waves. Each wave should be shippable on its own. Waves 1–2 ar
 ## Status — 2026-04-25
 - **Wave 1.2**: ✅ shipped (PR #38).
 - **Wave 1.3**: ✅ shipped (PR #39); smoke test is operational.
-- **Wave 2.1**: 🟡 in progress — PR-A covers `send-pending-reminders` (X-Cron-Secret) and `finalize-agreement` (JWT + admin role). Webhook gates (notify-*) deferred to PR-B pending dashboard verification.
+- **Wave 2.1 PR-A**: ✅ shipped (PR #44) — `send-pending-reminders` requires `X-Cron-Secret`; `finalize-agreement` validates JWT + admin role. **Before re-enabling reminders later**: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run.
+- **Wave 2.1 PR-B**: ⏸ deferred — webhook gates for `notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`. Holding until Supabase dashboard verifies all three database webhooks send the service-role JWT in `Authorization`.
 - **Wave 2.3**: 🟡 partial — only `scripts/fix-rls-policies.js` deleted (PR #42). Other dangerous scripts and the admin-promotion rename are still open.
 - **Wave 2.4**: 🟡 partial — dangerous root SQL files retired (PR #42). `supabase-schema.sql` was **kept by decision**, not deleted: migrations under `supabase/migrations/` only `ALTER` base tables, never `CREATE` them, so this file is still the genuine fresh-DB bootstrap.
 - **Wave 2.5**: ✅ shipped (PR #43) as `20260425000000_fix_admin_dashboard_create_policy_syntax.sql` (renamed from the originally proposed `20260422010000_*`).
@@ -51,10 +52,10 @@ One migration, two fixes:
 
 ## Wave 2 — P1 security hardening (this week)
 
-### 2.1 Edge function auth gates — 🟡 PR-A in progress, PR-B deferred
-- [x] `supabase/functions/send-pending-reminders/index.ts`: requires `X-Cron-Secret` header equal to `Deno.env.get('CRON_SECRET')`. **Deployment requirement**: set `CRON_SECRET` in Supabase Edge Function secrets and update any scheduler to send the header before re-enabling reminders. (PR-A)
+### 2.1 Edge function auth gates — ✅ PR-A shipped (PR #44), PR-B deferred
+- [x] `supabase/functions/send-pending-reminders/index.ts`: requires `X-Cron-Secret` header equal to `Deno.env.get('CRON_SECRET')`. **Before re-enabling reminders**: (1) set `CRON_SECRET` in Supabase Edge Function secrets, (2) configure the scheduler/external caller to send `X-Cron-Secret`, (3) trigger one manual test run. (PR-A — confirmed no active scheduler at merge time, 2026-04-25.)
 - [x] `supabase/functions/finalize-agreement/index.ts`: validates JWT via `supabase.auth.getUser(jwt)` and asserts `profiles.role='admin'` (same pattern as `send-deposit-link`). (PR-A)
-- [ ] `supabase/functions/notify-*` (`notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`): set `verify_jwt=true` in `supabase/config.toml` once dashboard verifies all three webhooks send the service-role JWT. **PR-B — deferred.**
+- [ ] `supabase/functions/notify-*` (`notify-deposit-request`, `notify-contact-message`, `notify-puppy-inquiry`): set `verify_jwt=true` in `supabase/config.toml` once dashboard verifies all three webhooks send the service-role JWT. **PR-B — deferred pending Supabase dashboard verification.**
 
 ### 2.2 CORS lockdown
 - [ ] Edit `supabase/functions/_shared/cors.ts`: replace `Access-Control-Allow-Origin: *` with an allowlist `[production URL, 'http://localhost:5173']` chosen by matching request `Origin` header.
