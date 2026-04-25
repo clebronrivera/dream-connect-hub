@@ -1,6 +1,8 @@
 // Supabase Edge Function: finalize-agreement
 // Called when all three finalization conditions are met.
 // Verifies conditions, updates status, sends confirmation emails.
+// Verifies caller is admin INSIDE the function (matches the pattern used by
+// send-deposit-link, send-deposit-receipt, and send-request-decision).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
@@ -20,13 +22,46 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  // Verify auth
+  // --- Auth: verify admin via JWT ---
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return new Response(JSON.stringify({ error: "Missing authorization" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  const jwt = authHeader.replace(/^Bearer\s+/i, "");
+  if (!jwt) {
+    return new Response(JSON.stringify({ error: "Empty bearer token" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+  if (userErr || !userData?.user) {
+    return new Response(
+      JSON.stringify({
+        error: "Invalid session",
+        details: userErr?.message ?? "no user resolved from JWT",
+      }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", userData.user.id)
+    .single();
+  if (profileErr || profile?.role !== "admin") {
+    return new Response(
+      JSON.stringify({ error: "Admin access required" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   let body: { agreement_id: string };
@@ -38,8 +73,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // Fetch agreement
   const { data: agreement, error: fetchErr } = await supabase

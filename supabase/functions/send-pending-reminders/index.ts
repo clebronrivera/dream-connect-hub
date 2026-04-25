@@ -1,6 +1,13 @@
 // Supabase Edge Function: send-pending-reminders
 // Triggered by pg_cron or external scheduler.
 // Queries stale pending deposits and sends admin reminder emails.
+//
+// === DEPLOYMENT REQUIREMENT ===
+// Before enabling or re-enabling the reminder scheduler, set CRON_SECRET in
+// Supabase Edge Function secrets and configure the scheduler to send
+// `X-Cron-Secret` with the same value. Requests missing or mismatching the
+// header are rejected — without the secret set, the function refuses every
+// call. There is no query-param fallback by design.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
@@ -11,6 +18,7 @@ import {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 const REMINDER_MAX_COUNT = 5;
 const TRIGGER_HOURS = 24;
@@ -21,6 +29,30 @@ Deno.serve(async (req: Request): Promise<Response> => {
       status: 405,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  if (!CRON_SECRET) {
+    console.error(
+      "send-pending-reminders called but CRON_SECRET is not configured"
+    );
+    return new Response(
+      JSON.stringify({ error: "Server not configured" }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const providedSecret = req.headers.get("X-Cron-Secret");
+  if (!providedSecret) {
+    return new Response(
+      JSON.stringify({ error: "Missing X-Cron-Secret header" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (providedSecret !== CRON_SECRET) {
+    return new Response(
+      JSON.stringify({ error: "Invalid cron secret" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
