@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { Seo } from '@/components/seo/Seo';
@@ -26,19 +25,12 @@ import {
   HelpCircle,
   Star,
   ClipboardCheck,
+  Newspaper,
 } from 'lucide-react';
 
 export function AdminLayout() {
   const { signOut, user } = useAuth();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Auto-close mobile drawer on route change (adjusting state during render when pathname changes)
-  const [prevPathname, setPrevPathname] = useState(location.pathname);
-  if (location.pathname !== prevPathname) {
-    setPrevPathname(location.pathname);
-    setSidebarOpen(false);
-  }
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -52,6 +44,7 @@ export function AdminLayout() {
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
     { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
     { name: 'Dreamy Reviews', href: '/admin/testimonials', icon: Star },
+    { name: 'Newsletter', href: '/admin/newsletter', icon: Newspaper },
     { name: 'FAQ', href: '/admin/faq', icon: HelpCircle },
     { name: 'Business Modes', href: '/admin/business-modes', icon: BarChart2 },
   ];
@@ -62,34 +55,30 @@ export function AdminLayout() {
       <Link
         key={item.name}
         to={item.href}
-        className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+        className={`flex items-center px-6 py-3 text-sm font-medium transition-colors border-r-4 ${
           isActive
-            ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700'
-            : 'text-gray-700 hover:bg-gray-50'
+            ? 'border-primaryDeep bg-primaryDeep/10 text-primaryDeep'
+            : 'border-transparent text-foreground hover:bg-muted/80'
         }`}
       >
-        <item.icon className="mr-3 h-5 w-5" />
+        <item.icon className="mr-3 h-5 w-5 shrink-0" />
         {item.name}
       </Link>
     );
   });
 
   const sidebarFooter = (
-    <div className="p-6 border-t space-y-2">
+    <div className="p-6 border-t border-line space-y-2">
       <Link
         to="/"
-        className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors"
+        className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-foreground bg-muted/60 hover:bg-muted rounded-md border border-line transition-colors"
       >
         <ExternalLink className="h-4 w-4" />
-        View Main Website
+        View main site
       </Link>
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => signOut()}
-      >
+      <Button variant="outline" className="w-full border-line" onClick={() => signOut()}>
         <LogOut className="mr-2 h-4 w-4" />
-        Sign Out
+        Sign out
       </Button>
     </div>
   );
@@ -97,24 +86,20 @@ export function AdminLayout() {
   return (
     <>
       <Seo pageId="admin" canonicalPath={location.pathname} />
-      <div className="flex h-screen bg-gray-100">
-        {/* Desktop Sidebar */}
-        <div className="hidden md:flex w-64 bg-white shadow-lg flex-col">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">{user?.email}</p>
+      <div className="flex h-screen bg-muted/40">
+        <div className="hidden md:flex w-64 bg-card border-r border-line shadow-sm flex-col">
+          <div className="p-6 border-b border-line">
+            <p className="font-display text-lg tracking-tight text-ink">Dream Puppies</p>
+            <h1 className="text-sm font-semibold text-muted-foreground mt-1">Admin</h1>
+            <p className="text-xs text-muted-foreground mt-2 truncate">{user?.email}</p>
           </div>
-          <nav className="mt-6 flex-1">
-            {navItems}
-          </nav>
+          <nav className="mt-2 flex-1 overflow-y-auto">{navItems}</nav>
           {sidebarFooter}
         </div>
 
-        {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile top bar */}
-          <div className="md:hidden flex items-center gap-3 p-3 bg-white border-b shadow-sm">
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <div className="md:hidden flex items-center gap-3 p-3 bg-card border-b border-line">
+            <Sheet key={location.pathname}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Menu className="h-6 w-6" />
@@ -122,25 +107,22 @@ export function AdminLayout() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-0">
-                <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
-                <div className="flex flex-col h-full">
-                  <div className="p-6">
-                    <h1 className="text-xl font-bold text-gray-800">Admin</h1>
-                    <p className="text-sm text-gray-500 mt-1 truncate">{user?.email}</p>
+                <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+                <div className="flex flex-col h-full bg-card">
+                  <div className="p-6 border-b border-line">
+                    <p className="font-display text-base text-ink">Dream Puppies</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">{user?.email}</p>
                   </div>
-                  <nav className="flex-1 overflow-y-auto">
-                    {navItems}
-                  </nav>
+                  <nav className="flex-1 overflow-y-auto">{navItems}</nav>
                   {sidebarFooter}
                 </div>
               </SheetContent>
             </Sheet>
-            <h1 className="text-lg font-semibold text-gray-800">Admin</h1>
+            <h1 className="text-lg font-semibold text-foreground">Admin</h1>
           </div>
 
-          {/* Scrollable content */}
           <div className="flex-1 overflow-auto">
-            <div className="p-4 md:p-8">
+            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
               <Outlet />
             </div>
           </div>

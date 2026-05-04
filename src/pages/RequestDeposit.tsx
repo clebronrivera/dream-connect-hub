@@ -9,6 +9,7 @@ import { DepositRequestForm } from "@/components/DepositRequestForm";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
 import { insertDepositRequest, depositRequestPayloadToRow, type DepositRequestPayload } from "@/lib/deposit-requests";
 import { useState } from "react";
+import { BUSINESS } from "@/lib/constants/business";
 
 export default function RequestDeposit() {
   const [searchParams] = useSearchParams();
@@ -46,7 +47,7 @@ export default function RequestDeposit() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-paper flex items-center justify-center px-4">
         <div className="max-w-md text-center space-y-4">
           <div className="text-5xl">✓</div>
           <h1 className="text-2xl font-bold">Request Submitted</h1>
@@ -55,7 +56,7 @@ export default function RequestDeposit() {
             a deposit agreement link via email within 24–48 hours.
           </p>
           <p className="text-sm text-muted-foreground">
-            Want to expedite? Call us at <strong>(321) 697-8864</strong>
+            Want to expedite? Call us at <strong>{BUSINESS.phone}</strong>
           </p>
         </div>
       </div>
@@ -63,10 +64,10 @@ export default function RequestDeposit() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-paper py-8 px-4">
       <div className="max-w-xl mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Request a Deposit Reservation</h1>
+          <h1 className="font-display text-2xl md:text-3xl text-ink">Request a Deposit Reservation</h1>
           <p className="text-muted-foreground mt-1">
             Tell us which puppy you're interested in and how you'd like to pay.
           </p>
@@ -77,7 +78,7 @@ export default function RequestDeposit() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="bg-white rounded-lg border p-6">
+          <div className="rounded-lg border border-line bg-card p-6 shadow-sm">
             <DepositRequestForm
               litters={litters}
               initialInterestType={puppyId ? "available_puppy" : litterId ? "upcoming_litter" : undefined}

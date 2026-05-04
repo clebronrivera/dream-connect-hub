@@ -86,10 +86,10 @@ export function DepositRequestDetailPanel({ request }: Props) {
   const status = request.request_status;
 
   return (
-    <div className="p-4 space-y-5 bg-gray-50/50">
+    <div className="p-4 space-y-5 bg-muted/50">
       {/* Customer info */}
       <section>
-        <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">Customer</h3>
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Customer</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <Field label="Name" value={request.customer_name} />
           <Field
@@ -107,7 +107,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
 
       {/* Dog / Litter info */}
       <section>
-        <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
           {request.puppy_id ? "Puppy" : "Litter"}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -126,7 +126,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
 
       {/* Request details */}
       <section>
-        <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">Request Details</h3>
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Request Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <Field label="Preferred payment" value={request.preferred_payment_method ?? "—"} />
           <Field label="Proposed pickup" value={request.proposed_pickup_date ?? "—"} />
@@ -145,12 +145,12 @@ export function DepositRequestDetailPanel({ request }: Props) {
       </section>
 
       {/* Action section — contextual by status */}
-      <section className="bg-white rounded-lg border p-4 space-y-3">
-        <h3 className="text-xs font-semibold uppercase text-gray-500">Action</h3>
+      <section className="bg-card rounded-lg border p-4 space-y-3">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground">Action</h3>
 
         {status === "pending" && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-foreground">
               Review this request. Accept to move to the send-link stage, or decline with a reason.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -236,7 +236,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
               </div>
             )}
 
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-foreground">
               {status === "accepted"
                 ? "Email the deposit agreement link to the customer."
                 : "Resend the deposit agreement link if needed."}
@@ -305,7 +305,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
 
       {/* Admin notes */}
       <section>
-        <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">Admin notes</h3>
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Admin notes</h3>
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -330,7 +330,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs text-gray-500">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className="font-medium">{value ?? "—"}</div>
     </div>
   );

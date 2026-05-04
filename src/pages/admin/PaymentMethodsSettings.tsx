@@ -79,15 +79,15 @@ export default function PaymentMethodsSettings() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Payment Methods</h1>
-      <p className="text-sm text-gray-500">
+      <h1 className="text-2xl font-bold text-foreground">Payment Methods</h1>
+      <p className="text-sm text-muted-foreground">
         Enable or disable payment methods, set handles, and upload QR codes. Drag to reorder.
       </p>
 
       {isLoading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-muted-foreground">Loading...</p>
       ) : methods.length === 0 ? (
-        <p className="text-gray-500">No payment methods configured.</p>
+        <p className="text-muted-foreground">No payment methods configured.</p>
       ) : (
         <div className="space-y-3">
           {methods.map((m, idx) => (
@@ -162,7 +162,7 @@ function PaymentMethodCard({
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           {/* Drag handle */}
-          <div className="cursor-grab pt-1 text-gray-400 hover:text-gray-600">
+          <div className="cursor-grab pt-1 text-muted-foreground hover:text-muted-foreground">
             <GripVertical className="h-5 w-5" />
           </div>
 
@@ -171,7 +171,7 @@ function PaymentMethodCard({
             {/* Header row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="font-semibold text-gray-800">{m.display_name}</span>
+                <span className="font-semibold text-foreground">{m.display_name}</span>
                 <Badge variant="outline" className="text-xs">
                   {m.method_key}
                 </Badge>
@@ -191,7 +191,7 @@ function PaymentMethodCard({
             {/* Handle + note */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-500">Handle / Recipient</Label>
+                <Label className="text-xs text-muted-foreground">Handle / Recipient</Label>
                 <Input
                   value={handle}
                   onChange={(e) => { setHandle(e.target.value); setDirty(true); }}
@@ -200,7 +200,7 @@ function PaymentMethodCard({
                 />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Payment Note</Label>
+                <Label className="text-xs text-muted-foreground">Payment Note</Label>
                 <Input
                   value={note}
                   onChange={(e) => { setNote(e.target.value); setDirty(true); }}

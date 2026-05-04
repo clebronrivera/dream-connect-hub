@@ -20,12 +20,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useRef } from 'react';
 import { Loader2, Eye, Upload, X, Wand2 } from 'lucide-react';
-import { getBreedingDogPhotoUrl, uploadPuppyPhoto } from '@/lib/puppy-photos';
+import { getBreedingDogPhotoUrl, uploadPuppyPhoto, resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 import { buildDefaultPuppyName } from '@/lib/utils/puppyNaming';
-
-function getStoragePublicUrl(path: string): string {
-  return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
-}
 
 /** First numeric price in the label (e.g. "$1,500–$2,000" → 1500). */
 function parsePriceLabelToBasePrice(priceLabel: string | null | undefined): number | undefined {
@@ -763,7 +759,7 @@ export default function UpcomingLitterForm() {
                   {(slot.file || slot.path) && (
                     <>
                       <img
-                        src={slot.file ? (filePreviewUrls[index] ?? '') : getStoragePublicUrl(slot.path!)}
+                        src={slot.file ? (filePreviewUrls[index] ?? '') : (resolvePuppyPhotosPublicUrl(slot.path!) ?? '')}
                         alt={`Past dog ${index + 1}`}
                         className="h-24 w-24 rounded-lg object-cover border"
                       />

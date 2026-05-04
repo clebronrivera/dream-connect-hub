@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
+import { getPuppyImage } from '@/lib/puppy-display-utils';
 
 export default function PuppiesList() {
   const queryClient = useQueryClient();
@@ -65,7 +66,7 @@ export default function PuppiesList() {
       header: 'Photo',
       cell: (puppy: Puppy) => (
         <img
-          src={puppy.primary_photo || '/placeholder.svg'}
+          src={getPuppyImage(puppy) ?? '/placeholder.svg'}
           alt={puppy.name}
           className="h-12 w-12 rounded-full object-cover"
           onError={(e) => {
@@ -153,7 +154,7 @@ export default function PuppiesList() {
 
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primaryDeep" />
         </div>
       ) : (
         <>

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { FormLabel } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
+import { resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 
 interface Props {
   primaryPhotoUrl: string | undefined;
@@ -19,10 +20,10 @@ export function PuppyFormPhotoSection({ primaryPhotoUrl, uploadingPhoto, onFileS
         onChange={onFileSelect}
         disabled={uploadingPhoto}
       />
-      {primaryPhotoUrl && (
+      {primaryPhotoUrl?.trim() && (
         <div className="mt-2">
           <img
-            src={primaryPhotoUrl}
+            src={resolvePuppyPhotosPublicUrl(primaryPhotoUrl) ?? primaryPhotoUrl}
             alt="Primary photo"
             className="h-32 w-32 object-cover rounded"
           />

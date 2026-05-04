@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BREEDS_DATA, type Breed, type BreedStats } from "@/data/breeds-content";
+import { PuppyPlaceholderSvg } from "@/components/redesign/PublicDesignPrimitives";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
 
 function BreedImage({
   imageUrl,
@@ -70,6 +73,7 @@ function formatStatKey(key: string): string {
 }
 
 export default function Breeds() {
+  const { t } = useLanguage();
   const [selectedBreed, setSelectedBreed] = useState<Breed | null>(null);
   const [filter, setFilter] = useState("All");
 
@@ -81,40 +85,53 @@ export default function Breeds() {
     [filter]
   );
 
+  const sortedBreeds = useMemo(() => {
+    const order = ["goldendoodle", "labradoodle", "toy-poodle", "shih-tzu"];
+    const rank = (id: string) => {
+      const i = order.indexOf(id);
+      return i === -1 ? 100 : i;
+    };
+    return [...filteredBreeds].sort((a, b) => rank(a.id) - rank(b.id));
+  }, [filteredBreeds]);
+
   return (
     <Layout>
       <Seo pageId="breeds" />
-      <div className="min-h-screen">
-        {/* Header Section */}
-        <header className="container py-12 md:py-16 text-center">
-          <div className="inline-flex items-center justify-center p-2 bg-primary/10 rounded-2xl mb-4">
-            <Sparkles className="w-5 h-5 text-primary mr-2" />
-            <span className="text-primary font-bold text-sm tracking-wider uppercase">
-              Premium Breeds
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tight mb-4">
-            Meet Our <span className="text-primary">Breeds</span>
+      <div className="min-h-screen bg-paper">
+        <header className="container pt-12 pb-10 md:pt-16 md:pb-14">
+          <p className="font-mono-dream text-[11px] font-bold uppercase tracking-[0.2em] text-inkSoft">
+            {t("breedsHeroTag")}
+          </p>
+          <h1 className="mt-5 font-display text-5xl uppercase leading-[0.92] tracking-tight text-ink md:text-7xl lg:text-8xl">
+            {t("breedsHeroTitleLine1")}
+            <br />
+            <span className="text-primary">{t("breedsHeroTitleLine2")}</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Explore our curated selection of high-pedigree companions, from
-            intelligent Poodles to affectionate Small breeds.
+          <p className="mt-6 max-w-2xl text-lg text-inkSoft md:text-xl">
+            {t("breedsHeroBody")}
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-2">
-            {["All", "Poodle & Doodle", "Small"].map((cat) => (
+          <div className="mt-10 flex flex-wrap gap-2">
+            {(
+              [
+                { key: "All" as const, label: t("puppiesCategoryAll") },
+                { key: "Poodle & Doodle" as const, label: t("puppiesCategoryPoodleDoodle") },
+                { key: "Small" as const, label: t("puppiesCategorySmall") },
+              ] as const
+            ).map((cat) => (
               <Button
-                key={cat}
-                variant={filter === cat ? "default" : "outline"}
+                key={cat.key}
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => setFilter(cat)}
+                onClick={() => setFilter(cat.key)}
                 className={
-                  filter === cat
-                    ? "rounded-full px-8 shadow-lg"
-                    : "rounded-full px-8"
+                  filter === cat.key
+                    ? "rounded-full border-ink bg-ink px-6 font-bold text-white shadow-md hover:bg-ink hover:text-white md:px-8"
+                    : "rounded-full border-line bg-white px-6 text-inkSoft hover:bg-muted/60 md:px-8"
                 }
               >
-                {cat}
+                {cat.label}
               </Button>
             ))}
           </div>
@@ -122,60 +139,103 @@ export default function Breeds() {
 
         {/* Breed Grid */}
         <section className="container pb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredBreeds.map((breed) => (
-              <div
-                key={breed.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelectedBreed(breed)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSelectedBreed(breed);
-                  }
-                }}
-                className="group relative flex flex-col cursor-pointer transition-all hover:-translate-y-1 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 xl:grid-cols-4">
+            {sortedBreeds.map((breed) =>
+              breed.parityCard ? (
                 <div
-                  className={`aspect-[4/5] rounded-3xl overflow-hidden border-4 ${breed.borderColor} shadow-lg hover:shadow-2xl transition-all duration-300 mb-4 relative`}
+                  key={breed.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedBreed(breed)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedBreed(breed);
+                    }
+                  }}
+                  className="group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <BreedImage imageUrl={breed.imageUrl} breedName={breed.name} />
-
-                  {breed.hypoallergenic && (
-                    <div className="absolute top-4 left-4 px-3 py-1.5 bg-green-500 text-white rounded-full text-xs font-bold shadow-lg">
-                      Hypoallergenic
+                  <div
+                    className={cn(
+                      "flex h-full flex-col rounded-[2rem] border-4 p-3 shadow-lg transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-active:scale-[0.99] sm:p-4",
+                      breed.parityCard.frameClass,
+                    )}
+                  >
+                    <div className="flex items-center justify-center rounded-2xl bg-white p-4 shadow-inner">
+                      <PuppyPlaceholderSvg
+                        hue={breed.parityCard.illustrationHue}
+                        ear={breed.parityCard.illustrationEar ?? 0}
+                        size={168}
+                        className="max-h-[200px] w-auto"
+                      />
                     </div>
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                    <div className="text-white">
-                      <p className="text-xs font-bold uppercase tracking-widest mb-1">
-                        Click for Details
+                    <div className="mt-4 flex flex-1 flex-col px-1">
+                      <h3 className="min-h-[3.2rem] font-display text-xl uppercase tracking-tight text-ink sm:text-2xl">
+                        {breed.parityCard.displayName}
+                      </h3>
+                      <p className="mt-1 min-h-[1.75rem] text-xs font-bold uppercase tracking-wide text-ink sm:text-sm">
+                        {breed.parityCard.statsLine}
                       </p>
-                      <div className="h-1 w-12 bg-white rounded-full" />
+                      <p className="mt-2 text-sm leading-relaxed text-inkSoft">
+                        {breed.parityCard.tagline}
+                      </p>
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div
+                  key={breed.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedBreed(breed)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedBreed(breed);
+                    }
+                  }}
+                  className="group relative flex flex-col cursor-pointer transition-all hover:-translate-y-1 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div
+                    className={`relative mb-4 aspect-[4/5] overflow-hidden rounded-3xl border-4 ${breed.borderColor} shadow-lg transition-all duration-300 hover:shadow-2xl`}
+                  >
+                    <BreedImage imageUrl={breed.imageUrl} breedName={breed.name} />
 
-                <div className="px-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-xl font-bold text-foreground tracking-tight">
-                      {breed.name}
-                    </h3>
-                    <Heart className="w-5 h-5 text-muted-foreground/50" />
+                    {breed.hypoallergenic && (
+                      <div className="absolute left-4 top-4 rounded-full bg-green-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
+                        Hypoallergenic
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div className="text-white">
+                        <p className="mb-1 text-xs font-bold uppercase tracking-widest">
+                          Click for Details
+                        </p>
+                        <div className="h-1 w-12 rounded-full bg-white" />
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground font-medium leading-relaxed mb-2">
-                    {breed.shortDesc}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-bold">{breed.size}</span>
-                    <span>•</span>
-                    <span>{breed.weight}</span>
+
+                  <div className="px-2">
+                    <div className="mb-1 flex items-center justify-between">
+                      <h3 className="text-xl font-bold tracking-tight text-foreground">
+                        {breed.name}
+                      </h3>
+                      <Heart className="h-5 w-5 text-muted-foreground/50" />
+                    </div>
+                    <p className="mb-2 text-sm font-medium leading-relaxed text-muted-foreground">
+                      {breed.shortDesc}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-bold">{breed.size}</span>
+                      <span>•</span>
+                      <span>{breed.weight}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </section>
 
@@ -213,7 +273,7 @@ export default function Breeds() {
                       </div>
                       <DialogHeader>
                         <DialogTitle className="text-3xl md:text-4xl font-black text-white mb-1">
-                          {selectedBreed.name}
+                          {selectedBreed.parityCard?.displayName ?? selectedBreed.name}
                         </DialogTitle>
                       </DialogHeader>
                       <p className="text-white/90 font-medium italic text-sm">
@@ -311,12 +371,12 @@ export default function Breeds() {
                             </div>
                           </div>
 
-                          <div className="flex gap-4 p-6 bg-primary/5 rounded-3xl border border-primary/20">
+                          <div className="flex gap-4 p-6 bg-muted/60 rounded-3xl border border-line">
                             <div className="w-12 h-12 bg-background rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
-                              <Lightbulb className="w-6 h-6 text-primary" />
+                              <Lightbulb className="w-6 h-6 text-primaryDeep" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="font-bold text-primary mb-2">
+                              <h4 className="font-bold text-primaryDeep mb-2">
                                 Did you know?
                               </h4>
                               <p className="text-sm leading-relaxed">
@@ -415,26 +475,25 @@ export default function Breeds() {
 
         {/* Footer CTA */}
         <section className="container py-12 pb-20">
-          <div className="rounded-3xl bg-primary text-primary-foreground p-8 md:p-12 text-center">
-            <h2 className="text-2xl font-bold mb-2">Ready to Meet Your Match?</h2>
-            <p className="text-primary-foreground/90 mb-6 max-w-xl mx-auto">
-              Browse our available puppies or reach out to ask about upcoming
-              litters.
+          <div className="rounded-3xl bg-bg p-8 text-center text-white shadow-sticker md:p-12">
+            <h2 className="mb-2 font-display text-2xl md:text-3xl">{t("breedsFooterTitle")}</h2>
+            <p className="mx-auto mb-6 max-w-xl text-white/85">
+              {t("breedsFooterBody")}
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <Button variant="secondary" size="lg" asChild>
                 <Link to="/puppies">
-                  <Dog className="h-5 w-5 mr-2" />
-                  Browse Puppies
+                  <Dog className="mr-2 h-5 w-5" />
+                  {t("breedsFooterBrowse")}
                 </Link>
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10"
+                className="rounded-pill border-white/50 text-white hover:bg-white/10"
                 asChild
               >
-                <Link to="/contact">Contact Us</Link>
+                <Link to="/contact">{t("breedsFooterContact")}</Link>
               </Button>
             </div>
           </div>

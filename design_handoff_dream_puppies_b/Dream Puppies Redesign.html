@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dream Puppies — Redesign Canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Inter+Tight:wght@400;500;600;700;800&family=Archivo:wght@400;600;700;800;900&family=Caveat:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  body { margin: 0; background: #1a1530; font-family: 'Inter Tight', system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="direction-a.jsx"></script>
+<script type="text/babel" src="direction-b.jsx"></script>
+<script type="text/babel" src="direction-c.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function App() {
+  return (
+    <DesignCanvas title="Dream Puppies — Redesign" subtitle="Three directions × all public-facing pages. Lavender palette, all-caps display, with playful illustrated puppy renderings.">
+      <DCSection id="A" title="Direction A — Warm Storytelling">
+        <DCArtboard id="a-home" label="Home" width={1280} height={1900}><A_Home/></DCArtboard>
+        <DCArtboard id="a-avail" label="Available Puppies" width={1280} height={1500}><A_Available/></DCArtboard>
+        <DCArtboard id="a-upcoming" label="Upcoming Litters · reservation slots" width={1280} height={2900}><A_Upcoming/></DCArtboard>
+        <DCArtboard id="a-breeds" label="Breeds" width={1280} height={1700}><A_Breeds/></DCArtboard>
+        <DCArtboard id="a-cons" label="Training & Consultation" width={1280} height={900}><A_Consultation/></DCArtboard>
+        <DCArtboard id="a-ess" label="Essentials" width={1280} height={1100}><A_Essentials/></DCArtboard>
+        <DCArtboard id="a-rev" label="Dreamy Reviews" width={1280} height={1500}><A_Reviews/></DCArtboard>
+        <DCArtboard id="a-contact" label="Contact + FAQ" width={1280} height={1100}><A_Contact/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="B" title="Direction B — Lively Interactive">
+        <DCArtboard id="b-home" label="Home" width={1280} height={2100}><B_Home/></DCArtboard>
+        <DCArtboard id="b-avail" label="Available Puppies" width={1280} height={1700}><B_Available/></DCArtboard>
+        <DCArtboard id="b-upcoming" label="Upcoming Litters · pick-a-spot" width={1280} height={2400}><B_Upcoming/></DCArtboard>
+        <DCArtboard id="b-breeds" label="Breeds" width={1280} height={1300}><B_Breeds/></DCArtboard>
+        <DCArtboard id="b-train" label="Training" width={1280} height={1100}><B_Training/></DCArtboard>
+        <DCArtboard id="b-ess" label="Essentials" width={1280} height={900}><B_Essentials/></DCArtboard>
+        <DCArtboard id="b-rev" label="Reviews" width={1280} height={1100}><B_Reviews/></DCArtboard>
+        <DCArtboard id="b-contact" label="Contact + FAQ" width={1280} height={1100}><B_Contact/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="C" title="Direction C — Bold Editorial">
+        <DCArtboard id="c-home" label="Home" width={1280} height={1700}><C_Home/></DCArtboard>
+        <DCArtboard id="c-avail" label="Available Puppies" width={1280} height={1500}><C_Available/></DCArtboard>
+        <DCArtboard id="c-upcoming" label="Upcoming Litters · reservation calendar" width={1280} height={2700}><C_Upcoming/></DCArtboard>
+        <DCArtboard id="c-breeds" label="Breeds" width={1280} height={2100}><C_Breeds/></DCArtboard>
+        <DCArtboard id="c-train" label="Training" width={1280} height={900}><C_Training/></DCArtboard>
+        <DCArtboard id="c-ess" label="Essentials" width={1280} height={1500}><C_Essentials/></DCArtboard>
+        <DCArtboard id="c-rev" label="Reviews" width={1280} height={1700}><C_Reviews/></DCArtboard>
+        <DCArtboard id="c-contact" label="Contact + FAQ" width={1280} height={1100}><C_Contact/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

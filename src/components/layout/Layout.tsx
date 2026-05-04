@@ -20,7 +20,7 @@ export function Layout({ children }: LayoutProps) {
       {!loading && isAdmin && (
         <Link
           to="/admin"
-          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-pill bg-primaryDeep px-4 py-2.5 text-sm font-medium text-white shadow-sticker hover:opacity-90 transition-opacity"
           aria-label="Return to Admin Dashboard"
         >
           <LayoutDashboard className="h-4 w-4" />

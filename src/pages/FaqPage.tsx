@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone } from 'lucide-react';
+import { DreamTag, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 
 const SECTION_ICONS: Record<string, string> = {
   deposits: '\uD83D\uDCB0',
@@ -70,12 +71,13 @@ export default function FaqPage() {
       />
 
       {/* Hero */}
-      <section className="bg-primary/5 py-12 md:py-16">
+      <section className="bg-bg py-14 text-white md:py-20">
         <div className="container text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+          <DreamTag className="mb-3 bg-sun">Family answers, plain-spoken</DreamTag>
+          <h1 className="mb-3 font-display text-4xl uppercase tracking-tight md:text-6xl">
             Frequently Asked Questions
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
             Everything you need to know about reserving a puppy, deposits, pickup,
             and caring for your new family member.
           </p>
@@ -93,13 +95,13 @@ export default function FaqPage() {
             No FAQ items available yet. Check back soon!
           </p>
         ) : (
-          <Tabs defaultValue={sections[0]?.key} className="max-w-3xl mx-auto">
-            <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1 mb-8">
+          <Tabs defaultValue={sections[0]?.key} className="mx-auto max-w-3xl">
+            <TabsList className="mb-8 flex h-auto flex-wrap gap-1 bg-muted/50 p-1">
               {sections.map((section) => (
                 <TabsTrigger
                   key={section.key}
                   value={section.key}
-                  className="text-xs sm:text-sm px-3 py-2"
+                  className="px-3 py-2 text-xs uppercase tracking-[0.04em] sm:text-sm"
                 >
                   <span className="mr-1.5">{SECTION_ICONS[section.key] ?? ''}</span>
                   {section.label}
@@ -114,7 +116,7 @@ export default function FaqPage() {
                     <AccordionItem
                       key={item.id}
                       value={item.id}
-                      className="border rounded-lg px-4"
+                      className="rounded-lg border border-line px-4"
                     >
                       <AccordionTrigger className="text-left font-medium hover:no-underline">
                         {item.question}
@@ -132,18 +134,17 @@ export default function FaqPage() {
       </section>
 
       {/* Contact CTA */}
-      <section className="bg-muted/30 py-10">
+      <section className="bg-paper py-10">
         <div className="container text-center">
-          <p className="text-muted-foreground mb-2">
+          <p className="mb-2 text-muted-foreground">
             Still have questions? We're happy to help.
           </p>
-          <a
-            href={`tel:${BUSINESS.phoneRaw}`}
-            className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
-          >
+          <StickerButton asChild className="font-bold uppercase tracking-[0.06em]">
+            <a href={`tel:${BUSINESS.phoneRaw}`} className="inline-flex items-center gap-2">
             <Phone className="h-4 w-4" />
             {BUSINESS.phone}
-          </a>
+            </a>
+          </StickerButton>
         </div>
       </section>
     </Layout>

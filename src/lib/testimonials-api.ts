@@ -35,6 +35,7 @@ export type SubmitTestimonialInput = {
   city?: string;
   state?: string;
   photo?: File;
+  turnstile_token?: string | null;
 };
 
 export async function submitTestimonial(input: SubmitTestimonialInput): Promise<void> {
@@ -51,17 +52,23 @@ export async function submitTestimonial(input: SubmitTestimonialInput): Promise<
     photoPath = fileName;
   }
 
-  const { error } = await supabase.from('testimonials').insert({
-    customer_name: input.customer_name,
-    puppy_name: input.puppy_name || null,
-    breed: input.breed || null,
-    message: input.message,
-    city: input.city || null,
-    state: input.state || null,
-    photo_path: photoPath,
+  const { data, error } = await supabase.functions.invoke('submit-testimonial', {
+    body: {
+      customer_name: input.customer_name,
+      puppy_name: input.puppy_name || null,
+      breed: input.breed || null,
+      message: input.message,
+      city: input.city || null,
+      state: input.state || null,
+      photo_path: photoPath,
+      turnstile_token: input.turnstile_token ?? null,
+    },
   });
 
-  if (error) throw error;
+  if (error) {
+    const remoteMessage = (data as { error?: string } | null | undefined)?.error;
+    throw new Error(remoteMessage || error.message || 'Failed to submit testimonial');
+  }
 }
 
 export function getTestimonialPhotoUrl(photoPath: string): string {

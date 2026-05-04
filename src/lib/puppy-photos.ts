@@ -10,6 +10,28 @@ import { supabase } from './supabase-client';
 const BUCKET = 'puppy-photos';
 
 /**
+ * Turn a DB value into a browser-ready image URL.
+ * Accepts either a full `https://...` URL (e.g. puppies.primary_photo after upload)
+ * or a storage object path (e.g. breeding_dogs.photo_path → `breeding-dogs/...`).
+ * Calling getPublicUrl on an already-absolute URL produces a broken double-encoded URL.
+ */
+export function resolvePuppyPhotosPublicUrl(stored: string | null | undefined): string | null {
+  const s = typeof stored === 'string' ? stored.trim() : '';
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('//')
+  ) {
+    return lower.startsWith('//') ? `https:${s}` : s;
+  }
+  const pathKey = s.replace(/^\/+/, '');
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(pathKey);
+  return data.publicUrl;
+}
+
+/**
  * Upload a puppy photo to Supabase Storage. Call this as an authenticated admin.
  * Returns the public URL to store in puppies.primary_photo or puppies.photos.
  */
@@ -86,7 +108,5 @@ export async function uploadBreedingDogPhoto(
  * Get public URL for a breeding dog photo path (e.g. from breeding_dogs.photo_path).
  */
 export function getBreedingDogPhotoUrl(path: string | null | undefined): string | null {
-  if (!path) return null;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return resolvePuppyPhotosPublicUrl(path);
 }

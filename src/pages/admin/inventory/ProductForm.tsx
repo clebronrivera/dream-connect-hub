@@ -169,7 +169,7 @@ export default function ProductForm() {
   if (isEdit && isLoading) {
     return (
       <div className="flex justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primaryDeep" />
       </div>
     );
   }
@@ -180,7 +180,7 @@ export default function ProductForm() {
         <h1 className="text-3xl font-bold">
           {isEdit ? 'Edit Product' : 'Add New Product'}
         </h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-muted-foreground mt-1">
           {isEdit
             ? 'Update product details and photo'
             : 'Create a new product item'}
@@ -201,7 +201,7 @@ export default function ProductForm() {
                   <img
                     src={photoPreview}
                     alt="Preview"
-                    className="h-32 w-32 rounded-lg object-cover border-2 border-gray-200"
+                    className="h-32 w-32 rounded-lg object-cover border-2 border-line"
                   />
                   <button
                     type="button"
@@ -212,8 +212,8 @@ export default function ProductForm() {
                   </button>
                 </div>
               ) : (
-                <div className="h-32 w-32 rounded-lg bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
-                  <ImageIcon className="h-12 w-12 text-gray-400" />
+                <div className="h-32 w-32 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed border-line">
+                  <ImageIcon className="h-12 w-12 text-muted-foreground" />
                 </div>
               )}
 
@@ -233,7 +233,7 @@ export default function ProductForm() {
                     </span>
                   </Button>
                 </label>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   Upload a product photo. Recommended: Square image, at least
                   500x500px
                 </p>

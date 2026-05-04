@@ -45,14 +45,41 @@ export function upcomingLitterPayloadToRow(payload: {
     upcoming_puppy_placeholder_summary:
       payload.upcoming_puppy_placeholder_summary ?? null,
     interest_options:
-      payload.interest_options?.length > 0 ? payload.interest_options : null,
+      (payload.interest_options?.length ?? 0) > 0
+        ? payload.interest_options ?? null
+        : null,
   };
 }
 
-/** Insert a contact message. Single place for all contact_messages inserts. */
+/**
+ * Insert a contact message via the captcha-gated `submit-contact-message`
+ * edge function. The edge function validates the Turnstile token and then
+ * inserts the row using the service role; the downstream
+ * `notify-contact-message` webhook fires on the row insert exactly as it did
+ * with the previous direct anon insert path.
+ *
+ * `turnstileToken` is required in production. Pass `null` only from
+ * environments where `VITE_TURNSTILE_SITE_KEY` is not configured (the edge
+ * function will then 403 with `secret-not-configured`).
+ */
 export async function insertContactMessage(
-  row: ContactMessageInsert
+  row: ContactMessageInsert,
+  turnstileToken: string | null = null
 ): Promise<{ error: Error | null }> {
-  const { error } = await supabase.from("contact_messages").insert([row]);
-  return { error: error ?? null };
+  const { data, error } = await supabase.functions.invoke(
+    "submit-contact-message",
+    {
+      body: { ...row, turnstile_token: turnstileToken },
+    }
+  );
+
+  if (error) {
+    const remoteMessage = (data as { error?: string } | null | undefined)?.error;
+    return {
+      error: new Error(
+        remoteMessage || error.message || "Failed to send message"
+      ),
+    };
+  }
+  return { error: null };
 }

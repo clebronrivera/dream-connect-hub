@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.state.error?.message ?? "An unexpected error occurred."}
           </p>
           <button
-            className="rounded bg-primary px-4 py-2 text-sm text-primary-foreground hover:opacity-90"
+            className="rounded-pill bg-primaryDeep px-4 py-2 text-sm font-semibold text-white shadow-sticker hover:opacity-90"
             onClick={() => window.location.reload()}
           >
             Reload page

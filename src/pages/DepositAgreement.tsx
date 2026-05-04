@@ -29,7 +29,7 @@ export default function DepositAgreement() {
   const validatedRequestId = requestValidation?.valid ? requestId : undefined;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-paper py-8 px-4">
       {requestId && !validatingRequest && requestValidation && !requestValidation.valid && (
         <div className="max-w-2xl mx-auto mb-4">
           <div className="rounded-md border border-amber-300 bg-amber-50 p-3 flex items-start gap-2 text-sm">

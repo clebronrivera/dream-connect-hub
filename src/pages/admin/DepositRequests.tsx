@@ -85,7 +85,7 @@ export default function DepositRequests() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Deposit Requests</h1>
+          <h1 className="text-2xl font-bold text-foreground">Deposit Requests</h1>
           <p className="text-sm text-muted-foreground">
             {requests.length} total · {counts?.pending ?? 0} awaiting review
           </p>
@@ -153,9 +153,9 @@ export default function DepositRequests() {
       </div>
 
       {isLoading ? (
-        <p className="text-gray-500">Loading requests...</p>
+        <p className="text-muted-foreground">Loading requests...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-gray-500 py-8 text-center">No deposit requests found.</p>
+        <p className="text-muted-foreground py-8 text-center">No deposit requests found.</p>
       ) : (
         <div className="space-y-2">
           {filtered.map((r: DepositRequest) => {
@@ -255,7 +255,7 @@ function ActionBadge({
       className={`flex items-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
         active
           ? "border-blue-500 bg-blue-50 text-blue-700"
-          : "border-gray-200 hover:border-gray-300 text-gray-600"
+          : "border-line hover:border-line text-muted-foreground"
       }`}
     >
       {icon}

@@ -1,9 +1,9 @@
 import type { Puppy } from '@/lib/supabase';
+import { resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 
 export function getPuppyImage(puppy: Puppy): string | null {
-  if (puppy.primary_photo) return puppy.primary_photo;
-  if (puppy.photos && puppy.photos.length > 0) return puppy.photos[0];
-  return null;
+  const raw = puppy.primary_photo || (puppy.photos?.length ? puppy.photos[0] : null);
+  return resolvePuppyPhotosPublicUrl(raw);
 }
 
 export function getDisplayPrice(puppy: Puppy): number | null {

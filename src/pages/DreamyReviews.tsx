@@ -27,6 +27,13 @@ import { Star, Camera, Send, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAIN_BREEDS, OTHER_BREED_OPTION } from '@/lib/breed-utils';
 import { US_STATES, resolveStateLabel } from '@/data/statesData';
+import { DreamTag } from '@/components/redesign/PublicDesignPrimitives';
+import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
+const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const hasPhoto = !!testimonial.photo_path;
@@ -47,7 +54,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
               loading="lazy"
             />
             {testimonial.is_featured && (
-              <Badge className="absolute top-3 right-3 bg-primary/90">
+              <Badge className="absolute top-3 right-3 bg-primaryDeep text-primary-foreground">
                 <Heart className="h-3 w-3 mr-1 fill-current" />
                 Featured
               </Badge>
@@ -56,7 +63,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         )}
         <CardContent className={`${hasPhoto ? 'pt-4' : 'pt-6'} pb-5 px-5`}>
           {!hasPhoto && testimonial.is_featured && (
-            <Badge className="mb-3 bg-primary/90">
+            <Badge className="mb-3 bg-primaryDeep text-primary-foreground">
               <Heart className="h-3 w-3 mr-1 fill-current" />
               Featured
             </Badge>
@@ -65,7 +72,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
             &ldquo;{testimonial.message}&rdquo;
           </p>
           <div className="flex items-center gap-2 text-sm">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
+            <div className="h-8 w-8 rounded-full bg-primaryDeep/15 flex items-center justify-center text-primaryDeep font-semibold text-xs">
               {testimonial.customer_name.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -97,6 +104,7 @@ function SubmitDialog() {
   const [customBreed, setCustomBreed] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: (input: SubmitTestimonialInput) => submitTestimonial(input),
@@ -114,6 +122,7 @@ function SubmitDialog() {
     setCustomBreed('');
     setPhoto(null);
     setPhotoPreview(null);
+    setTurnstileToken(null);
   }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -131,16 +140,18 @@ function SubmitDialog() {
       ...form,
       breed: resolvedBreed || undefined,
       photo: photo ?? undefined,
+      turnstile_token: turnstileToken,
     });
   }
 
   const isOtherBreed = form.breed === OTHER_BREED_OPTION;
   const breedValid = !isOtherBreed || customBreed.trim().length > 0;
+  const captchaSatisfied = !captchaRequired || Boolean(turnstileToken);
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button size="lg" className="gap-2">
+        <Button size="lg" className="gap-2 rounded-pill font-bold uppercase tracking-[0.06em]">
           <Star className="h-4 w-4" />
           Share Your Story
         </Button>
@@ -243,8 +254,21 @@ function SubmitDialog() {
               />
             )}
           </div>
+          {captchaRequired && (
+            <div className="flex justify-center">
+              <TurnstileWidget
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
+            </div>
+          )}
           <DialogFooter>
-            <Button type="submit" disabled={mutation.isPending || !breedValid} className="gap-2">
+            <Button
+              type="submit"
+              disabled={mutation.isPending || !breedValid || !captchaSatisfied}
+              className="gap-2 rounded-pill font-bold uppercase tracking-[0.06em]"
+            >
               <Send className="h-4 w-4" />
               {mutation.isPending ? 'Submitting...' : 'Submit Review'}
             </Button>
@@ -270,12 +294,13 @@ export default function DreamyReviews() {
       />
 
       {/* Hero */}
-      <section className="bg-primary/5 py-12 md:py-16">
+      <section className="bg-bg py-14 text-white md:py-20">
         <div className="container text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+          <DreamTag className="mb-3 bg-sun">Real stories from real homes</DreamTag>
+          <h1 className="mb-3 font-display text-4xl uppercase tracking-tight md:text-6xl">
             Dreamy Reviews
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+          <p className="mx-auto mb-6 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
             Real stories from real families. See how our puppies are doing in their
             forever homes — and share your own!
           </p>
@@ -307,7 +332,7 @@ export default function DreamyReviews() {
       {/* Bottom CTA */}
       <section className="bg-muted/30 py-10">
         <div className="container text-center">
-          <p className="text-muted-foreground mb-3">
+          <p className="mb-3 text-muted-foreground">
             Got a Dream Puppies pup? We'd love to hear from you!
           </p>
           <SubmitDialog />

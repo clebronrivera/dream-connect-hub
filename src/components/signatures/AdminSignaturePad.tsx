@@ -69,9 +69,9 @@ export function AdminSignaturePad({ onSign, disabled, existingSignature, existin
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+    <div className="space-y-4 rounded-lg border border-line bg-card p-6">
       <div>
-        <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+        <Label className="text-sm font-semibold text-foreground mb-2 block">
           Authorized Seller
         </Label>
         <Select value={selectedSeller} onValueChange={setSelectedSeller} disabled={disabled || isSigned}>
@@ -89,11 +89,11 @@ export function AdminSignaturePad({ onSign, disabled, existingSignature, existin
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+        <Label className="text-sm font-semibold text-foreground mb-2 block">
           Authorized Seller Signature
         </Label>
         <div
-          className="rounded border-2 border-dashed border-gray-300 bg-gray-50"
+          className="rounded border-2 border-dashed border-line bg-muted/40"
           style={{ position: 'relative' }}
         >
           {/* Signature line visual guide */}
@@ -121,14 +121,14 @@ export function AdminSignaturePad({ onSign, disabled, existingSignature, existin
           {/* Block canvas if no seller selected */}
           {!selectedSeller && !isSigned && (
             <div
-              className="absolute inset-0 flex items-center justify-center bg-gray-100/80 rounded"
+              className="absolute inset-0 flex items-center justify-center bg-muted/80 rounded"
               style={{ zIndex: 10 }}
             >
-              <p className="text-sm text-gray-500 font-medium">Select an authorized seller first</p>
+              <p className="text-sm text-muted-foreground font-medium">Select an authorized seller first</p>
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Draw your signature above using mouse or touch
         </p>
       </div>
@@ -136,8 +136,8 @@ export function AdminSignaturePad({ onSign, disabled, existingSignature, existin
       {/* Printed name display */}
       {selectedSeller && (
         <div className="border-t pt-3">
-          <p className="text-sm text-gray-500">Printed name:</p>
-          <p className="font-semibold text-gray-800">
+          <p className="text-sm text-muted-foreground">Printed name:</p>
+          <p className="font-semibold text-foreground">
             {AUTHORIZED_SELLERS.find(s => s.id === selectedSeller)?.name}
           </p>
           {isSigned && (
@@ -164,7 +164,7 @@ export function AdminSignaturePad({ onSign, disabled, existingSignature, existin
             onClick={handleSave}
             disabled={!selectedSeller || isSigned}
             size="sm"
-            className="bg-gray-900 text-white hover:bg-gray-700"
+            className="bg-primaryDeep text-white hover:bg-primaryDeep/90"
           >
             {isSigned ? 'Signed' : 'Confirm & Sign'}
           </Button>

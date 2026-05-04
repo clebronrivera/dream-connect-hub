@@ -131,6 +131,10 @@ export interface UpcomingLitterParent {
   id: string;
   name: string;
   photo_path?: string | null;
+  breed?: string | null;
+  composition?: string | null;
+  color?: string | null;
+  role?: BreedingDogRole | null;
 }
 
 /** Pre-birth puppy slot on an upcoming litter (public reservation UI). */
@@ -142,6 +146,8 @@ export interface UpcomingLitterPuppyPlaceholder {
   sex: 'Male' | 'Female';
   offspring_breed_label: string;
   lifecycle_status: 'expected' | 'born';
+  hold_expires_at?: string | null;
+  hold_deposit_request_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }

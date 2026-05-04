@@ -5,6 +5,7 @@ import { BRAND, COLORS, FONT_STACK } from "./brand.ts";
 import {
   button,
   callout,
+  divider,
   escape,
   heading,
   paragraph,
@@ -258,6 +259,181 @@ export function agreementFinalizedBuyer(args: {
     subject: `Deposit Confirmed — Agreement ${args.agreementNumber}`,
     html: wrap({
       previewText: "Your agreement is finalized — here are the next steps.",
+      bodyHtml: body,
+    }),
+  };
+}
+
+// Puppy interest inquiry received (customer ack)
+// Fills the gap in notify-puppy-inquiry which previously only emailed admins.
+export function puppyInquiryReceived(args: {
+  customerName: string;
+  interestedPuppy?: string | null;
+  breedPrefs?: string | null;
+}): EmailTemplate {
+  const highlight =
+    args.interestedPuppy
+      ? callout(`You expressed interest in: ${escape(args.interestedPuppy)}`)
+      : args.breedPrefs
+        ? callout(`Breed preference: ${escape(args.breedPrefs)}`)
+        : "";
+
+  const body =
+    heading("Thanks for your interest") +
+    paragraph(`Hi ${args.customerName},`) +
+    paragraph(
+      "We received your puppy interest form and wanted to make sure you heard from us right away. " +
+      "Our team reviews every inquiry personally and will be in touch soon to learn more about what you're looking for."
+    ) +
+    highlight +
+    paragraph(
+      "In the meantime, feel free to reach out — we love talking puppies."
+    ) +
+    rawParagraph(
+      `Call us anytime at <strong>${escape(BRAND.phone)}</strong> or simply reply to this email.`
+    );
+  return {
+    subject: "Thanks for your interest — Dream Puppies",
+    html: wrap({
+      previewText: "We received your puppy interest form — we'll be in touch soon.",
+      bodyHtml: body,
+    }),
+  };
+}
+
+// New owner / puppy care guide (admin-triggered post-finalization)
+export function puppyGuideDelivery(args: {
+  buyerName: string;
+  puppyName: string;
+  breed?: string | null;
+  pickupDate?: string | null;
+}): EmailTemplate {
+  const breedPhrase = args.breed ? `, a beautiful ${escape(args.breed)},` : "";
+  const pickupRow = args.pickupDate
+    ? table(row("Pickup date", args.pickupDate))
+    : "";
+
+  const body =
+    heading("Welcome to the Dream Puppies family") +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `We are so thrilled that ${escape(args.puppyName)}${breedPhrase} is going home with you. ` +
+      "This is the beginning of an incredible journey together, and we couldn't be happier for you both."
+    ) +
+    pickupRow +
+    heading(`Care Guide for ${escape(args.puppyName)}`, 2) +
+    heading("Feeding", 3) +
+    paragraph(
+      `Keep ${escape(args.puppyName)} on the same food they've been eating for at least the first two weeks — ` +
+      "sudden food changes can upset a young puppy's stomach. If you'd like to switch foods, transition " +
+      "gradually over 7–10 days by mixing in increasing amounts of the new food. Puppies need three small " +
+      "meals per day until around 6 months old."
+    ) +
+    heading("First Vet Visit", 3) +
+    paragraph(
+      "Schedule a wellness exam within 72 hours of pickup. Bring any health records and vaccination paperwork " +
+      "we provided. Your vet will verify the health certificate, confirm the vaccine schedule, and answer any " +
+      "breed-specific questions you have."
+    ) +
+    heading("Potty Training", 3) +
+    paragraph(
+      `Take ${escape(args.puppyName)} outside immediately after waking up, after every meal, and after play sessions. ` +
+      "Reward every success with calm, warm praise. Consistency at this stage makes a huge difference — most " +
+      "puppies get the hang of it within a few weeks when the schedule is predictable."
+    ) +
+    heading("Socialization", 3) +
+    paragraph(
+      "The first 16 weeks are the most critical socialization window of your puppy's life. Introduce them " +
+      "gently to new sights, sounds, people, and environments. Keep early experiences positive and low-stress — " +
+      "a little exposure now builds confidence that lasts a lifetime."
+    ) +
+    heading("Crating & Sleep", 3) +
+    paragraph(
+      "A crate is your puppy's safe den, not a punishment. Cover it with a blanket to create a cozy space " +
+      "and place a worn t-shirt inside so they have your scent nearby. For the first few nights, keep the " +
+      "crate close to your bed — the proximity helps them settle faster and builds trust."
+    ) +
+    rawParagraph(
+      `Questions anytime? Call us at <strong>${escape(BRAND.phone)}</strong> or email ` +
+      `<a href="mailto:${escape(BRAND.email)}" style="color:${COLORS.primary};">${escape(BRAND.email)}</a>. ` +
+      `We always love hearing how ${escape(args.puppyName)} is doing.`
+    );
+  return {
+    subject: `Welcome to the Dream Puppies family — care guide for ${args.puppyName}`,
+    html: wrap({
+      previewText: `Your care guide for ${args.puppyName} — welcome to the family!`,
+      bodyHtml: body,
+    }),
+  };
+}
+
+// Testimonial / story invitation (admin-triggered to past buyers)
+export function testimonialInvitation(args: {
+  buyerName: string;
+  puppyName: string;
+  reviewPageUrl: string;
+}): EmailTemplate {
+  const body =
+    heading(`How is ${escape(args.puppyName)} doing?`) +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `It's been a little while since ${escape(args.puppyName)} went home with you, and we'd love to know how things are going. ` +
+      "We hope your journey together has been everything you hoped for."
+    ) +
+    paragraph(
+      "If you've enjoyed your experience with Dream Puppies, would you consider sharing your story on our " +
+      "Dreamy Reviews page? Families just like yours help other dog lovers know what to expect — and we truly " +
+      "cherish every word."
+    ) +
+    button("Share Your Story", args.reviewPageUrl) +
+    callout(
+      `What to include: How did you find us? What is ${args.puppyName}'s personality like now? ` +
+      "Any photos are always welcome — we'd love to see them grow!"
+    ) +
+    paragraph(
+      "No pressure at all — but know that your story means the world to us and to future Dream Puppies families."
+    ) +
+    rawParagraph(
+      `As always, reach us at <strong>${escape(BRAND.phone)}</strong> if you ever need anything.`
+    );
+  return {
+    subject: `How is ${args.puppyName} doing? We'd love to share your story`,
+    html: wrap({
+      previewText: `We'd love to hear how ${args.puppyName} is doing — share your story`,
+      bodyHtml: body,
+    }),
+  };
+}
+
+// Newsletter (admin-composed, sent to opted-in subscribers)
+export function newsletter(args: {
+  subject: string;
+  headline: string;
+  bodyParagraphs: string[];
+  ctaText?: string | null;
+  ctaUrl?: string | null;
+  closingNote?: string | null;
+}): EmailTemplate {
+  const paragraphsHtml = args.bodyParagraphs.map((p) => paragraph(p)).join("");
+  const ctaHtml =
+    args.ctaText && args.ctaUrl ? button(args.ctaText, args.ctaUrl) : "";
+  const closingHtml = args.closingNote ? paragraph(args.closingNote) : "";
+
+  const body =
+    heading(args.headline) +
+    paragraphsHtml +
+    ctaHtml +
+    closingHtml +
+    divider() +
+    rawParagraph(
+      `You're receiving this because you opted in when you submitted a puppy inquiry. ` +
+      `To unsubscribe, reply to this email or contact us at ` +
+      `<a href="mailto:${escape(BRAND.email)}" style="color:${COLORS.muted};">${escape(BRAND.email)}</a>.`
+    );
+  return {
+    subject: args.subject,
+    html: wrap({
+      previewText: args.headline.slice(0, 90),
       bodyHtml: body,
     }),
   };

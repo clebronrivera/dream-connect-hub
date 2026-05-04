@@ -117,7 +117,7 @@ export function PuppyDetailModal({
                   </div>
                   <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-700 ease-out"
+                      className="h-full bg-primaryDeep transition-all duration-700 ease-out"
                       style={{ width: '100%' }}
                     />
                   </div>
@@ -127,7 +127,7 @@ export function PuppyDetailModal({
                   </div>
                   <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-700 ease-out"
+                      className="h-full bg-primaryDeep transition-all duration-700 ease-out"
                       style={{ width: '100%' }}
                     />
                   </div>
@@ -137,7 +137,7 @@ export function PuppyDetailModal({
                   </div>
                   <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-700 ease-out"
+                      className="h-full bg-primaryDeep transition-all duration-700 ease-out"
                       style={{ width: puppy.microchipped ? '100%' : '0%' }}
                     />
                   </div>

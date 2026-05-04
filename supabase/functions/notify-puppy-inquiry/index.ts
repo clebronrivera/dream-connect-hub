@@ -4,7 +4,7 @@
 
 import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
 import { row } from "../_shared/email/components.ts";
-import { adminNewPuppyInquiry } from "../_shared/email/templates.ts";
+import { adminNewPuppyInquiry, puppyInquiryReceived } from "../_shared/email/templates.ts";
 
 interface WebhookPayload {
   type: "INSERT" | "UPDATE" | "DELETE";
@@ -157,7 +157,39 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 
-  return new Response(JSON.stringify({ ok: true, id: r.id }), {
+  // Send customer acknowledgment (fire-and-forget — failure must not abort the webhook)
+  let customerEmailSent = false;
+  const customerEmail = readString(record.email, "");
+  if (customerEmail && customerEmail !== "—") {
+    const preferences = isRecord(record.preferences) ? record.preferences : {};
+    const breedList = readStringArray(preferences.breedPreference);
+    const rawPuppySubmit = readString(record.puppy_name_at_submit, "");
+    const rawPuppyName = readString(record.puppy_name, "");
+    const interestedPuppy =
+      rawPuppySubmit && rawPuppySubmit !== "—"
+        ? rawPuppySubmit
+        : rawPuppyName && rawPuppyName !== "—"
+          ? rawPuppyName
+          : null;
+
+    const customerTpl = puppyInquiryReceived({
+      customerName: readString(record.name, "there"),
+      interestedPuppy: interestedPuppy,
+      breedPrefs: breedList.length ? breedList.join(", ") : null,
+    });
+    const cr = await sendEmail({
+      to: customerEmail,
+      subject: customerTpl.subject,
+      html: customerTpl.html,
+    });
+    if (!cr.ok) {
+      console.error("Failed to send customer ack:", cr.error);
+    } else {
+      customerEmailSent = true;
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, id: r.id, customerEmailSent }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

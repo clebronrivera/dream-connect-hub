@@ -7,9 +7,11 @@ import type {
 /** Shared query key for active upcoming litters (public + contact page). */
 export const UPCOMING_LITTERS_ACTIVE_QUERY_KEY = ["upcoming-litters-active"] as const;
 
+const PARENT_FIELDS = "id, name, role, breed, composition, color, photo_path";
+
 const SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS = `*,
-  dam:breeding_dogs!dam_id(id, name, photo_path),
-  sire:breeding_dogs!sire_id(id, name, photo_path),
+  dam:breeding_dogs!dam_id(${PARENT_FIELDS}),
+  sire:breeding_dogs!sire_id(${PARENT_FIELDS}),
   upcoming_litter_puppy_placeholders(
     id,
     upcoming_litter_id,
@@ -18,13 +20,15 @@ const SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS = `*,
     sex,
     offspring_breed_label,
     lifecycle_status,
+    hold_expires_at,
+    hold_deposit_request_id,
     created_at,
     updated_at
   )`;
 
 const SELECT_LITTER_WITH_PARENTS = `*,
-  dam:breeding_dogs!dam_id(id, name, photo_path),
-  sire:breeding_dogs!sire_id(id, name, photo_path)`;
+  dam:breeding_dogs!dam_id(${PARENT_FIELDS}),
+  sire:breeding_dogs!sire_id(${PARENT_FIELDS})`;
 
 function normalizeLitterRow(row: Record<string, unknown>): UpcomingLitter {
   const raw = row.upcoming_litter_puppy_placeholders;

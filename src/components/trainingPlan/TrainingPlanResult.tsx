@@ -14,9 +14,9 @@ export function TrainingPlanResult({ plan, onReset }: Props) {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <Card className="bg-primary/5 border-primary/20">
+      <Card className="bg-muted/50 border-line">
         <CardContent className="pt-6 text-center">
-          <Dog className="h-10 w-10 text-primary mx-auto mb-2" />
+          <Dog className="h-10 w-10 text-primaryDeep mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-foreground">
             {plan.dog_name}'s Training Plan
           </h2>
@@ -38,13 +38,13 @@ export function TrainingPlanResult({ plan, onReset }: Props) {
           <h3 className="text-lg font-semibold">Training Steps</h3>
           {plan.steps.map((step, i) => (
             <div key={i} className="flex gap-4">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primaryDeep text-white flex items-center justify-center text-sm font-bold">
                 {i + 1}
               </div>
               <div className="flex-1">
                 <h4 className="font-medium text-foreground">{step.title}</h4>
                 <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
-                <p className="text-xs text-primary mt-2 italic">Pro tip: {step.pro_tip}</p>
+                <p className="text-xs text-primaryDeep mt-2 italic">Pro tip: {step.pro_tip}</p>
               </div>
             </div>
           ))}
@@ -56,13 +56,13 @@ export function TrainingPlanResult({ plan, onReset }: Props) {
         <Card>
           <CardContent className="pt-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
+              <MessageCircle className="h-5 w-5 text-primaryDeep" />
               Commands to Use
             </h3>
             <div className="space-y-4">
               {plan.commands_to_use.map((cmd, i) => (
                 <div key={i} className="rounded-lg border p-3">
-                  <p className="font-semibold text-primary">&ldquo;{cmd.command}&rdquo;</p>
+                  <p className="font-semibold text-primaryDeep">&ldquo;{cmd.command}&rdquo;</p>
                   <p className="text-sm text-muted-foreground mt-1"><strong>When:</strong> {cmd.when_to_use}</p>
                   <p className="text-sm text-muted-foreground mt-1"><strong>How to teach:</strong> {cmd.how_to_teach}</p>
                 </div>

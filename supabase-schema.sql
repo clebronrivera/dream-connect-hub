@@ -80,10 +80,18 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 );
 
 -- Profiles table (source of truth for admin; app uses profiles.role)
+-- Shape mirrors migration 20250208000000_consultation_puppy_flows.sql; that
+-- migration is what's actually in production (verified 2026-04-26 against
+-- information_schema). The previous bootstrap definition here used
+-- `user_id` as the PK, which diverged from production and caused the
+-- `profiles.id = auth.uid()` bug that 20260413000000_fix_rls_profiles_user_id
+-- had to repair. Keep this CREATE TABLE in sync with the migration.
 CREATE TABLE IF NOT EXISTS profiles (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'public' CHECK (role IN ('admin', 'public')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
 );
 
 -- Business events: admin-only log of milestones (SEO, marketing, etc.) to correlate with traffic

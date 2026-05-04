@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { UpcomingLittersSection } from "@/components/upcoming/UpcomingLittersSection";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
 
 export default function UpcomingLitters() {
   const { t } = useLanguage();
@@ -10,11 +11,12 @@ export default function UpcomingLitters() {
   return (
     <Layout>
       <Seo pageId="upcomingLitters" />
-      <section className="bg-primary py-10 md:py-12">
+      <section className="bg-bg py-14 text-white md:py-20">
         <div className="container text-center px-4">
-          <Calendar className="h-10 w-10 mx-auto mb-3 text-primary-foreground" />
-          <h1 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-3">{t("upcomingHeroTitle")}</h1>
-          <p className="text-sm md:text-base text-primary-foreground/85 max-w-xl mx-auto leading-snug">
+          <DreamTag className="mx-auto mb-4 bg-sun">Reserve early · pick your spot</DreamTag>
+          <Calendar className="mx-auto mb-3 h-10 w-10 text-white" />
+          <h1 className="mb-3 font-display text-4xl uppercase tracking-tight md:text-6xl">{t("upcomingHeroTitle")}</h1>
+          <p className="mx-auto max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
             {t("upcomingHeroDescription")}
           </p>
         </div>

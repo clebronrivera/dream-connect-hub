@@ -115,7 +115,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-8">Dashboard Overview</h1>
 
       {/* Section 1: Operational counts — loads independently */}
       {statsLoading ? (
@@ -273,7 +273,7 @@ export default function Dashboard() {
       </div>
 
       {/* Section 4: Recent inquiries table — loads independently */}
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Most Recent Inquiries</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-3">Most Recent Inquiries</h2>
       {recentLoading ? (
         <SectionSpinner />
       ) : recentError ? (

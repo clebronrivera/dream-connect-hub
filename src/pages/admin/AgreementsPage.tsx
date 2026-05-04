@@ -72,7 +72,7 @@ export default function AgreementsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Deposit Agreements</h1>
+        <h1 className="text-2xl font-bold text-foreground">Deposit Agreements</h1>
         <a href="/deposit" target="_blank" rel="noopener noreferrer">
           <Button variant="outline" size="sm">
             <ExternalLink className="h-4 w-4 mr-1" /> Open Deposit Form
@@ -137,13 +137,13 @@ export default function AgreementsPage() {
 
       {/* Agreements table */}
       {isLoading ? (
-        <p className="text-gray-500">Loading agreements...</p>
+        <p className="text-muted-foreground">Loading agreements...</p>
       ) : filteredAgreements.length === 0 ? (
-        <p className="text-gray-500">No agreements found.</p>
+        <p className="text-muted-foreground">No agreements found.</p>
       ) : (
         <div className="space-y-2">
           {/* Table header */}
-          <div className="hidden md:grid grid-cols-8 gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div className="hidden md:grid grid-cols-8 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             <span>Agreement #</span>
             <span>Buyer</span>
             <span>Puppy</span>
@@ -216,7 +216,7 @@ function ActionBadge({
       className={`flex items-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
         active
           ? 'border-blue-500 bg-blue-50 text-blue-700'
-          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+          : 'border-line hover:border-line text-muted-foreground'
       }`}
     >
       {icon}
