@@ -10,10 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Mail, MapPin, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
 import { UpcomingLitterInquiryForm } from "@/components/UpcomingLitterInquiryForm";
-import type { Puppy } from "@/lib/supabase";
 import {
   SUBJECT_UPCOMING_LITTER,
   SUBJECT_PUPPY_INQUIRY,
@@ -27,6 +25,7 @@ import {
 import { BUSINESS } from "@/lib/constants/business";
 import { DreamTag, StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+import { fetchAvailablePuppies } from "@/lib/puppies-api";
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
@@ -36,17 +35,6 @@ const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function isValidUuid(s: string | null): s is string {
   return !!s && UUID_REGEX.test(s);
-}
-
-async function fetchAvailablePuppies(): Promise<Puppy[]> {
-  const { data, error } = await supabase
-    .from("puppies")
-    .select("*")
-    .eq("status", "Available")
-    .order("display_order", { ascending: true })
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
 }
 
 export default function Contact() {

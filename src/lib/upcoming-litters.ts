@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { isTransientSupabaseReadError, runWithTransientRetries } from "@/lib/supabase-query-retry";
 import type {
   UpcomingLitter,
   UpcomingLitterPuppyPlaceholder,
@@ -47,30 +48,35 @@ function normalizeLitterRow(row: Record<string, unknown>): UpcomingLitter {
  * the placeholders table or policy is not deployed yet.
  */
 export async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
-  let lastErr: Error | null = null;
+  return runWithTransientRetries(async () => {
+    let lastErr: Error | null = null;
 
-  for (const selectStmt of [
-    SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS,
-    SELECT_LITTER_WITH_PARENTS,
-    "*",
-  ]) {
-    const { data, error } = await supabase
-      .from("upcoming_litters")
-      .select(selectStmt)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false });
+    for (const selectStmt of [
+      SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS,
+      SELECT_LITTER_WITH_PARENTS,
+      "*",
+    ]) {
+      const { data, error } = await supabase
+        .from("upcoming_litters")
+        .select(selectStmt)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
 
-    if (!error) {
-      const rows = (data ?? []) as Record<string, unknown>[];
-      return rows.map((row) =>
-        selectStmt === SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS
-          ? normalizeLitterRow(row)
-          : ({ ...row, puppy_placeholders: [] } as UpcomingLitter)
-      );
+      if (!error) {
+        const rows = (data ?? []) as Record<string, unknown>[];
+        return rows.map((row) =>
+          selectStmt === SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS
+            ? normalizeLitterRow(row)
+            : ({ ...row, puppy_placeholders: [] } as UpcomingLitter)
+        );
+      }
+      if (isTransientSupabaseReadError(error)) {
+        throw new Error(error.message);
+      }
+      lastErr = error ?? new Error("Unknown error loading upcoming litters");
     }
-    lastErr = error ?? new Error("Unknown error loading upcoming litters");
-  }
 
-  throw lastErr ?? new Error("Failed to load upcoming litters");
+    throw lastErr ?? new Error("Failed to load upcoming litters");
+  });
 }

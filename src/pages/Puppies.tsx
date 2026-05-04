@@ -64,7 +64,6 @@ export default function Puppies() {
   const { data: puppies, isLoading, isError, error } = useQuery({
     queryKey: ["puppies"],
     queryFn: fetchAvailablePuppies,
-    retry: 2,
   });
 
   const {

@@ -42,7 +42,6 @@ export function AvailablePuppiesMarquee() {
   const { data: puppies = [], isLoading, isError } = useQuery({
     queryKey: ["puppies"],
     queryFn: fetchAvailablePuppies,
-    retry: 1,
   });
 
   if (isLoading) {
