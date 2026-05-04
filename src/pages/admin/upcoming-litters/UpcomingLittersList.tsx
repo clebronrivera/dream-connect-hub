@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UpcomingLitter, SiteSettings } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
+import { resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 import { fetchAdminUpcomingLitters, deleteUpcomingLitter } from '@/lib/admin/upcoming-litters-service';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,10 +27,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-
-function getStoragePublicUrl(path: string): string {
-  return supabase.storage.from('puppy-photos').getPublicUrl(path).data.publicUrl;
-}
 
 export default function UpcomingLittersList() {
   const queryClient = useQueryClient();
@@ -198,7 +195,7 @@ export default function UpcomingLittersList() {
       </p>
       {isLoading ? (
         <div className="flex justify-center min-h-[300px] items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primaryDeep" />
         </div>
       ) : (
         <DataTable
@@ -229,7 +226,7 @@ export default function UpcomingLittersList() {
                   {row.example_puppy_image_paths.map((path, i) => (
                     <img
                       key={i}
-                      src={getStoragePublicUrl(path)}
+                      src={resolvePuppyPhotosPublicUrl(path) ?? ''}
                       alt={`Past dog ${i + 1}`}
                       className="h-24 w-24 rounded-lg object-cover border"
                     />

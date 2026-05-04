@@ -2,13 +2,8 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
 import type { Puppy } from "@/lib/supabase";
+import { getPuppyImage } from "@/lib/puppy-display-utils";
 import { Dog, Loader2 } from "lucide-react";
-
-function getPuppyImage(puppy: Puppy): string | null {
-  if (puppy.primary_photo) return puppy.primary_photo;
-  if (puppy.photos?.length) return puppy.photos[0];
-  return null;
-}
 
 function PuppyCard({ puppy }: { puppy: Puppy }) {
   const imgUrl = getPuppyImage(puppy);

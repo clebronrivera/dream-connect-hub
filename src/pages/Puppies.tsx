@@ -45,6 +45,7 @@ import { PuppyCard } from "./PuppyCard";
 import { PuppyDetailModal } from "./PuppyDetailModal";
 import { PuppyShareDialog } from "./PuppyShareDialog";
 import { UpcomingLittersSection } from "@/components/upcoming/UpcomingLittersSection";
+import { DreamTag, StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 
 export default function Puppies() {
   const { t } = useLanguage();
@@ -114,7 +115,7 @@ export default function Puppies() {
         title={puppyForSeo ? `${puppyForSeo.name ?? "Puppy"} — ${puppyForSeo.breed}` : undefined}
         description={
           puppyForSeo
-            ? `${puppyForSeo.breed}${puppyForSeo.gender ? ` • ${puppyForSeo.gender}` : ""}. Available at Puppy Heaven.`
+            ? `${puppyForSeo.breed}${puppyForSeo.gender ? ` • ${puppyForSeo.gender}` : ""}. Available at Dream Puppies.`
             : undefined
         }
         canonicalPath={puppyForSeo ? `/puppies/${puppyForSeo.id}` : undefined}
@@ -149,20 +150,20 @@ export default function Puppies() {
       </section>
 
       {/* Hero Section */}
-      <section className="bg-primary py-16">
+      <section className="bg-bg py-16 md:py-20">
         <div className="container text-center">
-          <Dog className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">
+          <DreamTag className="mb-4 bg-sun">Available now</DreamTag>
+          <h1 className="font-display text-5xl uppercase leading-[0.92] tracking-tight text-white md:text-7xl mb-4">
             {t("puppiesHeroTitle")}
           </h1>
-          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-lg text-white/80 md:text-xl">
             {t("puppiesHeroDescription")}
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mt-6">
-            <Button size="lg" variant="secondary" className="text-foreground" asChild>
+          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <StickerButton size="lg" asChild>
               <Link to="/contact">{t("puppiesInquireButton")}</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground/40 text-primary-foreground bg-transparent hover:bg-primary-foreground/10" asChild>
+            </StickerButton>
+            <Button size="lg" variant="outline" className="rounded-pill border-white/50 bg-transparent text-white hover:bg-white/10" asChild>
               <Link to="#upcoming-litters">{t("puppiesSeeUpcomingAnchor")}</Link>
             </Button>
           </div>
@@ -171,10 +172,10 @@ export default function Puppies() {
 
       {/* Puppy names disclaimer */}
       <section className="container py-6">
-        <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 rounded-r-lg p-4">
+        <div className="rounded-r-lg border-l-4 border-cyan bg-cyan/10 p-4">
           <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-cyan" />
+            <p className="text-sm text-ink">
               <span className="font-semibold">{t("puppiesDisclaimerTitle")}</span>{" "}
               {t("puppiesDisclaimerBody")}
             </p>
@@ -183,7 +184,8 @@ export default function Puppies() {
       </section>
 
       {/* Filters Bar */}
-      <section className="container py-4 sticky top-[calc(3.5rem+2px)] z-40 bg-background/95 backdrop-blur border-b">
+      <section className="sticky top-[calc(3.5rem+2px)] z-40 border-b bg-background/95 py-4 backdrop-blur">
+        <div className="container">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -325,6 +327,7 @@ export default function Puppies() {
             )}
           </div>
         )}
+        </div>
       </section>
 
       {/* Available Puppies */}
@@ -335,7 +338,7 @@ export default function Puppies() {
             <span className="ml-2 text-muted-foreground">{t("puppiesLoading")}</span>
           </div>
         ) : isError ? (
-          <div className="bg-muted/50 rounded-lg p-6 text-center">
+          <div className="rounded-lg bg-muted/50 p-6 text-center">
             <p className="text-sm text-muted-foreground mb-4">
               {error instanceof Error ? error.message : t("puppiesLoadErrorFallback")}
             </p>
@@ -366,9 +369,9 @@ export default function Puppies() {
             ))}
           </div>
         ) : (
-          <div className="bg-muted/50 rounded-lg p-12 text-center">
+          <div className="rounded-lg bg-muted/50 p-12 text-center">
             <Dog className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
+            <h3 className="mb-2 font-display text-2xl uppercase tracking-tight text-foreground">
               {t("puppiesNoMatchTitle")}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">{t("puppiesNoMatchBody")}</p>
@@ -395,7 +398,7 @@ export default function Puppies() {
                     (p) => String(p.id) === interestFormPuppyId || p.id === interestFormPuppyId
                   );
                   if (!prePuppy) return null;
-                  const img = prePuppy.primary_photo ?? prePuppy.photos?.[0];
+                  const img = getPuppyImage(prePuppy);
                   return (
                     <div className="flex gap-4 items-start">
                       {img && (
