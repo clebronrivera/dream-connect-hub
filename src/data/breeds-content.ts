@@ -18,6 +18,17 @@ export interface BreedCare {
   training: string;
 }
 
+/** Direction B marketing grid: illustration tile + stats + tagline (comps). */
+export interface BreedParityCard {
+  displayName: string;
+  statsLine: string;
+  tagline: string;
+  illustrationHue: number;
+  illustrationEar?: 0 | 1;
+  /** Background + border for outer frame (include border width). */
+  frameClass: string;
+}
+
 export interface Breed {
   id: string;
   name: string;
@@ -38,6 +49,7 @@ export interface Breed {
   borderColor: string;
   accentColor: string;
   imageUrl: string;
+  parityCard?: BreedParityCard;
 }
 
 export const BREEDS_DATA: Breed[] = [
@@ -67,6 +79,14 @@ export const BREEDS_DATA: Breed[] = [
     borderColor: 'border-amber-400',
     accentColor: 'bg-amber-500',
     imageUrl: `${SUPABASE_STORAGE_BASE}/mini%20poodle.jpg`,
+    parityCard: {
+      displayName: 'Mini Poodle',
+      statsLine: '12–18 lb · Curly',
+      tagline: 'Tiny scholar. Trains in a blink and nags you to repeat the fun.',
+      illustrationHue: 155,
+      illustrationEar: 1,
+      frameClass: 'border-emerald-400 bg-emerald-100',
+    },
   },
   {
     id: 'standard-poodle',
@@ -131,6 +151,14 @@ export const BREEDS_DATA: Breed[] = [
     borderColor: 'border-yellow-400',
     accentColor: 'bg-yellow-500',
     imageUrl: `${SUPABASE_STORAGE_BASE}/labordoodle.jpg`,
+    parityCard: {
+      displayName: 'Labradoodle',
+      statsLine: '30–55 lb · Wavy · Curly',
+      tagline: 'The original family doodle. Patient, playful, in for the long haul.',
+      illustrationHue: 42,
+      illustrationEar: 0,
+      frameClass: 'border-amber-400 bg-amber-100',
+    },
   },
   {
     id: 'goldendoodle',
@@ -144,7 +172,7 @@ export const BREEDS_DATA: Breed[] = [
     temperament: 'Gentle, Patient, Social, Affectionate',
     shortDesc: 'Sweet, Loyal, Family-Oriented',
     history:
-      'Appearing first in the 1990s, the Goldendoodle was bred to be the "ultimate" family dog, combining the Golden Retriever\'s legendary patience and loyalty with the Poodle\'s intelligence and low-shedding coat.',
+      'Appearing first in the 1990s, the Goldendoodle was bred to be the "ultimate" family dog, combining the Golden Retriever\'s legendary patience and loyalty with the Poodle\'s intelligence and trainability.',
     coolFact:
       'They\'re known as "Velcro dogs"—they love their humans so much they follow them room to room! Goldendoodles are exceptional therapy dogs due to their intuitive nature and ability to sense human emotions.',
     idealFor: ['Families with kids', 'Therapy work', 'First-time owners', 'Multi-pet homes'],
@@ -164,6 +192,14 @@ export const BREEDS_DATA: Breed[] = [
     borderColor: 'border-orange-400',
     accentColor: 'bg-orange-500',
     imageUrl: `${SUPABASE_STORAGE_BASE}/goldendoodle.jpg`,
+    parityCard: {
+      displayName: 'Mini Goldendoodle',
+      statsLine: '18–28 lb · Curly · Wavy',
+      tagline: 'Sunshine in a fluff coat. Endlessly cheerful and family-glued.',
+      illustrationHue: 328,
+      illustrationEar: 0,
+      frameClass: 'border-rose-400 bg-rose-100',
+    },
   },
   {
     id: 'shih-tzu',
@@ -197,6 +233,14 @@ export const BREEDS_DATA: Breed[] = [
     borderColor: 'border-rose-300',
     accentColor: 'bg-rose-400',
     imageUrl: `${SUPABASE_STORAGE_BASE}/shih%20tzu.jpg`,
+    parityCard: {
+      displayName: 'Shih Tzu',
+      statsLine: '9–16 lb · Long',
+      tagline: 'Built for laps, purpose-engineered for nap synchrony.',
+      illustrationHue: 205,
+      illustrationEar: 1,
+      frameClass: 'border-sky-400 bg-sky-100',
+    },
   },
   {
     id: 'pomeranian',

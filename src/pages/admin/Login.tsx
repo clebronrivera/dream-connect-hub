@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { Seo } from '@/components/seo/Seo';
@@ -11,14 +11,20 @@ import { useToast } from '@/hooks/use-toast';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [formLoading, setFormLoading] = useState(false);
+  const { signIn, user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!loading && user && isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [loading, user, isAdmin, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setFormLoading(true);
 
     const { error } = await signIn(email, password);
 
@@ -28,21 +34,19 @@ export default function Login() {
         description: error.message,
         variant: 'destructive',
       });
-    } else {
-      navigate('/admin');
     }
 
-    setLoading(false);
+    setFormLoading(false);
   };
 
   return (
     <>
       <Seo pageId="adminLogin" />
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Card className="w-full max-w-md">
+      <div className="flex items-center justify-center min-h-screen bg-bg px-4">
+        <Card className="w-full max-w-md border-line shadow-sticker">
           <CardHeader>
-            <CardTitle>Admin Login</CardTitle>
-            <CardDescription>Sign in to access the dashboard</CardDescription>
+            <CardTitle className="font-display text-2xl text-ink">Dream Puppies — Admin</CardTitle>
+            <CardDescription>Sign in to manage the site</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,8 +70,8 @@ export default function Login() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
+              <Button type="submit" className="w-full" disabled={formLoading}>
+                {formLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
           </CardContent>

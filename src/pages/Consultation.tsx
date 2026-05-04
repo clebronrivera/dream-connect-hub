@@ -14,6 +14,7 @@ import { ClipboardList, Video, FileText, AlertCircle, Loader2 } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import type { ConsultationType, SourcePage } from "@/lib/supabase";
+import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
 
 const steps = [
   { icon: ClipboardList, title: "Complete Intake", description: "Fill out the short form for your consultation type." },
@@ -197,11 +198,11 @@ function ConsultationIntakeDialog({ open, onOpenChange, type, sourcePage, title,
             </div>
           </div>
 
-          {/* Starter: Puppy Heaven discount + help topics + optional pet */}
+          {/* Starter: Dream Puppies discount + help topics + optional pet */}
           {type === "starter" && (
             <>
               <div className="space-y-4">
-                <Label>Did you purchase your puppy from Puppy Heaven?</Label>
+                <Label>Did you purchase your puppy from Dream Puppies?</Label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2">
                     <input type="radio" name="ph" checked={purchasedFromPuppyHeaven === true} onChange={() => setPurchasedFromPuppyHeaven(true)} />
@@ -411,11 +412,12 @@ export default function Consultation() {
   return (
     <Layout>
       <Seo pageId="consultation" />
-      <section className="bg-primary py-16">
+      <section className="bg-bg py-16">
         <div className="container text-center">
-          <Video className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Virtual Pet Consultation</h1>
-          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
+          <DreamTag className="mb-4 bg-sun">Training + consultation</DreamTag>
+          <Video className="h-12 w-12 mx-auto mb-4 text-white" />
+          <h1 className="font-display text-4xl text-white mb-4">Virtual Pet Consultation</h1>
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
             Get expert guidance on pet behavior, training, and care. We'll contact you to schedule after you submit an intake.
           </p>
         </div>
@@ -426,10 +428,10 @@ export default function Consultation() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => (
             <div key={index} className="text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <step.icon className="h-8 w-8 text-primary" />
+              <div className="w-16 h-16 rounded-full bg-primaryDeep/15 flex items-center justify-center mx-auto mb-4">
+                <step.icon className="h-8 w-8 text-primaryDeep" />
               </div>
-              <div className="text-2xl font-bold text-primary mb-2">Step {index + 1}</div>
+              <div className="text-2xl font-bold text-primaryDeep mb-2">Step {index + 1}</div>
               <h3 className="text-xl font-semibold text-foreground mb-2">{step.title}</h3>
               <p className="text-muted-foreground">{step.description}</p>
             </div>
@@ -443,8 +445,8 @@ export default function Consultation() {
           <h2 className="text-3xl font-bold text-center text-foreground mb-10">Services & Pricing</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {/* A) Starter */}
-            <Card className="border-2 border-primary relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-bl-lg">Popular</div>
+            <Card className="border-2 border-primaryDeep relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-primaryDeep text-white text-xs px-2 py-1 rounded-bl-lg">Popular</div>
               <CardHeader className="text-center pb-2">
                 <CardTitle className="text-xl">Puppy Starter Consultation</CardTitle>
                 <CardDescription>New puppy setup and first week plan</CardDescription>
@@ -452,7 +454,7 @@ export default function Consultation() {
               <CardContent className="text-center">
                 <div className="text-4xl font-bold text-foreground mb-1">$50</div>
                 <p className="text-sm text-muted-foreground mb-2">per 30 minutes</p>
-                <p className="text-xs text-primary mb-4">Puppy Heaven customers get $20 off (pay $30). All are welcome.</p>
+                <p className="text-xs text-primaryDeep mb-4">Dream Puppies families get $20 off (pay $30). All are welcome.</p>
                 <Button size="lg" className="w-full" onClick={() => openIntake("starter", "consultation_pricing_card_starter", "Puppy Starter Intake", "Submit Starter Intake")}>
                   Start Puppy Starter Intake
                 </Button>

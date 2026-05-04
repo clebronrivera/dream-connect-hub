@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +24,14 @@ import {
   insertContactMessage,
   upcomingLitterPayloadToRow,
 } from "@/lib/contact-messages";
+import { BUSINESS } from "@/lib/constants/business";
+import { DreamTag, StickerButton } from "@/components/redesign/PublicDesignPrimitives";
+import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
+const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function isValidUuid(s: string | null): s is string {
@@ -48,6 +55,9 @@ export default function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subject, setSubject] = useState("");
   const [upcomingLitterId, setUpcomingLitterId] = useState<string | null>(null);
+  const [generalFormToken, setGeneralFormToken] = useState<string | null>(null);
+  const captchaSatisfiedGeneral =
+    !captchaRequired || Boolean(generalFormToken);
   const { data: puppies } = useQuery({
     queryKey: ["puppies"],
     queryFn: fetchAvailablePuppies,
@@ -99,17 +109,18 @@ export default function Contact() {
     };
 
     try {
-      const { error } = await insertContactMessage(data);
+      const { error } = await insertContactMessage(data, generalFormToken);
       if (error) throw error;
 
       toast({
         title: "Message Sent!",
         description: "We'll get back to you as soon as possible.",
       });
-      
+
       (e.target as HTMLFormElement).reset();
       setSubject("");
       setUpcomingLitterId(null);
+      setGeneralFormToken(null);
     } catch (error) {
       console.error("Error submitting contact form:", error);
       toast({
@@ -126,11 +137,12 @@ export default function Contact() {
     <Layout>
       <Seo pageId="contact" />
       {/* Hero Section */}
-      <section className="bg-primary py-16">
+      <section className="bg-bg py-14 md:py-20">
         <div className="container text-center">
-          <Mail className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Contact Us</h1>
-          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
+          <DreamTag className="mb-4 bg-sun">Florida · Raeford, North Carolina</DreamTag>
+          <Mail className="h-12 w-12 mx-auto mb-4 text-white" />
+          <h1 className="mb-4 font-display text-5xl uppercase tracking-tight text-white md:text-7xl">Contact Us</h1>
+          <p className="mx-auto max-w-2xl text-lg text-white/80 md:text-xl">
             Have questions? We'd love to hear from you. Reach out and we'll respond as soon as we can.
           </p>
         </div>
@@ -143,16 +155,16 @@ export default function Contact() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Phone className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 rounded-full bg-primaryDeep/15 flex items-center justify-center flex-shrink-0">
+                    <Phone className="h-5 w-5 text-primaryDeep" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Phone</h3>
                     <a 
-                      href="tel:321-697-8864" 
+                      href={`tel:${BUSINESS.phoneRaw}`} 
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      321-697-8864
+                      {BUSINESS.phone}
                     </a>
                   </div>
                 </div>
@@ -162,16 +174,16 @@ export default function Contact() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Mail className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 rounded-full bg-primaryDeep/15 flex items-center justify-center flex-shrink-0">
+                    <Mail className="h-5 w-5 text-primaryDeep" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Email</h3>
                     <a 
-                      href="mailto:Dreampuppies22@gmail.com" 
+                      href={`mailto:${BUSINESS.email}`} 
                       className="text-muted-foreground hover:text-foreground transition-colors break-all"
                     >
-                      Dreampuppies22@gmail.com
+                      {BUSINESS.email}
                     </a>
                   </div>
                 </div>
@@ -181,8 +193,8 @@ export default function Contact() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 rounded-full bg-primaryDeep/15 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-5 w-5 text-primaryDeep" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Service Areas</h3>
@@ -195,9 +207,9 @@ export default function Contact() {
           </div>
 
           {/* Contact Form */}
-          <Card className="lg:col-span-2">
+          <Card className="border-line lg:col-span-2">
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="font-display text-3xl uppercase tracking-tight">
                 {subject === SUBJECT_PUPPY_INQUIRY
                   ? "Puppy Interest Form"
                   : subject === SUBJECT_UPCOMING_LITTER
@@ -242,8 +254,10 @@ export default function Contact() {
                   onSubmit={async (payload) => {
                     setIsSubmitting(true);
                     try {
+                      const { turnstile_token, ...rest } = payload;
                       const { error } = await insertContactMessage(
-                        upcomingLitterPayloadToRow(payload)
+                        upcomingLitterPayloadToRow(rest),
+                        turnstile_token
                       );
                       if (error) throw error;
                       toast({
@@ -286,16 +300,30 @@ export default function Contact() {
 
                 <div className="space-y-2">
                   <Label htmlFor="message">Message *</Label>
-                  <Textarea 
-                    id="message" 
-                    name="message" 
+                  <Textarea
+                    id="message"
+                    name="message"
                     placeholder="How can we help you?"
                     rows={5}
-                    required 
+                    required
                   />
                 </div>
 
-                <Button type="submit" size="lg" disabled={isSubmitting}>
+                {captchaRequired && (
+                  <div className="flex justify-center">
+                    <TurnstileWidget
+                      onVerify={(token) => setGeneralFormToken(token)}
+                      onExpire={() => setGeneralFormToken(null)}
+                      onError={() => setGeneralFormToken(null)}
+                    />
+                  </div>
+                )}
+
+                <StickerButton
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting || !captchaSatisfiedGeneral}
+                >
                   {isSubmitting ? (
                     "Sending..."
                   ) : (
@@ -304,7 +332,7 @@ export default function Contact() {
                       Send Message
                     </>
                   )}
-                </Button>
+                </StickerButton>
               </form>
               )}
             </CardContent>

@@ -57,7 +57,7 @@ export default function KitsList() {
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primaryDeep" />
       </div>
     );
   }
@@ -67,7 +67,7 @@ export default function KitsList() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Starter Kits</h1>
-          <p className="text-gray-500 mt-1">Manage starter kit bundles</p>
+          <p className="text-muted-foreground mt-1">Manage starter kit bundles</p>
         </div>
         <Link to="/admin/inventory/kits/new">
           <Button>
@@ -77,41 +77,41 @@ export default function KitsList() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-card rounded-lg shadow overflow-hidden">
         <div
           className="relative overflow-x-auto"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-gray-200/60 to-transparent rounded-r-lg z-0" aria-hidden />
-          <table className="min-w-full divide-y divide-gray-200 relative z-10">
-          <thead className="bg-gray-50">
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-border/60 to-transparent rounded-r-lg z-0" aria-hidden />
+          <table className="min-w-full divide-y divide-line relative z-10">
+          <thead className="bg-muted/40">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Photo
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Price
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Badge
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Featured
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-line">
             {kits?.map((kit) => (
-              <tr key={kit.id} className="hover:bg-gray-50">
+              <tr key={kit.id} className="hover:bg-muted/40">
                 <td className="px-6 py-4 whitespace-nowrap">
                   {kit.photo ? (
                     <img
@@ -120,22 +120,22 @@ export default function KitsList() {
                       className="h-12 w-12 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <ImageIcon className="h-6 w-6 text-gray-400" />
+                    <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
                     </div>
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-foreground">
                     {kit.name}
                   </div>
                   {kit.description && (
-                    <div className="text-sm text-gray-500 truncate max-w-xs">
+                    <div className="text-sm text-muted-foreground truncate max-w-xs">
                       {kit.description}
                     </div>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                   ${Number(kit.price).toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -145,16 +145,16 @@ export default function KitsList() {
                         ? 'bg-green-100 text-green-800'
                         : kit.status === 'sold_out'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
+                          : 'bg-muted text-foreground'
                     }`}
                   >
                     {PRODUCT_STATUS[kit.status]}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {kit.badge || '—'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {kit.featured ? '⭐ Yes' : 'No'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -181,7 +181,7 @@ export default function KitsList() {
 
         {kits?.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No kits yet. Add your first kit!</p>
+            <p className="text-muted-foreground">No kits yet. Add your first kit!</p>
           </div>
         )}
       </div>

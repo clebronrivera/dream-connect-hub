@@ -195,3 +195,48 @@ export async function fetchPendingActionCounts(): Promise<{
     manualReview: r5.count ?? 0,
   };
 }
+
+/** Send new owner care guide email to buyer (agreement must be admin_approved) */
+export async function sendPuppyGuide(agreementId: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('No active session');
+
+  const { error } = await supabase.functions.invoke('send-puppy-guide', {
+    body: { agreement_id: agreementId },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (error) throw error;
+}
+
+/** Send testimonial invitation email to buyer (agreement must be admin_approved) */
+export async function sendTestimonialInvite(agreementId: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('No active session');
+
+  const { error } = await supabase.functions.invoke('send-testimonial-invite', {
+    body: { agreement_id: agreementId },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (error) throw error;
+}
+
+/** Fetch opted-in newsletter subscribers from puppy_inquiries */
+export async function fetchNewsletterSubscribers(): Promise<
+  Array<{ id: string; name: string; email: string }>
+> {
+  // consentCommunications is a JSON boolean inside the JSONB preferences column.
+  // Using ->> to extract as text, then comparing to the string 'true'.
+  const { data, error } = await supabase
+    .from('puppy_inquiries')
+    .select('id, name, email')
+    .filter('preferences->>consentCommunications', 'eq', 'true')
+    .not('email', 'is', null)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string; email: string }>;
+}

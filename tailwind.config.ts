@@ -15,6 +15,16 @@ export default {
     },
     extend: {
       colors: {
+        bg: "hsl(var(--bg))",
+        bgSoft: "hsl(var(--bg-soft))",
+        paper: "hsl(var(--paper))",
+        ink: "hsl(var(--ink))",
+        inkSoft: "hsl(var(--ink-soft))",
+        line: "hsl(var(--line))",
+        primaryDeep: "hsl(var(--primary-deep))",
+        sun: "hsl(var(--sun))",
+        leaf: "hsl(var(--leaf))",
+        cyan: "hsl(var(--cyan))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -49,10 +59,19 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      fontFamily: {
+        display: ["Archivo", "Inter Tight", "system-ui", "sans-serif"],
+        body: ["Inter Tight", "system-ui", "sans-serif"],
+        monoDream: ["JetBrains Mono", "monospace"],
+      },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius-lg)",
+        md: "var(--radius-md)",
+        sm: "var(--radius-sm)",
+        pill: "var(--radius-pill)",
+      },
+      boxShadow: {
+        sticker: "0 6px 0 hsl(var(--primary-deep))",
       },
       keyframes: {
         "accordion-down": {

@@ -67,10 +67,10 @@ export function PuppyShareDialog({ open, onOpenChange, puppy }: Props) {
 
   const handleNativeShare = useCallback(async (p: Puppy) => {
     const url = getShareUrl(p);
-    const text = `Check out ${p.name || 'this puppy'} — ${p.breed} at Puppy Heaven!`;
+    const text = `Check out ${p.name || 'this puppy'} — ${p.breed} at Dream Puppies!`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${p.name} - Puppy Heaven`, text, url });
+        await navigator.share({ title: `${p.name} - Dream Puppies`, text, url });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           navigator.clipboard?.writeText(url);

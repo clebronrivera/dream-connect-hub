@@ -199,7 +199,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
             <div key={s} className="flex items-center gap-2">
               <div
                 className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                  s === step ? 'bg-primary text-primary-foreground' : s < step ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'
+                  s === step ? 'bg-primaryDeep text-white' : s < step ? 'bg-leaf text-ink' : 'bg-muted text-muted-foreground'
                 }`}
               >
                 {s}
@@ -213,7 +213,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
         {step === 1 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <Dog className="h-5 w-5 text-primary" />
+              <Dog className="h-5 w-5 text-primaryDeep" />
               <h2 className="text-lg font-semibold">About Your Dog</h2>
             </div>
             <div>
@@ -417,7 +417,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
                     onClick={() => update('problem_type', p.key)}
                     className={`flex items-center gap-2 p-3 rounded-lg border text-left text-sm transition-colors ${
                       form.problem_type === p.key
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                        ? 'border-primaryDeep bg-primaryDeep/10 ring-1 ring-primaryDeep'
                         : 'border-muted hover:border-primary/50'
                     }`}
                   >
@@ -459,7 +459,7 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
             </div>
 
             {/* Email - Required */}
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+            <div className="rounded-lg border border-line bg-muted/50 p-4 space-y-2">
               <Label className="font-medium">Where should we send your plan? *</Label>
               <Input
                 type="email"

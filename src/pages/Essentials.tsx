@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase, PRODUCT_STATUS } from "@/lib/supabase";
 import type { Product, KitWithItems } from "@/lib/supabase";
+import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
 
 const categories = [
   { icon: Utensils, name: "Food & Nutrition", description: "Premium food and supplements" },
@@ -298,11 +299,12 @@ export default function Essentials() {
     <Layout>
       <Seo pageId="essentials" />
       {/* Hero Section */}
-      <section className="bg-primary py-16">
+      <section className="bg-bg py-16">
         <div className="container text-center">
-          <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-primary-foreground" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">Pet Essentials</h1>
-          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
+          <DreamTag className="mb-4 bg-sun">Essentials + starter kits</DreamTag>
+          <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-white" />
+          <h1 className="font-display text-4xl text-white mb-4">Pet Essentials</h1>
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
             Everything your new puppy needs to thrive. Quality products handpicked for happy, healthy pets.
           </p>
         </div>
@@ -315,7 +317,7 @@ export default function Essentials() {
           {categories.map((category, index) => (
             <Card key={index} className="text-center hover:shadow-lg transition-shadow cursor-pointer">
               <CardContent className="pt-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-primaryDeep/15 flex items-center justify-center mx-auto mb-3">
                   <category.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-semibold text-foreground text-sm">{category.name}</h3>
@@ -354,7 +356,7 @@ export default function Essentials() {
                       <span 
                         className={`text-xs px-2 py-1 rounded-full ${
                           product.status === "available" 
-                            ? "bg-primary/10 text-primary" 
+                            ? "bg-primaryDeep/15 text-primaryDeep" 
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
@@ -393,7 +395,7 @@ export default function Essentials() {
               return (
                 <Card key={kit.id} className={kit.badge ? "border-2 border-primary relative" : ""}>
                   {kit.badge && (
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primaryDeep text-white text-xs px-3 py-1 rounded-full">
                       {kit.badge}
                     </div>
                   )}

@@ -61,8 +61,8 @@ describe("seo helpers", () => {
   });
 
   it("returns the expected page title format", () => {
-    expect(getPageTitle("Puppy Heaven")).toBe("Puppy Heaven");
-    expect(getPageTitle("Available Puppies")).toBe("Available Puppies | Puppy Heaven");
+    expect(getPageTitle("Dream Puppies")).toBe("Dream Puppies");
+    expect(getPageTitle("Available Puppies")).toBe("Available Puppies | Dream Puppies");
   });
 });
 

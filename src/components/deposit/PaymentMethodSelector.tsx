@@ -69,7 +69,7 @@ export function PaymentMethodSelector({
 
   return (
     <div className="space-y-4">
-      <Label className="text-sm font-medium text-gray-700">Payment Method</Label>
+      <Label className="text-sm font-medium text-foreground">Payment Method</Label>
 
       {/* Method selection grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -81,12 +81,12 @@ export function PaymentMethodSelector({
             className={`relative rounded-lg border-2 p-3 text-left transition-colors ${
               value === method.method_key
                 ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                : 'border-line hover:border-line'
             }`}
           >
             <p className="font-medium text-sm">{method.display_name}</p>
             {method.handle_or_recipient && (
-              <p className="text-xs text-gray-500 mt-1">{method.handle_or_recipient}</p>
+              <p className="text-xs text-muted-foreground mt-1">{method.handle_or_recipient}</p>
             )}
             {method.requires_manual_confirm && (
               <Badge variant="outline" className="mt-1 text-[10px]">Manual confirm</Badge>
@@ -100,11 +100,11 @@ export function PaymentMethodSelector({
           className={`relative rounded-lg border-2 p-3 text-left transition-colors ${
             value === 'split'
               ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
+              : 'border-line hover:border-line'
           }`}
         >
           <p className="font-medium text-sm">Split Payment</p>
-          <p className="text-xs text-gray-500 mt-1">Use multiple methods</p>
+          <p className="text-xs text-muted-foreground mt-1">Use multiple methods</p>
         </button>
       </div>
 
@@ -131,12 +131,12 @@ export function PaymentMethodSelector({
 
       {/* Payment note */}
       {selectedMethod?.payment_note && (
-        <p className="text-sm text-gray-600 italic">{selectedMethod.payment_note}</p>
+        <p className="text-sm text-muted-foreground italic">{selectedMethod.payment_note}</p>
       )}
 
       {/* Split payment rows */}
       {value === 'split' && (
-        <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+        <div className="space-y-3 rounded-lg border border-line p-4">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Split Payment Details</Label>
             <Button type="button" variant="outline" size="sm" onClick={handleAddSplitRow}>
@@ -149,14 +149,14 @@ export function PaymentMethodSelector({
               <select
                 value={detail.method}
                 onChange={e => handleSplitRowChange(idx, 'method', e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm flex-1"
+                className="rounded-md border border-line px-2 py-1.5 text-sm flex-1"
               >
                 {methods.map(m => (
                   <option key={m.method_key} value={m.method_key}>{m.display_name}</option>
                 ))}
               </select>
               <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input
                   type="number"
                   value={detail.amount || ''}
@@ -185,9 +185,9 @@ export function PaymentMethodSelector({
       {/* Payment memo (auto-generated, read-only) */}
       {paymentMemo && (
         <div className="space-y-1">
-          <Label className="text-xs text-gray-500">Payment Memo (include with your payment)</Label>
+          <Label className="text-xs text-muted-foreground">Payment Memo (include with your payment)</Label>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-gray-100 px-3 py-2 text-sm font-mono text-gray-800">
+            <code className="flex-1 rounded bg-muted px-3 py-2 text-sm font-mono text-foreground">
               {paymentMemo}
             </code>
             <Button type="button" variant="outline" size="sm" onClick={handleCopyMemo}>

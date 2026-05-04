@@ -11,6 +11,12 @@ import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
 import { formatBirthWindow, formatGoHomeWindow } from "@/lib/litter-timeline";
 import { SUBJECT_UPCOMING_LITTER } from "@/lib/inquiry-subjects";
 import { US_STATES } from "@/data/statesData";
+import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
+const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
 
 const DEPOSIT_NOTE =
   "A $300 non-refundable deposit places you on the reservation list in the order received. Families will be given the opportunity to select a puppy based on that reservation order. A detailed deposit agreement and receipt will be sent with full terms and next steps.";
@@ -50,6 +56,8 @@ export interface UpcomingLitterInquiryPayload {
   upcoming_puppy_placeholder_id: string | null;
   upcoming_puppy_placeholder_summary: string | null;
   interest_options: string[];
+  /** Cloudflare Turnstile token captured from the form widget. */
+  turnstile_token: string | null;
 }
 
 interface UpcomingLitterInquiryFormProps {
@@ -84,6 +92,7 @@ export function UpcomingLitterInquiryForm({
   const [depositChecked, setDepositChecked] = useState(false);
   const [updatesChecked, setUpdatesChecked] = useState(false);
   const [waitlistPreviewChecked, setWaitlistPreviewChecked] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   // Pre-select litter from props (adjusting state during render when props/data change)
   const [litterSyncKey, setLitterSyncKey] = useState<string>(`${initialLitterId ?? ''}|${litters.length}`);
@@ -159,9 +168,12 @@ export function UpcomingLitterInquiryForm({
       upcoming_puppy_placeholder_id: selectedPlaceholder?.id ?? null,
       upcoming_puppy_placeholder_summary: placeholderSummary,
       interest_options: interestOptions,
+      turnstile_token: turnstileToken,
     };
     await onSubmit(payload);
   };
+
+  const captchaSatisfied = !captchaRequired || Boolean(turnstileToken);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -342,7 +354,17 @@ export function UpcomingLitterInquiryForm({
         {DEPOSIT_NOTE}
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
+      {captchaRequired && (
+        <div className="flex justify-center">
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => setTurnstileToken(null)}
+          />
+        </div>
+      )}
+
+      <Button type="submit" disabled={isSubmitting || !captchaSatisfied}>
         {isSubmitting ? "Submitting…" : submitLabel}
       </Button>
     </form>

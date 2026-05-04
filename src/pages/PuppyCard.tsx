@@ -5,12 +5,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dog, Heart, Share2 } from 'lucide-react';
+import { Heart, Share2 } from 'lucide-react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 import { getPuppyImage, getDisplayPrice, getSizeCategory } from '@/lib/puppy-display-utils';
 import type { Puppy } from '@/lib/supabase';
+import { PuppyPlaceholderSvg, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 
 interface Props {
   puppy: Puppy;
@@ -39,7 +39,7 @@ export function PuppyCard({
 
   return (
     <Card
-      className="overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
+      className="overflow-hidden group rounded-lg border-line bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
       style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
       onClick={onOpenDetail}
     >
@@ -51,24 +51,22 @@ export function PuppyCard({
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Dog className="h-24 w-24 text-muted-foreground/50" />
+          <div className="w-full h-full flex items-center justify-center p-3">
+            <PuppyPlaceholderSvg className="h-full w-full rounded-md" />
           </div>
         )}
         <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
           {puppy.discount_active &&
             puppy.discount_amount != null &&
             Number(puppy.discount_amount) > 0 && (
-              <Badge className="bg-primary text-primary-foreground text-xs shrink-0">
+              <Badge className="bg-accent text-ink text-xs shrink-0">
                 ${Number(puppy.discount_amount).toLocaleString()} OFF
               </Badge>
             )}
           <div className="flex gap-2">
             <span
               className={`text-xs px-2 py-1 rounded-full ${
-                isAvailable
-                  ? 'bg-primary/90 text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
+                isAvailable ? 'bg-leaf text-ink border border-ink/30' : 'bg-muted text-muted-foreground'
               }`}
             >
               {status}
@@ -149,10 +147,10 @@ export function PuppyCard({
           ) : (
             <span className="text-muted-foreground">Price on request</span>
           )}
-          <Button onClick={onSendInterest}>
+          <StickerButton onClick={onSendInterest}>
             <Heart className="h-4 w-4 mr-2" />
             Send Interest
-          </Button>
+          </StickerButton>
         </div>
         {puppy.discount_note && (
           <p className="text-xs text-primary mt-2">{puppy.discount_note}</p>

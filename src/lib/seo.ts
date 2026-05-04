@@ -1,7 +1,7 @@
 import { appEnv } from "@/lib/env";
 
-export const SITE_NAME = "Puppy Heaven";
-export const SITE_AUTHOR = "Puppy Heaven Dream Enterprises";
+export const SITE_NAME = "Dream Puppies";
+export const SITE_AUTHOR = "Dream Enterprises LLC — Dream Puppies";
 export const DEFAULT_ROBOTS = "index,follow";
 export const NOINDEX_ROBOTS = "noindex,nofollow";
 export const DEFAULT_OG_TYPE = "website";
@@ -60,9 +60,9 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   contact: {
     pageId: "contact",
     path: "/contact",
-    title: "Contact Puppy Heaven",
+    title: "Contact Dream Puppies",
     description:
-      "Contact Puppy Heaven about puppy availability, upcoming litters, consultations, or general questions.",
+      "Contact Dream Puppies about puppy availability, upcoming litters, consultations, or general questions.",
   },
   upcomingLitters: {
     pageId: "upcomingLitters",
@@ -82,14 +82,14 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
     pageId: "admin",
     path: "/admin",
     title: "Admin Dashboard",
-    description: "Internal Puppy Heaven admin dashboard.",
+    description: "Internal Dream Puppies admin dashboard.",
     robots: NOINDEX_ROBOTS,
   },
   adminLogin: {
     pageId: "adminLogin",
     path: "/admin/login",
     title: "Admin Login",
-    description: "Internal Puppy Heaven admin login.",
+    description: "Internal Dream Puppies admin login.",
     robots: NOINDEX_ROBOTS,
   },
   notFound: {

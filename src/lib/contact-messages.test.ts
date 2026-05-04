@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { insertContactMessage } from '@/lib/contact-messages';
 
-const mockInsert = vi.fn();
+const mockInvoke = vi.fn();
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: () => ({ insert: mockInsert }),
+    // Wrap in a thunk so the factory doesn't read `mockInvoke` before vitest
+    // hoists its initializer (vi.mock factory runs before top-level `const`s).
+    functions: {
+      invoke: (...args: unknown[]) =>
+        (mockInvoke as (...a: unknown[]) => unknown)(...args),
+    },
   },
 }));
 
@@ -18,29 +23,34 @@ const baseRow = {
 
 describe('insertContactMessage', () => {
   beforeEach(() => {
-    mockInsert.mockReset();
+    mockInvoke.mockReset();
   });
 
-  it('returns { error: null } on a successful insert', async () => {
-    mockInsert.mockResolvedValue({ error: null });
+  it('returns { error: null } on a successful submit', async () => {
+    mockInvoke.mockResolvedValue({ data: { ok: true, id: 'row-1' }, error: null });
 
-    const result = await insertContactMessage(baseRow);
+    const result = await insertContactMessage(baseRow, 'turnstile-token');
 
     expect(result.error).toBeNull();
-    expect(mockInsert).toHaveBeenCalledWith([baseRow]);
+    expect(mockInvoke).toHaveBeenCalledWith('submit-contact-message', {
+      body: { ...baseRow, turnstile_token: 'turnstile-token' },
+    });
   });
 
-  it('returns the database error on a failed insert', async () => {
-    const dbError = new Error('insert failed — RLS policy violation');
-    mockInsert.mockResolvedValue({ error: dbError });
+  it('surfaces the edge function error message when present', async () => {
+    mockInvoke.mockResolvedValue({
+      data: { error: 'Captcha verification failed', codes: ['missing-input-response'] },
+      error: new Error('FunctionsHttpError: 403'),
+    });
 
-    const result = await insertContactMessage(baseRow);
+    const result = await insertContactMessage(baseRow, null);
 
-    expect(result.error).toBe(dbError);
+    expect(result.error).not.toBeNull();
+    expect(result.error?.message).toBe('Captcha verification failed');
   });
 
-  it('passes optional fields through to the insert payload', async () => {
-    mockInsert.mockResolvedValue({ error: null });
+  it('passes optional fields through to the edge function payload', async () => {
+    mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
     const rowWithOptional = {
       ...baseRow,
       phone: '555-0000',
@@ -49,8 +59,20 @@ describe('insertContactMessage', () => {
       upcoming_litter_id: 'litter-uuid',
     };
 
-    await insertContactMessage(rowWithOptional);
+    await insertContactMessage(rowWithOptional, 'tok');
 
-    expect(mockInsert).toHaveBeenCalledWith([rowWithOptional]);
+    expect(mockInvoke).toHaveBeenCalledWith('submit-contact-message', {
+      body: { ...rowWithOptional, turnstile_token: 'tok' },
+    });
+  });
+
+  it('defaults turnstile_token to null when omitted', async () => {
+    mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
+
+    await insertContactMessage(baseRow);
+
+    expect(mockInvoke).toHaveBeenCalledWith('submit-contact-message', {
+      body: { ...baseRow, turnstile_token: null },
+    });
   });
 });

@@ -247,14 +247,14 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       <Card className="max-w-lg mx-auto">
         <CardContent className="pt-8 text-center space-y-4">
           <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-gray-900">Reservation Request Received</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground">Reservation Request Received</h2>
+          <p className="text-muted-foreground">
             Agreement # <span className="font-mono font-bold">{agreementNumber}</span>
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             We will confirm availability within 48 hours. You will receive a confirmation email at the address you provided.
           </p>
-          <p className="text-xs text-gray-400 mt-4">Dream Puppies — hobby breeding program</p>
+          <p className="text-xs text-muted-foreground mt-4">Dream Puppies — hobby breeding program</p>
         </CardContent>
       </Card>
     );
@@ -267,7 +267,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
         <CardHeader>
           <CardTitle className="text-xl">Deposit Agreement — Dream Puppies</CardTitle>
           {puppyName !== 'Undecided' && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Puppy: <span className="font-medium">{puppyName}</span>
               {breed && <> &middot; {breed}</>}
             </p>
@@ -281,7 +281,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Buyer Info */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Your Information</h3>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Your Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="buyer_name">Full Name *</Label>
@@ -306,7 +306,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Pickup Date */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Proposed Pickup Date</h3>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Proposed Pickup Date</h3>
             <Input
               type="date"
               min={earliestPickupStr}
@@ -318,7 +318,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
             {errors.proposed_pickup_date && (
               <p className="text-xs text-red-500">{errors.proposed_pickup_date.message}</p>
             )}
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {earliestPickup
                 ? `Earliest pickup: ${format(earliestPickup, 'MMM d, yyyy')} (puppies go home at 8 weeks)`
                 : 'Pick any date — earliest pickup will be set once the litter is born (puppies go home 8 weeks after birth).'}
@@ -327,7 +327,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Payment Method */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Deposit Payment</h3>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Deposit Payment</h3>
             <Controller
               name="deposit_payment_method"
               control={control}
@@ -346,7 +346,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Final Payment Method (informational) */}
           <div className="space-y-2">
-            <Label className="text-xs text-gray-500">Intended final payment method (optional)</Label>
+            <Label className="text-xs text-muted-foreground">Intended final payment method (optional)</Label>
             <Controller
               name="final_payment_method_intended"
               control={control}
@@ -370,8 +370,8 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Agreement Terms */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Agreement Terms</h3>
-            <div className="max-h-48 overflow-y-auto rounded border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600 space-y-2">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Agreement Terms</h3>
+            <div className="max-h-48 overflow-y-auto rounded border border-line bg-muted/40 p-4 text-xs text-muted-foreground space-y-2">
               <p><strong>Dream Puppies — Deposit Agreement</strong></p>
               <p>This Deposit Agreement ("Agreement") is entered into between Dream Puppies, a hobby breeding program operated in Florida, and the Buyer identified above.</p>
               <p><strong>1. Deposit.</strong> The Buyer agrees to pay the deposit amount shown above to reserve the specified puppy. The deposit is non-refundable except as provided herein.</p>
@@ -385,10 +385,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Required Acknowledgments (Article IX) */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Required Acknowledgments</h3>
-            <p className="text-xs text-gray-500">Please review and check each acknowledgment individually.</p>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Required Acknowledgments</h3>
+            <p className="text-xs text-muted-foreground">Please review and check each acknowledgment individually.</p>
 
-            <div className="space-y-3 rounded border border-gray-200 bg-gray-50 p-4">
+            <div className="space-y-3 rounded border border-line bg-muted/40 p-4">
               {[
                 { key: 'full_agreement', label: 'I have read and understand the full agreement.' },
                 { key: 'statutory_rights', label: (
@@ -416,7 +416,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                     onCheckedChange={() => toggleAck(key)}
                     className="mt-0.5"
                   />
-                  <span className="text-sm text-gray-700">{label}</span>
+                  <span className="text-sm text-foreground">{label}</span>
                 </label>
               ))}
             </div>
@@ -424,14 +424,14 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Arbitration Typed Phrase */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Arbitration Agreement</h3>
-            <p className="text-xs text-gray-500 uppercase font-bold">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Arbitration Agreement</h3>
+            <p className="text-xs text-muted-foreground uppercase font-bold">
               DISPUTES ARISING UNDER THIS AGREEMENT SHALL BE RESOLVED BY BINDING ARBITRATION IN ACCORDANCE WITH FLORIDA LAW (
               <a href={LEGAL_REFERENCES.FLA_CH_682} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">FLA. STAT. CH. 682</a>
               ).
             </p>
             <Label htmlFor="arbitration_phrase" className="text-sm">
-              Please type: <em className="text-gray-900">&quot;{REQUIRED_ARBITRATION_PHRASE}&quot;</em>
+              Please type: <em className="text-foreground">&quot;{REQUIRED_ARBITRATION_PHRASE}&quot;</em>
             </Label>
             <Input
               id="arbitration_phrase"
@@ -447,7 +447,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
           {/* Buyer Signature */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Your Signature</h3>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Your Signature</h3>
             <Controller
               name="buyer_signature_text"
               control={control}
@@ -463,7 +463,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
           {/* Submit */}
           <Button
             type="submit"
-            className="w-full bg-gray-900 text-white hover:bg-gray-700"
+            className="w-full bg-primaryDeep text-white hover:bg-primaryDeep/90"
             disabled={submitMutation.isPending || !canSubmit}
             size="lg"
           >
@@ -475,7 +475,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
             </p>
           )}
 
-          <p className="text-xs text-center text-gray-400">
+          <p className="text-xs text-center text-muted-foreground">
             Dream Puppies — hobby breeding program
           </p>
         </CardContent>

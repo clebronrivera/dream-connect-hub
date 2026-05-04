@@ -7,6 +7,7 @@ import { TrainingPlanResult } from '@/components/trainingPlan/TrainingPlanResult
 import { getProblemTypeBySlug } from '@/lib/constants/trainingPlan';
 import { BUSINESS } from '@/lib/constants/business';
 import { GraduationCap, Phone } from 'lucide-react';
+import { DreamTag, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 
 export default function TrainingPlanPage() {
   const { problemType: slug } = useParams<{ problemType?: string }>();
@@ -22,13 +23,14 @@ export default function TrainingPlanPage() {
       <Seo title={seoTitle} description={seoDescription} canonicalPath={slug ? `/training-plan/${slug}` : '/training-plan'} />
 
       {/* Hero */}
-      <section className="bg-primary/5 py-12 md:py-16">
+      <section className="bg-bg py-12 md:py-16 text-white">
         <div className="container text-center">
-          <GraduationCap className="h-10 w-10 text-primary mx-auto mb-3" />
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+          <DreamTag className="mb-3 bg-sun">Free service for every family</DreamTag>
+          <GraduationCap className="h-10 w-10 text-white mx-auto mb-3" />
+          <h1 className="font-display text-3xl md:text-5xl mb-3">
             {problemType ? problemType.label : 'Free Personalized Training Plan'}
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-white/80 max-w-2xl mx-auto">
             {problemType?.intro
               ?? 'Tell us about your dog and their challenge. Our AI creates a personalized training plan just for you — completely free.'}
           </p>
@@ -48,18 +50,17 @@ export default function TrainingPlanPage() {
       </section>
 
       {/* Contact CTA */}
-      <section className="bg-muted/30 py-10">
+      <section className="bg-paper py-10">
         <div className="container text-center">
           <p className="text-muted-foreground mb-2">
             Questions about training or our puppies?
           </p>
-          <a
-            href={`tel:${BUSINESS.phoneRaw}`}
-            className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
-          >
+          <StickerButton asChild>
+            <a href={`tel:${BUSINESS.phoneRaw}`} className="inline-flex items-center gap-2">
             <Phone className="h-4 w-4" />
             {BUSINESS.phone}
-          </a>
+            </a>
+          </StickerButton>
         </div>
       </section>
     </Layout>

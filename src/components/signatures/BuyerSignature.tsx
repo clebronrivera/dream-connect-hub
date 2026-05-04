@@ -32,7 +32,7 @@ export function BuyerSignature({ value, onChange, disabled, label = 'Type your f
 
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-medium text-gray-700">{label}</Label>
+      <Label className="text-sm font-medium text-foreground">{label}</Label>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -42,7 +42,7 @@ export function BuyerSignature({ value, onChange, disabled, label = 'Type your f
       />
       {/* Live cursive preview */}
       {value && (
-        <div className="border-b-2 border-gray-800 pb-2">
+        <div className="border-b-2 border-ink pb-2">
           <p
             style={{
               fontFamily: fontLoaded ? "'Dancing Script', cursive" : 'cursive',
@@ -55,7 +55,7 @@ export function BuyerSignature({ value, onChange, disabled, label = 'Type your f
           >
             {value}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Electronic signature — constitutes legal signature per Fla. Stat. § 668.50
           </p>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -35,6 +35,12 @@ import {
 } from "@/data/breedsData";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { cn } from "@/lib/utils";
+import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
+const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
 
 export interface PuppyInterestFormProps {
   /** When provided, form is shown in a specific context (e.g. pre-selected puppy from card) */
@@ -78,6 +84,7 @@ export function PuppyInterestForm({
   compact = false,
 }: PuppyInterestFormProps) {
   const { toast } = useToast();
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const form = useForm<PuppyInterestFormValues>({
     resolver: zodResolver(puppyInterestFormSchema),
@@ -156,23 +163,37 @@ export function PuppyInterestForm({
     };
 
     try {
-      const { error } = await supabase.from("puppy_inquiries").insert([row]);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke(
+        "submit-puppy-inquiry",
+        {
+          body: { ...row, turnstile_token: turnstileToken },
+        }
+      );
+      if (error) {
+        const remoteMessage = (data as { error?: string } | null | undefined)?.error;
+        throw new Error(remoteMessage || error.message || "Failed to submit");
+      }
       toast({
         title: "Interest Received!",
         description: "We'll get back to you soon.",
       });
       form.reset({ ...defaultValues, consentCommunications: undefined });
+      setTurnstileToken(null);
       onSuccess?.();
     } catch (err) {
       console.error(err);
       toast({
         title: "Error",
-        description: "Failed to submit. Please try again.",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Failed to submit. Please try again.",
         variant: "destructive",
       });
     }
   };
+
+  const captchaSatisfied = !captchaRequired || Boolean(turnstileToken);
 
   const sectionClass = compact ? "space-y-4" : "space-y-6";
   const sectionTitleClass = "text-sm font-semibold text-foreground border-b pb-2";
@@ -647,7 +668,7 @@ export function PuppyInterestForm({
                         <RadioGroupItem value="all" id="consent-all" className="mt-1" />
                         <div className="text-sm leading-relaxed space-y-1">
                           <FormLabel htmlFor="consent-all" className="font-normal cursor-pointer">
-                            I consent to receive communications from Puppy Heaven LLC regarding:
+                            I consent to receive communications from Dream Enterprises LLC (Dream Puppies) regarding:
                           </FormLabel>
                           <ul className="list-disc list-inside text-muted-foreground ml-4">
                             <li>New available puppies</li>
@@ -701,7 +722,22 @@ export function PuppyInterestForm({
           </>
         )}
 
-        <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
+        {captchaRequired && (
+          <div className="flex justify-center">
+            <TurnstileWidget
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken(null)}
+              onError={() => setTurnstileToken(null)}
+            />
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full sm:w-auto"
+          disabled={form.formState.isSubmitting || !captchaSatisfied}
+        >
           {form.formState.isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

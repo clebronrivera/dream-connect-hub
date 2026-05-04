@@ -2,23 +2,25 @@ import { Link } from "react-router-dom";
 import { Dog, Phone, Mail, MapPin, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BUSINESS } from "@/lib/constants/business";
+import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
 
 export function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="border-t bg-muted/30">
+    <footer className="border-t border-line bg-paper">
       <div className="container py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <Dog className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-foreground">Puppy Heaven</span>
+              <Dog className="h-6 w-6 text-primaryDeep" />
+              <span className="font-display text-lg text-ink">Dream Puppies</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               {t("footerBrandDescription")}
             </p>
+            <DreamTag className="bg-sun">a Dream Enterprises LLC company</DreamTag>
           </div>
 
           {/* Quick Links */}
@@ -65,7 +67,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                North Carolina
+                Raeford, North Carolina
               </div>
             </div>
           </div>

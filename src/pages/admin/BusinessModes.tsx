@@ -98,7 +98,7 @@ export default function BusinessModes() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+      <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
         <BarChart2 className="h-8 w-8" />
         Business Modes
       </h1>
@@ -162,10 +162,10 @@ export default function BusinessModes() {
         </CardContent>
       </Card>
 
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Event timeline</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-3">Event timeline</h2>
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900" />
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primaryDeep" />
         </div>
       ) : events.length === 0 ? (
         <p className="text-muted-foreground py-6">No events yet. Add one above to start tracking.</p>

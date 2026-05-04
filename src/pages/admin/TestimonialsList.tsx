@@ -124,7 +124,7 @@ export default function TestimonialsList() {
                         <Badge variant="destructive" className="text-xs">Pending</Badge>
                       )}
                       {t.is_featured && (
-                        <Badge className="text-xs bg-primary/80">
+                        <Badge className="text-xs bg-primaryDeep text-white">
                           <Star className="h-3 w-3 mr-1" />
                           Featured
                         </Badge>

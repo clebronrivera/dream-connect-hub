@@ -23,9 +23,11 @@ import {
   rejectDeposit,
   refundDeposit,
   cancelAgreement,
+  sendPuppyGuide,
+  sendTestimonialInvite,
 } from '@/lib/admin/agreements-service';
 import type { DepositAgreement } from '@/types/deposit';
-import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, BookOpen, MessageSquarePlus } from 'lucide-react';
 
 interface AgreementDetailPanelProps {
   agreement: DepositAgreement;
@@ -81,6 +83,18 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
     onSuccess: () => { toast.success('Agreement cancelled'); invalidate(); },
   });
 
+  const puppyGuideMut = useMutation({
+    mutationFn: () => sendPuppyGuide(agreement.id),
+    onSuccess: () => toast.success(`Puppy guide sent to ${agreement.buyer_name}`),
+    onError: (err: Error) => toast.error('Failed to send guide: ' + err.message),
+  });
+
+  const testimonialMut = useMutation({
+    mutationFn: () => sendTestimonialInvite(agreement.id),
+    onSuccess: () => toast.success('Testimonial invitation sent'),
+    onError: (err: Error) => toast.error('Failed to send invitation: ' + err.message),
+  });
+
   const puppyDob = agreement.puppy_dob ? new Date(agreement.puppy_dob) : null;
   const isBuyerSigned = !!agreement.buyer_signed_at;
   const isAdminSigned = !!agreement.admin_signed_at;
@@ -94,7 +108,7 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold">{agreement.agreement_number}</h3>
-          <p className="text-sm text-gray-500">{agreement.buyer_name} &middot; {agreement.puppy_name}</p>
+          <p className="text-sm text-muted-foreground">{agreement.buyer_name} &middot; {agreement.puppy_name}</p>
         </div>
         <div className="flex gap-2">
           <Badge variant={agreement.deposit_status === 'admin_confirmed' ? 'default' : 'secondary'}>
@@ -115,15 +129,15 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
           <p className="text-sm">{getDepositExplanation(agreement.purchase_price, puppyDob)}</p>
           <div className="grid grid-cols-3 gap-4 mt-3 text-center text-sm">
             <div>
-              <p className="text-gray-500">Price</p>
+              <p className="text-muted-foreground">Price</p>
               <p className="font-bold">${agreement.purchase_price.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-gray-500">Deposit</p>
+              <p className="text-muted-foreground">Deposit</p>
               <p className="font-bold text-green-700">${agreement.deposit_amount.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-gray-500">Balance</p>
+              <p className="text-muted-foreground">Balance</p>
               <p className="font-bold">${agreement.balance_due.toFixed(2)}</p>
             </div>
           </div>
@@ -138,19 +152,19 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
         <CardContent className="space-y-2">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Proposed</p>
+              <p className="text-muted-foreground">Proposed</p>
               <p className="font-medium">{agreement.proposed_pickup_date}</p>
             </div>
             <div>
-              <p className="text-gray-500">Confirmed</p>
+              <p className="text-muted-foreground">Confirmed</p>
               <p className="font-medium">{agreement.confirmed_pickup_date || 'Not confirmed'}</p>
             </div>
             <div>
-              <p className="text-gray-500">Clock Start</p>
+              <p className="text-muted-foreground">Clock Start</p>
               <p className="font-medium">{agreement.pickup_clock_start}</p>
             </div>
             <div>
-              <p className="text-gray-500">Deadline</p>
+              <p className="text-muted-foreground">Deadline</p>
               <p className="font-medium">{agreement.pickup_deadline}</p>
             </div>
           </div>
@@ -182,9 +196,9 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="text-sm space-y-1">
-            <p><span className="text-gray-500">Method:</span> {agreement.deposit_payment_method}</p>
-            <p><span className="text-gray-500">Amount:</span> ${agreement.deposit_amount.toFixed(2)}</p>
-            <p><span className="text-gray-500">Memo:</span> <code className="bg-gray-100 px-1 rounded">{agreement.payment_memo}</code></p>
+            <p><span className="text-muted-foreground">Method:</span> {agreement.deposit_payment_method}</p>
+            <p><span className="text-muted-foreground">Amount:</span> ${agreement.deposit_amount.toFixed(2)}</p>
+            <p><span className="text-muted-foreground">Memo:</span> <code className="bg-muted px-1 rounded">{agreement.payment_memo}</code></p>
           </div>
           {['cash', 'square'].includes(agreement.deposit_payment_method) && (
             <div className="flex items-center gap-2 p-2 rounded bg-amber-50 border border-amber-200">
@@ -263,6 +277,57 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
         </CardContent>
       </Card>
 
+      {/* Post-Sale Actions — only shown once agreement is fully finalized */}
+      {agreement.agreement_status === 'admin_approved' && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Post-Sale Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Send Puppy Care Guide</p>
+                  <p className="text-xs text-muted-foreground">
+                    Emails {agreement.buyer_name} a care and training guide for {agreement.puppy_name}
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => puppyGuideMut.mutate()}
+                disabled={puppyGuideMut.isPending}
+                className="shrink-0"
+              >
+                {puppyGuideMut.isPending ? 'Sending…' : 'Send Guide'}
+              </Button>
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <MessageSquarePlus className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Request Testimonial</p>
+                  <p className="text-xs text-muted-foreground">
+                    Invites {agreement.buyer_name} to share their story on Dreamy Reviews
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => testimonialMut.mutate()}
+                disabled={testimonialMut.isPending}
+                className="shrink-0"
+              >
+                {testimonialMut.isPending ? 'Sending…' : 'Send Invite'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Notes */}
       <Card>
         <CardHeader className="pb-2">
@@ -340,11 +405,11 @@ function StatusLine({ met, label, timestamp }: { met: boolean; label: string; ti
       {met ? (
         <CheckCircle2 className="h-4 w-4 text-green-600" />
       ) : (
-        <XCircle className="h-4 w-4 text-gray-300" />
+        <XCircle className="h-4 w-4 text-muted-foreground/50" />
       )}
-      <span className={met ? 'text-gray-900' : 'text-gray-400'}>{label}</span>
+      <span className={met ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
       {met && timestamp && (
-        <span className="text-xs text-gray-400 ml-auto">
+        <span className="text-xs text-muted-foreground ml-auto">
           {format(new Date(timestamp), 'MMM d, yyyy h:mm a')}
         </span>
       )}

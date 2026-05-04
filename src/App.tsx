@@ -43,6 +43,7 @@ const FaqPage = lazy(() => import("./pages/FaqPage"));
 const FaqManager = lazy(() => import("./pages/admin/FaqManager"));
 const DreamyReviews = lazy(() => import("./pages/DreamyReviews"));
 const TestimonialsList = lazy(() => import("./pages/admin/TestimonialsList"));
+const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const TrainingPlanPage = lazy(() => import("./pages/TrainingPlanPage"));
 const DepositRequests = lazy(() => import("./pages/admin/DepositRequests"));
 const RequestDeposit = lazy(() => import("./pages/RequestDeposit"));
@@ -122,6 +123,7 @@ export function AppRoutes() {
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />
             <Route path="faq" element={<FaqManager />} />
             <Route path="testimonials" element={<TestimonialsList />} />
+            <Route path="newsletter" element={<Newsletter />} />
           </Route>
         </Route>
 

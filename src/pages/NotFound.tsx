@@ -12,12 +12,12 @@ const NotFound = () => {
   return (
     <>
       <Seo pageId="notFound" canonicalPath={location.pathname} />
-      <div className="flex min-h-screen items-center justify-center bg-muted">
-        <div className="text-center">
-          <h1 className="mb-4 text-4xl font-bold">404</h1>
-          <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-          <a href="/" className="text-primary underline hover:text-primary/90">
-            Return to Home
+      <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+        <div className="text-center text-white">
+          <h1 className="mb-4 font-display text-5xl md:text-6xl">404</h1>
+          <p className="mb-6 text-xl text-white/80">That page does not exist.</p>
+          <a href="/" className="font-semibold text-accent underline underline-offset-4 hover:text-sun">
+            Return home
           </a>
         </div>
       </div>

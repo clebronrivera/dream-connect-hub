@@ -57,6 +57,8 @@ interface DepositRequestFormProps {
   initialPlaceholderId?: string | null;
   /** Pre-select an available puppy. */
   initialPuppyId?: string | null;
+  /** Enable the redesigned three-step reserve flow UI. */
+  stepMode?: boolean;
   onSubmit: (payload: DepositRequestPayload) => Promise<void>;
   isSubmitting: boolean;
 }
@@ -67,6 +69,7 @@ export function DepositRequestForm({
   initialLitterId,
   initialPlaceholderId,
   initialPuppyId,
+  stepMode = false,
   onSubmit,
   isSubmitting,
 }: DepositRequestFormProps) {
@@ -152,6 +155,10 @@ export function DepositRequestForm({
       : DEFAULT_DEPOSIT_AMOUNT;
 
   const showReferralInput = HOW_HEARD_REFERRAL_VALUES.includes(howHeard as HowHeardValue);
+  const [step, setStep] = useState(1);
+
+  const nextStep = () => setStep((s) => Math.min(3, s + 1));
+  const prevStep = () => setStep((s) => Math.max(1, s - 1));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,10 +200,33 @@ export function DepositRequestForm({
     await onSubmit(payload);
   };
 
+  const stepOneValid = interestType === "available_puppy" ? !!selectedPuppyId : !!selectedLitterId;
+  const stepTwoValid = Boolean(name.trim() && email.trim() && city.trim() && state.trim());
+  const activeStep = stepMode ? step : 3;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {stepMode && (
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          {[
+            { id: 1, label: "Pick litter + spot" },
+            { id: 2, label: "Tell us about your home" },
+            { id: 3, label: "Confirm + deposit" },
+          ].map((item) => (
+            <div
+              key={item.id}
+              className={`rounded-md border px-2 py-1.5 text-center ${
+                step >= item.id ? "border-primaryDeep bg-primaryDeep/10 text-foreground" : "border-border text-muted-foreground"
+              }`}
+            >
+              {item.label}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 1. Interest type toggle */}
-      <div className="space-y-2">
+      <div className={`space-y-2 ${activeStep === 1 ? "" : "hidden"}`}>
         <Label>What are you interested in? *</Label>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -204,8 +234,8 @@ export function DepositRequestForm({
             onClick={() => setInterestType("available_puppy")}
             className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors ${
               interestType === "available_puppy"
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border hover:border-primary/40"
+                ? "border-primaryDeep bg-primaryDeep/10 text-primaryDeep"
+                : "border-border hover:border-primaryDeep/40"
             }`}
           >
             <Dog className="h-4 w-4" /> Available Puppy
@@ -215,8 +245,8 @@ export function DepositRequestForm({
             onClick={() => setInterestType("upcoming_litter")}
             className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors ${
               interestType === "upcoming_litter"
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border hover:border-primary/40"
+                ? "border-primaryDeep bg-primaryDeep/10 text-primaryDeep"
+                : "border-border hover:border-primaryDeep/40"
             }`}
           >
             <CalendarHeart className="h-4 w-4" /> Upcoming Litter
@@ -225,6 +255,7 @@ export function DepositRequestForm({
       </div>
 
       {/* 2. Dog/litter selection */}
+      <div className={`${activeStep === 1 ? "" : "hidden"}`}>
       {interestType === "available_puppy" ? (
         <div className="space-y-2">
           <Label>Which puppy? *</Label>
@@ -307,9 +338,10 @@ export function DepositRequestForm({
           )}
         </>
       )}
+      </div>
 
       {/* 3. Contact info */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${activeStep === 2 ? "" : "hidden"}`}>
         <div className="space-y-2">
           <Label htmlFor="dr-name">Name *</Label>
           <Input id="dr-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
@@ -320,7 +352,7 @@ export function DepositRequestForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${activeStep === 2 ? "" : "hidden"}`}>
         <div className="space-y-2">
           <Label htmlFor="dr-city">City *</Label>
           <Input id="dr-city" required value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
@@ -340,14 +372,14 @@ export function DepositRequestForm({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className={`space-y-2 ${activeStep === 2 ? "" : "hidden"}`}>
         <Label htmlFor="dr-phone">Phone</Label>
         <Input id="dr-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
         <p className="text-xs text-muted-foreground">Optional — helpful if we need to reach you by phone.</p>
       </div>
 
       {/* 4. Payment preference */}
-      <div className="space-y-2">
+      <div className={`space-y-2 ${activeStep === 2 ? "" : "hidden"}`}>
         <Label>How would you like to pay the deposit?</Label>
         <div className="grid grid-cols-3 gap-2">
           {PAYMENT_PREFERENCE_OPTIONS.map((m) => (
@@ -357,8 +389,8 @@ export function DepositRequestForm({
               onClick={() => setPaymentMethod(m.key)}
               className={`rounded-lg border p-2.5 text-sm font-medium transition-colors ${
                 paymentMethod === m.key
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border hover:border-primary/40"
+                  ? "border-primaryDeep bg-primaryDeep/10 text-primaryDeep"
+                  : "border-border hover:border-primaryDeep/40"
               }`}
             >
               {m.label}
@@ -368,7 +400,7 @@ export function DepositRequestForm({
       </div>
 
       {/* 5. Proposed pickup date */}
-      <div className="space-y-2">
+      <div className={`space-y-2 ${activeStep === 2 ? "" : "hidden"}`}>
         <Label htmlFor="dr-pickup">Proposed pickup date (optional)</Label>
         <Input
           id="dr-pickup"
@@ -382,7 +414,7 @@ export function DepositRequestForm({
       </div>
 
       {/* 6. Spoke with someone */}
-      <div className="space-y-2">
+      <div className={`space-y-2 ${activeStep === 2 ? "" : "hidden"}`}>
         <Label>Did you speak with someone?</Label>
         <Select value={spokeWith} onValueChange={setSpokeWith}>
           <SelectTrigger>
@@ -398,7 +430,7 @@ export function DepositRequestForm({
       </div>
 
       {/* 7. How heard */}
-      <div className="space-y-2">
+      <div className={`space-y-2 ${activeStep === 2 ? "" : "hidden"}`}>
         <Label>How did you hear about us?</Label>
         <Select value={howHeard} onValueChange={(v) => { setHowHeard(v); if (!HOW_HEARD_REFERRAL_VALUES.includes(v as HowHeardValue)) setHowHeardReferralName(""); }}>
           <SelectTrigger>
@@ -422,9 +454,9 @@ export function DepositRequestForm({
       </div>
 
       {/* 8. Info callout */}
-      <div className="rounded-md border bg-amber-50 border-amber-200 p-3 text-sm space-y-2">
+      <div className={`rounded-md border bg-amber-50 border-amber-200 p-3 text-sm space-y-2 ${activeStep === 3 ? "" : "hidden"}`}>
         <p className="text-foreground">
-          <strong>Deposit: ${depositAmount}</strong> (non-refundable once agreement is signed).
+          <strong>Deposit: ${depositAmount}</strong> (credited toward total at pickup).
         </p>
         <p className="text-muted-foreground">
           If your request is accepted, you will receive a deposit agreement link via email
@@ -437,10 +469,34 @@ export function DepositRequestForm({
         </p>
       </div>
 
-      {/* 9. Submit */}
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? "Submitting…" : "Submit Deposit Request"}
-      </Button>
+      {stepMode ? (
+        <div className="flex items-center justify-between gap-2">
+          {step > 1 ? (
+            <Button type="button" variant="outline" onClick={prevStep}>
+              Back
+            </Button>
+          ) : (
+            <span />
+          )}
+          {step < 3 ? (
+            <Button
+              type="button"
+              onClick={nextStep}
+              disabled={(step === 1 && !stepOneValid) || (step === 2 && !stepTwoValid)}
+            >
+              Continue
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isSubmitting} className="min-w-44">
+              {isSubmitting ? "Submitting…" : "Submit Deposit Request"}
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "Submitting…" : "Submit Deposit Request"}
+        </Button>
+      )}
     </form>
   );
 }
