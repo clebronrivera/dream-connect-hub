@@ -35,7 +35,16 @@ import { usePuppyFilters } from "@/hooks/use-puppy-filters";
 import { PuppyCard } from "./PuppyCard";
 import { PuppyDetailModal } from "./PuppyDetailModal";
 import { PuppyShareDialog } from "./PuppyShareDialog";
-import { DreamTag, StickerButton } from "@/components/redesign/PublicDesignPrimitives";
+import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
+import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
+
+const puppiesPageContainerClass = "mx-auto max-w-screen-2xl px-6 md:px-8";
+const heroStickerCtaBaseClass =
+  "group relative overflow-hidden rounded-3xl px-10 py-5 text-lg font-bold normal-case tracking-normal before:pointer-events-none before:absolute before:inset-x-3 before:top-1.5 before:h-[48%] before:rounded-full before:bg-white/25 before:blur-md before:content-[''] sm:px-12 sm:text-xl";
+const heroPinkCtaClass =
+  `${heroStickerCtaBaseClass} bg-[#ff3399] text-white shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]`;
+const heroVioletCtaClass =
+  `${heroStickerCtaBaseClass} bg-[#5b21b6] text-white shadow-[0_6px_0_#7c3aed,0_14px_30px_rgba(124,58,237,0.45)] hover:bg-[#7c3aed] hover:shadow-[0_6px_0_#a78bfa,0_16px_34px_rgba(167,139,250,0.5)]`;
 
 export default function Puppies() {
   const { t } = useLanguage();
@@ -110,11 +119,19 @@ export default function Puppies() {
         canonicalPath={puppyForSeo ? `/puppies/${puppyForSeo.id}` : undefined}
         imageUrl={puppyForSeo ? getPuppyImage(puppyForSeo) ?? undefined : undefined}
       />
+      <div className="min-h-screen bg-[#0f041b] text-white">
 
       {/* Hero Section */}
-      <section className="bg-bg py-16 md:py-20">
-        <div className="container text-center">
-          <DreamTag className="mb-4 bg-sun">Available now</DreamTag>
+      <section
+        className="relative overflow-hidden py-16 md:py-20"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 25%, #2a0f3a 0%, #1a0a2e 40%, #0f041b 80%)",
+        }}
+      >
+        <GalacticPawCanvas className="absolute inset-0 z-0 opacity-80" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-[#0f041b]/60 via-transparent to-[#0f041b]/80" />
+        <div className={`relative z-20 ${puppiesPageContainerClass} text-center`}>
           <h1 className="font-display text-5xl uppercase leading-[0.92] tracking-tight text-white md:text-7xl mb-4">
             {t("puppiesHeroTitle")}
           </h1>
@@ -122,22 +139,26 @@ export default function Puppies() {
             {t("puppiesHeroDescription")}
           </p>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <StickerButton size="lg" asChild>
-              <Link to="/contact">{t("puppiesInquireButton")}</Link>
+            <StickerButton size="lg" className={heroPinkCtaClass} asChild>
+              <Link to="/contact" className="flex items-center justify-center gap-x-3">
+                {t("puppiesInquireButton")}
+              </Link>
             </StickerButton>
-            <Button size="lg" variant="outline" className="rounded-pill border-white/50 bg-transparent text-white hover:bg-white/10" asChild>
-              <Link to="/upcoming-litters">{t("puppiesSeeUpcomingAnchor")}</Link>
-            </Button>
+            <StickerButton size="lg" className={heroVioletCtaClass} asChild>
+              <Link to="/upcoming-litters" className="flex items-center justify-center gap-x-3">
+                {t("puppiesSeeUpcomingAnchor")}
+              </Link>
+            </StickerButton>
           </div>
         </div>
       </section>
 
       {/* Puppy names disclaimer */}
-      <section className="container py-6">
-        <div className="rounded-r-lg border-l-4 border-cyan bg-cyan/10 p-4">
+      <section className={`${puppiesPageContainerClass} py-6`}>
+        <div className="rounded-r-lg border-l-4 border-cyan-400 bg-cyan-500/10 p-4">
           <div className="flex items-start gap-3">
-            <Info className="mt-0.5 h-5 w-5 shrink-0 text-cyan" />
-            <p className="text-sm text-ink">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+            <p className="text-sm text-white/85">
               <span className="font-semibold">{t("puppiesDisclaimerTitle")}</span>{" "}
               {t("puppiesDisclaimerBody")}
             </p>
@@ -146,14 +167,14 @@ export default function Puppies() {
       </section>
 
       {/* Filters Bar */}
-      <section className="sticky top-[calc(3.5rem+2px)] z-40 border-b bg-background/95 py-4 backdrop-blur">
-        <div className="container">
+      <section className="sticky top-[calc(3.5rem+2px)] z-40 border-b border-white/10 bg-[#12051f]/90 py-4 backdrop-blur">
+        <div className={puppiesPageContainerClass}>
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
               <div className="flex items-center gap-2 flex-wrap">
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="border-white/30 bg-transparent text-white hover:bg-white/10">
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                     {t("puppiesFilters")}
                     <ChevronDown
@@ -167,7 +188,7 @@ export default function Puppies() {
                     setSortBy(v as "name" | "breed" | "price-low" | "price-high")
                   }
                 >
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[160px] border-white/25 bg-white/5 text-white">
                     <SelectValue placeholder={t("puppiesSortBy")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -179,7 +200,7 @@ export default function Puppies() {
                 </Select>
               </div>
               <CollapsibleContent>
-                <div className="flex flex-wrap gap-4 mt-4 p-4 rounded-lg bg-muted/50">
+                <div className="mt-4 flex flex-wrap gap-4 rounded-lg border border-white/10 bg-white/5 p-4">
                   <div className="space-y-2">
                     <Label className="text-xs">{t("puppiesCategory")}</Label>
                     <Select
@@ -188,7 +209,7 @@ export default function Puppies() {
                         setCategoryFilter(v as "all" | "poodle-doodle" | "small-toy")
                       }
                     >
-                      <SelectTrigger className="w-[140px]">
+                      <SelectTrigger className="w-[140px] border-white/25 bg-white/5 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -208,7 +229,7 @@ export default function Puppies() {
                         setSizeFilter(v as "all" | "small" | "medium" | "large")
                       }
                     >
-                      <SelectTrigger className="w-[120px]">
+                      <SelectTrigger className="w-[120px] border-white/25 bg-white/5 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -227,14 +248,14 @@ export default function Puppies() {
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-muted-foreground"
+                className="text-white/70 hover:text-white"
               >
                 <X className="h-4 w-4 mr-1" />
                 {t("puppiesClearFilters")}
               </Button>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/70">
             {filteredAndSorted.length}{" "}
             {filteredAndSorted.length === 1
               ? t("puppiesCountSingular")
@@ -244,7 +265,7 @@ export default function Puppies() {
         {hasActiveFilters && (
           <div className="flex gap-2 mt-2 flex-wrap">
             {breedFilter && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 bg-white/10 text-white">
                 Breed: {breedFilter}
                 <button
                   type="button"
@@ -260,7 +281,7 @@ export default function Puppies() {
               </Badge>
             )}
             {categoryFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 bg-white/10 text-white">
                 {categoryFilter === "poodle-doodle"
                   ? t("puppiesCategoryPoodleDoodle")
                   : t("puppiesCategorySmall")}
@@ -275,7 +296,7 @@ export default function Puppies() {
               </Badge>
             )}
             {sizeFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1 capitalize">
+              <Badge variant="secondary" className="gap-1 bg-white/10 text-white capitalize">
                 {sizeFilter}
                 <button
                   type="button"
@@ -293,15 +314,15 @@ export default function Puppies() {
       </section>
 
       {/* Available Puppies */}
-      <section className="container py-12">
+      <section className={`${puppiesPageContainerClass} py-12`}>
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">{t("puppiesLoading")}</span>
+            <Loader2 className="h-8 w-8 animate-spin text-[#ff3399]" />
+            <span className="ml-2 text-white/70">{t("puppiesLoading")}</span>
           </div>
         ) : isError ? (
-          <div className="rounded-lg bg-muted/50 p-6 text-center">
-            <p className="text-sm text-muted-foreground mb-4">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center">
+            <p className="mb-4 text-sm text-white/70">
               {error instanceof Error ? error.message : t("puppiesLoadErrorFallback")}
             </p>
             <Button asChild>
@@ -331,19 +352,19 @@ export default function Puppies() {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg bg-muted/50 p-12 text-center">
-            <Dog className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="mb-2 font-display text-2xl uppercase tracking-tight text-foreground">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-12 text-center">
+            <Dog className="mx-auto mb-4 h-16 w-16 text-white/35" />
+            <h3 className="mb-2 font-display text-2xl uppercase tracking-tight text-white">
               {t("puppiesNoMatchTitle")}
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">{t("puppiesNoMatchBody")}</p>
-            <Button variant="outline" onClick={clearFilters}>
+            <p className="mb-4 text-sm text-white/70">{t("puppiesNoMatchBody")}</p>
+            <Button variant="outline" className="border-white/25 bg-transparent text-white hover:bg-white/10" onClick={clearFilters}>
               {t("puppiesClearFilters")}
             </Button>
-            <p className="text-sm text-muted-foreground mt-4">
+            <p className="mt-4 text-sm text-white/70">
               {t("puppiesNoAvailableAtAll")}
             </p>
-            <Button variant="link" onClick={() => openInterestForm()}>
+            <Button variant="link" className="text-[#ff3399] hover:text-white" onClick={() => openInterestForm()}>
               <Heart className="h-4 w-4 mr-2" />
               {t("puppiesSendInterestRecs")}
             </Button>
@@ -440,6 +461,7 @@ export default function Puppies() {
         />
       </section>
 
+      </div>
     </Layout>
   );
 }

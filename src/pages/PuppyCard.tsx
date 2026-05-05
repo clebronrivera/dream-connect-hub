@@ -39,11 +39,11 @@ export function PuppyCard({
 
   return (
     <Card
-      className="overflow-hidden group rounded-lg border-line bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
+      className="group animate-in overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] text-white shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition-all duration-300 fade-in slide-in-from-bottom-4 hover:-translate-y-1 hover:border-[#ff3399]/40 hover:shadow-xl"
       style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
       onClick={onOpenDetail}
     >
-      <div className="relative aspect-square overflow-hidden bg-muted cursor-pointer">
+      <div className="relative aspect-square cursor-pointer overflow-hidden bg-white/5">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -59,20 +59,20 @@ export function PuppyCard({
           {puppy.discount_active &&
             puppy.discount_amount != null &&
             Number(puppy.discount_amount) > 0 && (
-              <Badge className="bg-accent text-ink text-xs shrink-0">
+              <Badge className="shrink-0 bg-[#ff3399] text-xs text-white">
                 ${Number(puppy.discount_amount).toLocaleString()} OFF
               </Badge>
             )}
           <div className="flex gap-2">
             <span
               className={`text-xs px-2 py-1 rounded-full ${
-                isAvailable ? 'bg-leaf text-ink border border-ink/30' : 'bg-muted text-muted-foreground'
+                isAvailable ? 'border border-emerald-300/30 bg-emerald-500/80 text-white' : 'bg-white/10 text-white/70'
               }`}
             >
               {status}
             </span>
             {sizeCat && (
-              <Badge variant="secondary" className="capitalize text-xs">
+              <Badge variant="secondary" className="bg-white/15 text-xs capitalize text-white">
                 {sizeCat}
               </Badge>
             )}
@@ -85,11 +85,11 @@ export function PuppyCard({
               e.stopPropagation();
               onToggleFavorite();
             }}
-            className="p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
+            className="rounded-full bg-black/45 p-2 transition-colors hover:bg-black/60"
             aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Heart
-              className={`h-5 w-5 transition-colors ${isFav ? 'fill-primary text-primary' : 'text-muted-foreground'}`}
+              className={`h-5 w-5 transition-colors ${isFav ? 'fill-[#ff3399] text-[#ff3399]' : 'text-white/75'}`}
             />
           </button>
           <button
@@ -98,18 +98,18 @@ export function PuppyCard({
               e.stopPropagation();
               onShare();
             }}
-            className="p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
+            className="rounded-full bg-black/45 p-2 transition-colors hover:bg-black/60"
             aria-label="Share on Facebook or Instagram"
           >
-            <Share2 className="h-5 w-5 text-muted-foreground" />
+            <Share2 className="h-5 w-5 text-white/75" />
           </button>
         </div>
       </div>
       <CardHeader className="cursor-pointer" onClick={onOpenDetail}>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">{puppy.name || 'Unnamed'}</CardTitle>
+          <CardTitle className="text-xl text-white">{puppy.name || 'Unnamed'}</CardTitle>
         </div>
-        <CardDescription>
+        <CardDescription className="text-white/70">
           {puppy.breed || 'Unknown Breed'}
           {puppy.gender && ` • ${puppy.gender}`}
           {(() => {
@@ -118,7 +118,7 @@ export function PuppyCard({
           })()}
         </CardDescription>
         {puppy.description && (
-          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{puppy.description}</p>
+          <p className="mt-2 line-clamp-2 text-sm text-white/65">{puppy.description}</p>
         )}
       </CardHeader>
       <CardContent onClick={(e) => e.stopPropagation()}>
@@ -128,24 +128,24 @@ export function PuppyCard({
               {puppy.discount_active &&
               (puppy.base_price != null || puppy.discount_amount != null) ? (
                 <>
-                  <span className="text-sm text-muted-foreground line-through">
+                  <span className="text-sm text-white/50 line-through">
                     $
                     {Number(
                       puppy.base_price ?? price + Number(puppy.discount_amount ?? 0)
                     ).toLocaleString()}
                   </span>
-                  <span className="text-2xl font-bold text-foreground">
+                  <span className="text-2xl font-bold text-white">
                     ${Number(price).toLocaleString()}
                   </span>
                 </>
               ) : (
-                <span className="text-2xl font-bold text-foreground">
+                <span className="text-2xl font-bold text-white">
                   ${Number(price).toLocaleString()}
                 </span>
               )}
             </span>
           ) : (
-            <span className="text-muted-foreground">Price on request</span>
+            <span className="text-white/70">Price on request</span>
           )}
           <StickerButton onClick={onSendInterest}>
             <Heart className="h-4 w-4 mr-2" />

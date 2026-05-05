@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, PawPrint } from "lucide-react";
+import { Menu } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -45,27 +45,30 @@ export function GalacticHomeNav() {
   const { t, language, setLanguage } = useLanguage();
   const [sheetOpen, setSheetOpen] = useState(false);
   const liveLabel = t("indexHeroEyebrow").replace(/^[●•]\s*/u, "").trim();
+  const iconPillClass =
+    "inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-lg leading-none text-white transition hover:bg-white/10";
 
   return (
-    <nav className="sticky top-0 z-[100] border-b border-white/10 bg-white/[0.06] backdrop-blur-xl">
-      <div className="relative mx-auto flex min-h-[64px] max-w-screen-2xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:min-h-[68px] lg:px-8">
-        <Link to="/" className="relative z-[2] flex min-w-0 shrink items-center gap-2 sm:gap-3">
-          <PawPrint
-            className="size-8 shrink-0 text-[#ff3399] drop-shadow-[0_0_12px_rgba(255,51,153,0.6)] sm:size-10"
-            aria-hidden
+    <nav className="sticky top-0 z-[100] border-b border-white/10 bg-[rgba(15,4,27,0.92)] backdrop-blur-xl">
+      <div className="mx-auto grid min-h-[64px] max-w-screen-2xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2 sm:px-6 lg:min-h-[68px] lg:px-8">
+        <Link to="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
+          <img
+            src="/dream-puppies-logo.png"
+            alt="Dream Puppies logo"
+            className="size-8 shrink-0 rounded-full object-cover ring-1 ring-white/25 sm:size-10"
           />
           <div className="min-w-0 leading-none">
             <div className="font-display text-sm font-black uppercase tracking-[-0.03em] text-white drop-shadow-[0_0_10px_rgba(255,51,153,0.35)] sm:text-lg md:text-xl">
               {BUSINESS.primaryBrand}
             </div>
-            <div className="hidden text-[9px] uppercase tracking-[2.5px] text-white/60 sm:block">
-              {t("mockupV3NavCompanyLine")}
+            <div className="hidden text-[9px] uppercase tracking-[1.6px] text-white/60 sm:block">
+              Florida and North Carolina
             </div>
           </div>
         </Link>
 
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-[2] hidden min-w-0 max-w-[min(100%-11rem,52rem)] -translate-x-1/2 -translate-y-1/2 lg:block xl:max-w-[min(100%-9rem,56rem)]">
-          <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-white/60 bg-white/90 px-1 py-1 shadow-sm">
+        <div className="hidden min-w-0 justify-center px-2 xl:flex">
+          <div className="flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-white/60 bg-white/90 px-1 py-1 shadow-sm">
             {galacticNavLinks.map((link) => (
               <NavLink
                 key={`${link.to}-${link.label}`}
@@ -80,19 +83,19 @@ export function GalacticHomeNav() {
           </div>
         </div>
 
-        <div className="relative z-[2] ml-auto flex shrink-0 items-center gap-2 sm:gap-3 md:gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Tablet+: phone / message emoji actions + live pill */}
           <div className="hidden items-center gap-1.5 md:flex md:gap-2">
             <a
               href={GALACTIC_HOME_TEL_HREF}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-lg leading-none text-white transition hover:bg-white/10"
+              className={iconPillClass}
               aria-label={t("mockupV3NavCall")}
             >
               <span aria-hidden>📞</span>
             </a>
             <a
               href={GALACTIC_HOME_SMS_HREF}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ff3399] text-lg leading-none text-white shadow-[0_0_18px_rgba(255,51,153,0.45)] transition hover:-translate-y-px hover:bg-[#ff1a8c]"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ff3399] text-lg leading-none text-white shadow-[0_0_18px_rgba(255,51,153,0.45)] transition hover:bg-[#ff1a8c]"
               aria-label={t("indexHeroTextUsCta")}
             >
               <span aria-hidden>💬</span>
@@ -136,7 +139,7 @@ export function GalacticHomeNav() {
 
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" className="text-white hover:bg-white/10 lg:hidden">
+                <Button type="button" variant="ghost" size="icon" className="text-white hover:bg-white/10 xl:hidden">
                   <Menu className="size-6" aria-hidden />
                   <span className="sr-only">{t("menuToggle")}</span>
                 </Button>

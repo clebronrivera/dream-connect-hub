@@ -27,13 +27,26 @@ import { Star, Camera, Send, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAIN_BREEDS, OTHER_BREED_OPTION } from '@/lib/breed-utils';
 import { US_STATES, resolveStateLabel } from '@/data/statesData';
-import { DreamTag } from '@/components/redesign/PublicDesignPrimitives';
+import { StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget';
+import { GalacticHomeMiniFooter } from '@/components/home/GalacticHomeMiniFooter';
+import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from '@/components/home/GalacticHomeNav';
+import { GalacticPawCanvas } from '@/components/GalacticPawCanvas';
+import { MessageCircle, Phone } from 'lucide-react';
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
   | undefined;
 const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
+const pageShellClass = 'min-h-screen bg-[#0f041b] text-white';
+const containerClass = 'mx-auto max-w-screen-2xl px-6 md:px-8';
+const sectionCardClass = 'rounded-3xl border border-white/10 bg-[#12051f]/90 backdrop-blur-xl';
+const glossyStickerBaseClass =
+  'group relative overflow-hidden rounded-3xl px-8 py-3 text-sm font-bold normal-case tracking-normal before:pointer-events-none before:absolute before:inset-x-3 before:top-1.5 before:h-[48%] before:rounded-full before:bg-white/25 before:blur-md before:content-[\'\']';
+const pinkStickerClass =
+  `${glossyStickerBaseClass} bg-[#ff3399] text-white shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]`;
+const violetStickerClass =
+  `${glossyStickerBaseClass} bg-[#5b21b6] text-white shadow-[0_6px_0_#7c3aed,0_14px_30px_rgba(124,58,237,0.45)] hover:bg-[#7c3aed] hover:shadow-[0_6px_0_#a78bfa,0_16px_34px_rgba(167,139,250,0.5)]`;
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const hasPhoto = !!testimonial.photo_path;
@@ -41,8 +54,8 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
     <div className="break-inside-avoid mb-5">
       <Card
-        className={`overflow-hidden transition-shadow hover:shadow-lg ${
-          testimonial.is_featured ? 'ring-2 ring-primary/30' : ''
+        className={`overflow-hidden border-white/10 bg-[#12051f]/90 text-white transition-shadow hover:shadow-lg ${
+          testimonial.is_featured ? 'ring-2 ring-[#ff3399]/40' : ''
         }`}
       >
         {hasPhoto && (
@@ -54,7 +67,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
               loading="lazy"
             />
             {testimonial.is_featured && (
-              <Badge className="absolute top-3 right-3 bg-primaryDeep text-primary-foreground">
+              <Badge className="absolute top-3 right-3 bg-[#ff3399] text-white">
                 <Heart className="h-3 w-3 mr-1 fill-current" />
                 Featured
               </Badge>
@@ -63,21 +76,21 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         )}
         <CardContent className={`${hasPhoto ? 'pt-4' : 'pt-6'} pb-5 px-5`}>
           {!hasPhoto && testimonial.is_featured && (
-            <Badge className="mb-3 bg-primaryDeep text-primary-foreground">
+            <Badge className="mb-3 bg-[#ff3399] text-white">
               <Heart className="h-3 w-3 mr-1 fill-current" />
               Featured
             </Badge>
           )}
-          <p className="text-foreground leading-relaxed mb-4 italic">
+          <p className="text-white leading-relaxed mb-4 italic">
             &ldquo;{testimonial.message}&rdquo;
           </p>
           <div className="flex items-center gap-2 text-sm">
-            <div className="h-8 w-8 rounded-full bg-primaryDeep/15 flex items-center justify-center text-primaryDeep font-semibold text-xs">
+            <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white font-semibold text-xs">
               {testimonial.customer_name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="font-medium text-foreground">{testimonial.customer_name}</p>
-              <p className="text-muted-foreground text-xs">
+              <p className="font-medium text-white">{testimonial.customer_name}</p>
+              <p className="text-white/70 text-xs">
                 {[testimonial.puppy_name, testimonial.breed, testimonial.city && testimonial.state ? `${testimonial.city}, ${resolveStateLabel(testimonial.state)}` : null]
                   .filter(Boolean)
                   .join(' · ')}
@@ -286,38 +299,47 @@ export default function DreamyReviews() {
   });
 
   return (
-    <Layout>
+    <Layout bare>
       <Seo
         title="Dreamy Reviews — Dream Puppies"
         description="See what our happy puppy families are saying! Real stories and photos from Dream Puppies owners across Florida and North Carolina."
         canonicalPath="/dreamy-reviews"
       />
+      <div className={pageShellClass}>
+        <GalacticHomeNav />
 
       {/* Hero */}
-      <section className="bg-bg py-14 text-white md:py-20">
-        <div className="container text-center">
-          <DreamTag className="mb-3 bg-sun">Real stories from real homes</DreamTag>
+      <section
+        className="relative overflow-hidden border-b border-white/10 py-14 text-white md:py-20"
+        style={{
+          background: 'radial-gradient(circle at 50% 25%, #2a0f3a 0%, #1a0a2e 40%, #0f041b 80%)',
+        }}
+      >
+        <GalacticPawCanvas className="absolute inset-0 z-0 opacity-80" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-[#0f041b]/60 via-transparent to-[#0f041b]/80" />
+        <div className={`relative z-20 text-center ${containerClass}`}>
           <h1 className="mb-3 font-display text-4xl uppercase tracking-tight md:text-6xl">
             Dreamy Reviews
           </h1>
           <p className="mx-auto mb-6 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
             Real stories from real families. See how our puppies are doing in their
-            forever homes — and share your own!
+            forever homes - and share your own.
           </p>
           <SubmitDialog />
         </div>
       </section>
 
       {/* Masonry Grid */}
-      <section className="container py-12 md:py-16">
+      <section className="border-b border-white/10 bg-[#0a0214] py-12 md:py-16">
+        <div className={containerClass}>
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-pulse text-muted-foreground">Loading reviews...</div>
+          <div className={`${sectionCardClass} flex justify-center py-12`}>
+            <div className="animate-pulse text-white/70">Loading reviews...</div>
           </div>
         ) : testimonials.length === 0 ? (
-          <div className="text-center py-16">
-            <Star className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground mb-2">No reviews yet — be the first!</p>
+          <div className={`${sectionCardClass} text-center py-16`}>
+            <Star className="h-12 w-12 text-white/30 mx-auto mb-4" />
+            <p className="text-white/70 mb-2">No reviews yet - be the first!</p>
             <SubmitDialog />
           </div>
         ) : (
@@ -327,17 +349,34 @@ export default function DreamyReviews() {
             ))}
           </div>
         )}
+        </div>
       </section>
 
       {/* Bottom CTA */}
-      <section className="bg-muted/30 py-10">
-        <div className="container text-center">
-          <p className="mb-3 text-muted-foreground">
+      <section className="py-10">
+        <div className={`${containerClass} text-center`}>
+          <p className="mb-3 text-white/75">
             Got a Dream Puppies pup? We'd love to hear from you!
           </p>
-          <SubmitDialog />
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <SubmitDialog />
+            <StickerButton size="lg" className={pinkStickerClass} asChild>
+              <a href={GALACTIC_HOME_SMS_HREF} className="inline-flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Text us now
+              </a>
+            </StickerButton>
+            <StickerButton size="lg" className={violetStickerClass} asChild>
+              <a href={GALACTIC_HOME_TEL_HREF} className="inline-flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Call
+              </a>
+            </StickerButton>
+          </div>
         </div>
       </section>
+      <GalacticHomeMiniFooter />
+      </div>
     </Layout>
   );
 }
