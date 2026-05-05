@@ -31,11 +31,17 @@ export default function PuppiesList() {
   });
 
   const availablePuppies = useMemo(
-    () => (puppies ?? []).filter((p) => (p.status || '').toLowerCase() === 'available'),
+    () =>
+      (puppies ?? []).filter(
+        (p) => !!p.is_publicly_visible && !p.is_deceased && (p.status || '').toLowerCase() === 'available'
+      ),
     [puppies]
   );
   const soldPuppies = useMemo(
-    () => (puppies ?? []).filter((p) => (p.status || '').toLowerCase() === 'sold'),
+    () =>
+      (puppies ?? []).filter(
+        (p) => p.is_deceased || !p.is_publicly_visible || (p.status || '').toLowerCase() === 'sold'
+      ),
     [puppies]
   );
 
@@ -168,7 +174,7 @@ export default function PuppiesList() {
             />
           </section>
           <section>
-            <h2 className="text-xl font-semibold mb-4">Sold ({soldPuppies.length})</h2>
+            <h2 className="text-xl font-semibold mb-4">Sold / Hidden / Deceased ({soldPuppies.length})</h2>
             <DataTable
               columns={columns}
               data={soldPuppies}

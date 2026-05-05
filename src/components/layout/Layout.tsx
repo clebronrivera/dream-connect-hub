@@ -1,22 +1,25 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Header } from "./Header";
+import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { Footer } from "./Footer";
 import { useAuth } from "@/hooks/use-auth";
 import { LayoutDashboard } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface LayoutProps {
   children: ReactNode;
+  /** When true, omit global nav + Footer (page provides its own chrome). */
+  bare?: boolean;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children, bare = false }: LayoutProps) {
   const { isAdmin, loading } = useAuth();
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
+      {!bare && <GalacticHomeNav />}
+      <main className={cn("flex-1", bare && "flex flex-col")}>{children}</main>
+      {!bare && <Footer />}
       {!loading && isAdmin && (
         <Link
           to="/admin"

@@ -137,7 +137,7 @@ export interface UpcomingLitterParent {
   role?: BreedingDogRole | null;
 }
 
-/** Pre-birth puppy slot on an upcoming litter (public reservation UI). */
+/** Legacy pre-birth placeholder slot type retained for compatibility paths. */
 export interface UpcomingLitterPuppyPlaceholder {
   id: string;
   upcoming_litter_id: string;
@@ -157,14 +157,7 @@ export interface UpcomingLitter {
   breed: string;
   due_label?: string | null;
   price_label?: string | null;
-  deposit_amount: number;
-  refundable_deposit_amount?: number | null;
-  description?: string | null;
-  placeholder_image_path?: string | null;
-  deposit_link?: string | null;
-  cta_contact_link?: string | null;
   is_active: boolean;
-  sort_order: number;
   dam_id?: string | null;
   sire_id?: string | null;
   dam_name?: string | null;
@@ -174,10 +167,6 @@ export interface UpcomingLitter {
   display_breed?: string | null;
   dam_photo_path?: string | null;
   sire_photo_path?: string | null;
-  /** How many deposit spots are shown as filled (0..max_deposit_slots). */
-  deposits_reserved_count?: number;
-  /** Maximum concurrent deposits offered for this litter (typically 4). */
-  max_deposit_slots?: number;
   /** Fetched via join from breeding_dogs when present; use for dam/sire photo (single source of truth). */
   dam?: UpcomingLitterParent | null;
   sire?: UpcomingLitterParent | null;
@@ -185,11 +174,12 @@ export interface UpcomingLitter {
   breeding_date?: string | null;
   expected_whelping_date?: string | null;
   date_of_birth?: string | null;
+  male_puppy_count?: number | null;
+  female_puppy_count?: number | null;
   total_puppy_count?: number | null;
   lifecycle_status?: 'pre_birth' | 'post_birth' | 'previous';
   min_expected_puppies?: number | null;
   max_expected_puppies?: number | null;
-  /** Populated by fetchActiveUpcomingLitters (sorted by slot_index). */
   puppy_placeholders?: UpcomingLitterPuppyPlaceholder[];
   created_at?: string;
   updated_at?: string;
@@ -234,6 +224,8 @@ export interface Puppy {
   discount_note?: string;
   final_price?: number;
   status?: 'Available' | 'Pending' | 'Sold' | 'Reserved';
+  is_publicly_visible?: boolean;
+  is_deceased?: boolean;
   photos?: string[];
   primary_photo?: string;
   description?: string;

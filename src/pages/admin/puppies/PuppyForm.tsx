@@ -130,6 +130,11 @@ export default function PuppyForm() {
       payload.health_certificate = true;
       payload.vaccinations = payload.vaccinations || 'First round included';
       payload.microchipped = true;
+      if (payload.is_deceased) {
+        payload.is_publicly_visible = false;
+      } else if (payload.is_publicly_visible == null) {
+        payload.is_publicly_visible = payload.status === 'Available';
+      }
 
       if (isEdit && id) {
         return updatePuppy(id, payload as Record<string, unknown>);
@@ -138,6 +143,7 @@ export default function PuppyForm() {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['puppies'] });
       toast({ title: `Puppy ${isEdit ? 'updated' : 'created'} successfully`, description: `The puppy has been ${isEdit ? 'updated' : 'added'} to the database.` });
       navigate('/admin/puppies');
     },
@@ -363,6 +369,36 @@ export default function PuppyForm() {
 
             <FormField
               control={form.control}
+              name="is_publicly_visible"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Show on public site</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="is_deceased"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Mark as deceased (kept for accounting)</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="date_of_birth"
               render={({ field }) => (
                 <FormItem>
@@ -503,19 +539,6 @@ export default function PuppyForm() {
                     <Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="featured"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none"><FormLabel>Featured</FormLabel></div>
                 </FormItem>
               )}
             />

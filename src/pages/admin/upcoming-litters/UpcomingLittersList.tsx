@@ -90,20 +90,9 @@ export default function UpcomingLittersList() {
     { header: 'Due', accessorKey: 'due_label' as keyof UpcomingLitter },
     { header: 'Price', accessorKey: 'price_label' as keyof UpcomingLitter },
     {
-      header: 'Deposit',
-      cell: (row: UpcomingLitter) => (row.deposit_amount != null ? `$${row.deposit_amount}` : '-'),
-    },
-    {
-      header: 'Refundable',
+      header: 'Puppies',
       cell: (row: UpcomingLitter) =>
-        row.refundable_deposit_amount != null && row.refundable_deposit_amount > 0
-          ? `$${row.refundable_deposit_amount}`
-          : '-',
-    },
-    {
-      header: 'Deposits (shown)',
-      cell: (row: UpcomingLitter) =>
-        `${row.deposits_reserved_count ?? 0} / ${row.max_deposit_slots ?? 4}`,
+        `${row.total_puppy_count ?? 0} total (${row.male_puppy_count ?? 0}M / ${row.female_puppy_count ?? 0}F)`,
     },
     {
       header: 'Status',
@@ -120,7 +109,7 @@ export default function UpcomingLittersList() {
         </div>
       ),
     },
-    { header: 'Sort', accessorKey: 'sort_order' as keyof UpcomingLitter },
+    { header: 'Breeding Date', accessorKey: 'breeding_date' as keyof UpcomingLitter },
     {
       header: 'Actions',
       cell: (row: UpcomingLitter) => (
@@ -206,11 +195,11 @@ export default function UpcomingLittersList() {
           renderSubComponent={(row) => (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium">Past dogs from this line (Slots)</h3>
+                <h3 className="font-medium">Past dogs from this line</h3>
                 <Link to={`/admin/upcoming-litters/${row.id}/edit`}>
                   <Button variant="outline" size="sm">
                     <Pencil className="h-4 w-4 mr-2" />
-                    Edit Litter & Slots
+                    Edit Litter
                   </Button>
                 </Link>
               </div>

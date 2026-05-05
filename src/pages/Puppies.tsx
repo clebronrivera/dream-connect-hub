@@ -15,21 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dog,
   Loader2,
   Info,
   ChevronDown,
-  ArrowLeft,
   SlidersHorizontal,
   X,
   Heart,
@@ -44,7 +35,6 @@ import { usePuppyFilters } from "@/hooks/use-puppy-filters";
 import { PuppyCard } from "./PuppyCard";
 import { PuppyDetailModal } from "./PuppyDetailModal";
 import { PuppyShareDialog } from "./PuppyShareDialog";
-import { UpcomingLittersSection } from "@/components/upcoming/UpcomingLittersSection";
 import { DreamTag, StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 
 export default function Puppies() {
@@ -121,33 +111,6 @@ export default function Puppies() {
         imageUrl={puppyForSeo ? getPuppyImage(puppyForSeo) ?? undefined : undefined}
       />
 
-      {/* Breadcrumb / Navigation */}
-      <section className="border-b bg-muted/30">
-        <div className="container py-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Available Puppies</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="flex items-center gap-2 mt-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                {t("puppiesBackToSite")}
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* Hero Section */}
       <section className="bg-bg py-16 md:py-20">
         <div className="container text-center">
@@ -163,7 +126,7 @@ export default function Puppies() {
               <Link to="/contact">{t("puppiesInquireButton")}</Link>
             </StickerButton>
             <Button size="lg" variant="outline" className="rounded-pill border-white/50 bg-transparent text-white hover:bg-white/10" asChild>
-              <Link to="#upcoming-litters">{t("puppiesSeeUpcomingAnchor")}</Link>
+              <Link to="/upcoming-litters">{t("puppiesSeeUpcomingAnchor")}</Link>
             </Button>
           </div>
         </div>
@@ -477,11 +440,6 @@ export default function Puppies() {
         />
       </section>
 
-      <section id="upcoming-litters" className="scroll-mt-24 bg-muted/40 border-t py-16">
-        <div className="container">
-          <UpcomingLittersSection embedded />
-        </div>
-      </section>
     </Layout>
   );
 }

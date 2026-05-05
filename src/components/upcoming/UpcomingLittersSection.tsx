@@ -15,41 +15,19 @@ import {
 import {
   type UpcomingLitter,
   type UpcomingLitterParent,
-  type UpcomingLitterPuppyPlaceholder,
 } from "@/lib/supabase";
 import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
-import { useToast } from "@/hooks/use-toast";
-import { Calendar, Loader2, UserPlus } from "lucide-react";
-import { DepositRequestForm } from "@/components/DepositRequestForm";
-import { REQUEST_DEPOSIT_RESERVATION } from "@/lib/inquiry-subjects";
+import { Calendar, Loader2 } from "lucide-react";
 import { getBirthWindow, getGoHomeWindow } from "@/lib/litter-timeline";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
-import {
-  insertDepositRequest,
-  depositRequestPayloadToRow,
-  type DepositRequestPayload,
-} from "@/lib/deposit-requests";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
-import { DreamTag, SlotTile, StickerButton } from "@/components/redesign/PublicDesignPrimitives";
-
-const DEFAULT_DEPOSIT_AMOUNT = 300;
+import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
 
 const FALLBACK_IMAGE_SRC =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='18' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ENo photo%3C/text%3E%3C/svg%3E";
 
 function getDisplayBreed(litter: UpcomingLitter): string {
   return (litter.display_breed || litter.breed || "Upcoming Litter").trim() || "Upcoming Litter";
-}
-
-function getSlotState(ph: UpcomingLitterPuppyPlaceholder & { hold_expires_at?: string | null }) {
-  if (ph.lifecycle_status === "born") return "picked" as const;
-  if (ph.hold_expires_at && new Date(ph.hold_expires_at) > new Date()) return "reserved" as const;
-  return "open" as const;
-}
-
-function getPlaceholderImageUrl(path: string | null | undefined): string {
-  return resolvePuppyPhotosPublicUrl(path ?? "puppy-placeholder/default.png") ?? FALLBACK_IMAGE_SRC;
 }
 
 function photoPathOrNull(path: string | null | undefined): string | null {
@@ -73,48 +51,12 @@ type ParentDogModalState = {
 
 export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSectionProps) {
   const { t } = useLanguage();
-  const { toast } = useToast();
-  const [reserveLitter, setReserveLitter] = useState<UpcomingLitter | null>(null);
-  const [reservePlaceholderId, setReservePlaceholderId] = useState<string | null>(null);
-  const [reserveSubmitting, setReserveSubmitting] = useState(false);
   const [parentModal, setParentModal] = useState<ParentDogModalState | null>(null);
 
   const { data: litters, isLoading, error } = useQuery({
     queryKey: UPCOMING_LITTERS_ACTIVE_QUERY_KEY,
     queryFn: fetchActiveUpcomingLitters,
   });
-
-  const openReserve = (litter: UpcomingLitter, placeholder: UpcomingLitterPuppyPlaceholder | null) => {
-    setReserveLitter(litter);
-    setReservePlaceholderId(placeholder?.id ?? null);
-  };
-
-  const closeReserve = () => {
-    setReserveLitter(null);
-    setReservePlaceholderId(null);
-  };
-
-  const handleDepositRequestSubmit = async (payload: DepositRequestPayload) => {
-    setReserveSubmitting(true);
-    try {
-      const { error: err } = await insertDepositRequest(depositRequestPayloadToRow(payload));
-      if (err) throw err;
-      toast({
-        title: "Deposit request submitted",
-        description:
-          "We'll review and send your agreement link via email and text within 24–48 hours.",
-      });
-      closeReserve();
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: (err as Error).message || "Failed to submit. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setReserveSubmitting(false);
-    }
-  };
 
   return (
     <>
@@ -146,13 +88,9 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
         </div>
       ) : (
         <div className="mx-auto max-w-5xl space-y-6">
-          <p className="px-1 text-center text-xs leading-relaxed text-muted-foreground">
-            {t("upcomingDepositPolicy")}
-          </p>
-
           <div className="space-y-5">
             {litters.map((litter) => {
-              const imageUrl = getPlaceholderImageUrl(litter.placeholder_image_path);
+              const imageUrl = FALLBACK_IMAGE_SRC;
               const dam = Array.isArray(litter.dam)
                 ? (litter.dam as UpcomingLitterParent[])[0]
                 : litter.dam;
@@ -171,16 +109,7 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
               const sireLabel = [litter.sire_name, litter.sire_breed].filter(Boolean).join(" • ");
               const birthWindow = getBirthWindow(litter.breeding_date);
               const goHomeWindow = getGoHomeWindow(litter.breeding_date);
-              const depositAmount =
-                litter.deposit_amount != null && litter.deposit_amount > 0
-                  ? litter.deposit_amount
-                  : DEFAULT_DEPOSIT_AMOUNT;
-              const refundableAmount =
-                litter.refundable_deposit_amount != null && litter.refundable_deposit_amount > 0
-                  ? litter.refundable_deposit_amount
-                  : null;
               const displayBreedLabel = getDisplayBreed(litter);
-              const placeholders = litter.puppy_placeholders ?? [];
 
               return (
                 <Card key={litter.id} className="flex flex-col overflow-hidden border-line bg-bg text-white shadow-sm">
@@ -282,36 +211,6 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
                       {t("upcomingFamilyTreeCaption")}
                     </p>
 
-                    {placeholders.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 pt-1">
-                        {placeholders.map((p) => {
-                          const pickLabel = pickDepositLabel(p.slot_index, t);
-                          const slotState = getSlotState(
-                            p as UpcomingLitterPuppyPlaceholder & { hold_expires_at?: string | null },
-                          );
-                          return (
-                            <div
-                              key={p.id}
-                              className="space-y-1.5"
-                            >
-                              <SlotTile
-                                state={slotState}
-                                label={slotState === "open" ? pickLabel : `Locked ${p.slot_index}`}
-                                onClick={slotState === "open" ? () => openReserve(litter, p) : undefined}
-                              />
-                              <p className="text-[10px] text-center text-white/70">
-                                {pickLabel}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center py-2">
-                        {t("upcomingNoPlaceholders")}
-                      </p>
-                    )}
-
                     <div className="rounded-md border border-white/20 bg-white/5 px-3 py-2 space-y-1 text-[11px] sm:text-xs text-white/75 text-center leading-snug">
                       {birthWindow ? (
                         <p className="flex items-start justify-center gap-1.5">
@@ -331,17 +230,6 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
                           </span>
                         </p>
                       ) : null}
-                      <p>
-                        {t("upcomingDepositAmountLabel")}: ${depositAmount}. {t("upcomingReserveSpotsLabel")}:{" "}
-                        {litter.deposits_reserved_count ?? 0} {t("upcomingOf")} {litter.max_deposit_slots ?? 4}.
-                      </p>
-                      {refundableAmount != null ? (
-                        <p>
-                          {t("upcomingRefundableLabel")}: ${refundableAmount}. {t("upcomingRefundableRest")}
-                        </p>
-                      ) : (
-                        <p className="italic text-[10px]">{t("upcomingRefundableGeneric")}</p>
-                      )}
                     </div>
 
                     {(litter.example_puppy_image_paths?.length ?? 0) > 0 && (
@@ -363,15 +251,6 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
                       </div>
                     )}
 
-                    <StickerButton
-                      type="button"
-                      size="sm"
-                      className="w-full h-9 text-sm"
-                      onClick={() => openReserve(litter, null)}
-                    >
-                      <UserPlus className="mr-2 h-3.5 w-3.5" />
-                      {REQUEST_DEPOSIT_RESERVATION}
-                    </StickerButton>
                   </div>
                 </Card>
               );
@@ -468,37 +347,6 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={!!reserveLitter}
-        onOpenChange={(open) => {
-          if (!open) closeReserve();
-        }}
-      >
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{REQUEST_DEPOSIT_RESERVATION}</DialogTitle>
-            <DialogDescription>
-              {reserveLitter
-                ? `${t("upcomingDialogIntro")} ${getDisplayBreed(reserveLitter)}${t("upcomingDialogWithBreedSuffix")}`
-                : t("upcomingDialogFallback")}
-            </DialogDescription>
-          </DialogHeader>
-          {litters?.length ? (
-            <DepositRequestForm
-              litters={litters}
-              initialLitterId={reserveLitter?.id ?? null}
-              initialPlaceholderId={reservePlaceholderId}
-              stepMode
-              onSubmit={handleDepositRequestSubmit}
-              isSubmitting={reserveSubmitting}
-            />
-          ) : (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

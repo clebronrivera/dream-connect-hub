@@ -13,7 +13,7 @@ export default function UpcomingLitters() {
       <Seo pageId="upcomingLitters" />
       <section className="bg-bg py-14 text-white md:py-20">
         <div className="container text-center px-4">
-          <DreamTag className="mx-auto mb-4 bg-sun">Reserve early · pick your spot</DreamTag>
+          <DreamTag className="mx-auto mb-4 bg-sun">Text us to pre-reserve and get first pick</DreamTag>
           <Calendar className="mx-auto mb-3 h-10 w-10 text-white" />
           <h1 className="mb-3 font-display text-4xl uppercase tracking-tight md:text-6xl">{t("upcomingHeroTitle")}</h1>
           <p className="mx-auto max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">

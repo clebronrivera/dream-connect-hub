@@ -47,6 +47,7 @@ const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const TrainingPlanPage = lazy(() => import("./pages/TrainingPlanPage"));
 const DepositRequests = lazy(() => import("./pages/admin/DepositRequests"));
 const RequestDeposit = lazy(() => import("./pages/RequestDeposit"));
+const HeroV3Mockup = lazy(() => import("./pages/dev/HeroV3Mockup"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -92,6 +93,9 @@ export function AppRoutes() {
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />
         <Route path="/training-plan" element={<TrainingPlanPage />} />
         <Route path="/training-plan/:problemType" element={<TrainingPlanPage />} />
+
+        {/* Dev / design mockups (URL-only; not linked from public nav) */}
+        <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
 
         {/* Admin login */}
         <Route path="/admin/login" element={<Login />} />

@@ -1,58 +1,24 @@
 import { supabase } from "@/lib/supabase";
 import { isTransientSupabaseReadError, runWithTransientRetries } from "@/lib/supabase-query-retry";
-import type {
-  UpcomingLitter,
-  UpcomingLitterPuppyPlaceholder,
-} from "@/lib/supabase";
+import type { UpcomingLitter } from "@/lib/supabase";
 
 /** Shared query key for active upcoming litters (public + contact page). */
 export const UPCOMING_LITTERS_ACTIVE_QUERY_KEY = ["upcoming-litters-active"] as const;
 
 const PARENT_FIELDS = "id, name, role, breed, composition, color, photo_path";
 
-const SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS = `*,
-  dam:breeding_dogs!dam_id(${PARENT_FIELDS}),
-  sire:breeding_dogs!sire_id(${PARENT_FIELDS}),
-  upcoming_litter_puppy_placeholders(
-    id,
-    upcoming_litter_id,
-    public_ref_code,
-    slot_index,
-    sex,
-    offspring_breed_label,
-    lifecycle_status,
-    hold_expires_at,
-    hold_deposit_request_id,
-    created_at,
-    updated_at
-  )`;
-
 const SELECT_LITTER_WITH_PARENTS = `*,
   dam:breeding_dogs!dam_id(${PARENT_FIELDS}),
   sire:breeding_dogs!sire_id(${PARENT_FIELDS})`;
 
-function normalizeLitterRow(row: Record<string, unknown>): UpcomingLitter {
-  const raw = row.upcoming_litter_puppy_placeholders;
-  const placeholders = Array.isArray(raw)
-    ? (raw as UpcomingLitterPuppyPlaceholder[])
-    : [];
-  const puppy_placeholders = [...placeholders].sort(
-    (a, b) => (a.slot_index ?? 0) - (b.slot_index ?? 0)
-  );
-  const { upcoming_litter_puppy_placeholders: _drop, ...rest } = row;
-  return { ...rest, puppy_placeholders } as UpcomingLitter;
-}
-
 /**
- * Fetch active upcoming litters. Tries dam/sire join + puppy placeholders first; falls back if
- * the placeholders table or policy is not deployed yet.
+ * Fetch active pre-birth upcoming litters. Tries dam/sire join first; falls back to raw rows.
  */
 export async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
   return runWithTransientRetries(async () => {
     let lastErr: Error | null = null;
 
     for (const selectStmt of [
-      SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS,
       SELECT_LITTER_WITH_PARENTS,
       "*",
     ]) {
@@ -60,16 +26,12 @@ export async function fetchActiveUpcomingLitters(): Promise<UpcomingLitter[]> {
         .from("upcoming_litters")
         .select(selectStmt)
         .eq("is_active", true)
-        .order("sort_order", { ascending: true })
+        .eq("lifecycle_status", "pre_birth")
+        .order("breeding_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
 
       if (!error) {
-        const rows = (data ?? []) as Record<string, unknown>[];
-        return rows.map((row) =>
-          selectStmt === SELECT_LITTER_WITH_PARENTS_AND_PLACEHOLDERS
-            ? normalizeLitterRow(row)
-            : ({ ...row, puppy_placeholders: [] } as UpcomingLitter)
-        );
+        return (data ?? []) as UpcomingLitter[];
       }
       if (isTransientSupabaseReadError(error)) {
         throw new Error(error.message);

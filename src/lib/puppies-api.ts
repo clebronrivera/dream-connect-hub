@@ -18,7 +18,7 @@ export function isPublicReadPolicyError(message: string, code?: string): boolean
   );
 }
 
-/** Fetch only Available puppies for public/customer list. Shared by Puppies page and landing marquee. */
+/** Fetch publicly visible puppies for customer-facing surfaces. */
 export async function fetchAvailablePuppies(): Promise<Puppy[]> {
   if (!appEnv.supabaseUrl || !appEnv.supabaseAnonKey) {
     throw new Error(MISSING_SUPABASE_CONFIG_MESSAGE);
@@ -30,6 +30,8 @@ export async function fetchAvailablePuppies(): Promise<Puppy[]> {
     const { data, error } = await supabase
       .from("puppies")
       .select("*")
+      .eq("is_publicly_visible", true)
+      .eq("is_deceased", false)
       .eq("status", "Available")
       .order("display_order", { ascending: true })
       .order("created_at", { ascending: false });

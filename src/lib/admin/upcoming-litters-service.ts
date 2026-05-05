@@ -5,7 +5,7 @@ export async function fetchAdminUpcomingLitters(): Promise<UpcomingLitter[]> {
   const { data, error } = await supabase
     .from('upcoming_litters')
     .select('*')
-    .order('sort_order', { ascending: true })
+    .order('breeding_date', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as UpcomingLitter[];

@@ -11,9 +11,9 @@ import {
 } from '@/lib/admin/upcoming-litters-service';
 import { getBirthWindow, getGoHomeWindow, getDueLabelFromBreedingDate, getExpectedWhelpingDate } from '@/lib/litter-timeline';
 import { getDisplayBreedFromParentBreeds } from '@/lib/breed-utils';
+import { getReadyDateFromDob } from '@/lib/puppy-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -37,31 +37,16 @@ const schema = z.object({
   display_breed: z.string().min(1, 'Display breed is required'),
   due_label: z.string().optional(),
   price_label: z.string().optional(),
-  deposit_amount: z.number().min(0),
-  refundable_deposit_amount: z.number().min(0).optional(),
-  description: z.string().optional(),
-  placeholder_image_path: z.string().optional(),
-  deposit_link: z.string().optional(),
-  cta_contact_link: z.string().optional(),
   is_active: z.boolean(),
-  sort_order: z.number().int().min(0),
   breeding_date: z.string().optional(),
   expected_whelping_date: z.string().optional(),
   min_expected_puppies: z.number().int().min(0).optional(),
   max_expected_puppies: z.number().int().min(0).optional(),
-  deposits_reserved_count: z.number().int().min(0).max(8),
-  max_deposit_slots: z.number().int().min(1).max(8),
+  male_puppy_count: z.number().int().min(0).optional(),
+  female_puppy_count: z.number().int().min(0).optional(),
   lifecycle_status: z.enum(['pre_birth', 'post_birth', 'previous']),
   date_of_birth: z.string().optional(),
   total_puppy_count: z.number().int().min(0).optional(),
-}).superRefine((data, ctx) => {
-  if (data.deposits_reserved_count > data.max_deposit_slots) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Reserved count cannot exceed max deposit slots',
-      path: ['deposits_reserved_count'],
-    });
-  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -112,20 +97,13 @@ export default function UpcomingLitterForm() {
       display_breed: '',
       due_label: '',
       price_label: '',
-      deposit_amount: 0,
-      refundable_deposit_amount: undefined,
-      description: '',
-      placeholder_image_path: '',
-      deposit_link: '',
-      cta_contact_link: '/contact',
       is_active: true,
-      sort_order: 0,
       breeding_date: '',
       expected_whelping_date: '',
       min_expected_puppies: undefined,
       max_expected_puppies: undefined,
-      deposits_reserved_count: 2,
-      max_deposit_slots: 4,
+      male_puppy_count: undefined,
+      female_puppy_count: undefined,
       lifecycle_status: 'pre_birth',
       date_of_birth: '',
       total_puppy_count: undefined,
@@ -135,6 +113,8 @@ export default function UpcomingLitterForm() {
   const breedingDate = form.watch('breeding_date');
   const damId = form.watch('dam_id');
   const sireId = form.watch('sire_id');
+  const malePuppyCount = form.watch('male_puppy_count');
+  const femalePuppyCount = form.watch('female_puppy_count');
   const birthWindow = getBirthWindow(breedingDate);
   const goHomeWindow = getGoHomeWindow(breedingDate);
   const selectedDam = damId ? dams.find((d) => d.id === damId) : null;
@@ -173,6 +153,13 @@ export default function UpcomingLitterForm() {
   }, [selectedDam?.breed, selectedSire?.breed, form]);
 
   useEffect(() => {
+    const male = malePuppyCount ?? 0;
+    const female = femalePuppyCount ?? 0;
+    const total = male + female;
+    form.setValue('total_puppy_count', total > 0 ? total : undefined);
+  }, [malePuppyCount, femalePuppyCount, form]);
+
+  useEffect(() => {
     if (row) {
       form.reset({
         dam_id: row.dam_id ?? '',
@@ -180,20 +167,13 @@ export default function UpcomingLitterForm() {
         display_breed: (row.display_breed ?? row.breed) ?? '',
         due_label: row.due_label ?? '',
         price_label: row.price_label ?? '',
-        deposit_amount: row.deposit_amount ?? 0,
-        refundable_deposit_amount: row.refundable_deposit_amount ?? undefined,
-        description: row.description ?? '',
-        placeholder_image_path: row.placeholder_image_path ?? '',
-        deposit_link: row.deposit_link ?? '',
-        cta_contact_link: row.cta_contact_link ?? '/contact',
         is_active: row.is_active ?? true,
-        sort_order: row.sort_order ?? 0,
         breeding_date: row.breeding_date ?? '',
         expected_whelping_date: row.expected_whelping_date ?? '',
         min_expected_puppies: row.min_expected_puppies ?? undefined,
         max_expected_puppies: row.max_expected_puppies ?? undefined,
-        deposits_reserved_count: row.deposits_reserved_count ?? 2,
-        max_deposit_slots: row.max_deposit_slots ?? 4,
+        male_puppy_count: row.male_puppy_count ?? undefined,
+        female_puppy_count: row.female_puppy_count ?? undefined,
         lifecycle_status: row.lifecycle_status ?? 'pre_birth',
         date_of_birth: row.date_of_birth ?? '',
         total_puppy_count: row.total_puppy_count ?? undefined,
@@ -223,21 +203,14 @@ export default function UpcomingLitterForm() {
       expected_whelping_date,
       min_expected_puppies: data.min_expected_puppies ?? null,
       max_expected_puppies: data.max_expected_puppies ?? null,
+      male_puppy_count: data.male_puppy_count ?? null,
+      female_puppy_count: data.female_puppy_count ?? null,
+      total_puppy_count: data.total_puppy_count ?? null,
       price_label: data.price_label || null,
-      deposit_amount: data.deposit_amount,
-      refundable_deposit_amount: data.refundable_deposit_amount ?? null,
-      description: data.description || null,
-      placeholder_image_path: data.placeholder_image_path || null,
-      deposit_link: data.deposit_link || null,
-      cta_contact_link: data.cta_contact_link || '/contact',
       is_active: data.is_active,
-      sort_order: data.sort_order,
       breeding_date: data.breeding_date || null,
-      deposits_reserved_count: data.deposits_reserved_count,
-      max_deposit_slots: data.max_deposit_slots,
       lifecycle_status: data.lifecycle_status,
       date_of_birth: data.date_of_birth || null,
-      total_puppy_count: data.total_puppy_count ?? null,
       // Keep denormalized fallback photo paths populated so upcoming litter cards
       // still render parent images if the join cannot be read in the browser.
       dam_photo_path: dam?.photo_path ?? null,
@@ -268,9 +241,16 @@ export default function UpcomingLitterForm() {
       if (opts?.throwIfSkipped) throw new Error('Enter the litter date of birth first.');
       return null;
     }
-    const total = data.total_puppy_count;
-    if (total == null || total <= 0) {
+    const maleCount = data.male_puppy_count ?? 0;
+    const femaleCount = data.female_puppy_count ?? 0;
+    const computedTotal = maleCount + femaleCount;
+    const total = data.total_puppy_count ?? computedTotal;
+    if (total <= 0) {
       if (opts?.throwIfSkipped) throw new Error('Enter total puppy count (how many were born).');
+      return null;
+    }
+    if (computedTotal > 0 && total !== computedTotal) {
+      if (opts?.throwIfSkipped) throw new Error('Total puppy count must equal male + female.');
       return null;
     }
 
@@ -278,28 +258,32 @@ export default function UpcomingLitterForm() {
     const dob = data.date_of_birth;
     const basePrice = parsePriceLabelToBasePrice(data.price_label);
     const listingDate = format(new Date(), 'yyyy-MM-dd');
+    const readyDate = getReadyDateFromDob(dob);
 
     const { data: rows, error: selErr } = await supabase
       .from('puppies')
-      .select('id, created_at')
+      .select('id, created_at, is_publicly_visible')
       .eq('upcoming_litter_id', id)
       .order('created_at', { ascending: true });
 
     if (selErr) throw selErr;
 
     const existing = rows ?? [];
-    let deleted = 0;
+    let hidden = 0;
 
     if (existing.length > total) {
       const sorted = [...existing].sort(
         (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
       );
-      const remove = sorted.slice(0, existing.length - total);
-      const ids = remove.map((r) => r.id).filter(Boolean) as string[];
+      const toHide = sorted.slice(0, existing.length - total);
+      const ids = toHide.map((r) => r.id).filter(Boolean) as string[];
       if (ids.length) {
-        const { error: delErr } = await supabase.from('puppies').delete().in('id', ids);
-        if (delErr) throw delErr;
-        deleted = ids.length;
+        const { error: hideErr } = await supabase
+          .from('puppies')
+          .update({ is_publicly_visible: false })
+          .in('id', ids);
+        if (hideErr) throw hideErr;
+        hidden = ids.length;
       }
     }
 
@@ -323,6 +307,9 @@ export default function UpcomingLitterForm() {
         breed,
         date_of_birth: dob,
         status: 'Available' as const,
+        is_publicly_visible: true,
+        is_deceased: false,
+        ...(readyDate ? { ready_date: readyDate } : {}),
         ...(basePrice != null ? { base_price: basePrice } : {}),
         listing_date: listingDate,
       }));
@@ -332,12 +319,14 @@ export default function UpcomingLitterForm() {
     }
 
     const patch: Record<string, unknown> = { date_of_birth: dob, breed };
+    const readyDate = getReadyDateFromDob(dob);
+    if (readyDate) patch.ready_date = readyDate;
     if (basePrice != null) patch.base_price = basePrice;
 
     const { error: upErr } = await supabase.from('puppies').update(patch).eq('upcoming_litter_id', id);
     if (upErr) throw upErr;
 
-    return { created, deleted };
+    return { created, deleted: hidden };
   };
 
   const createMutation = useMutation({
@@ -382,7 +371,7 @@ export default function UpcomingLitterForm() {
         if (r && (r.created > 0 || r.deleted > 0)) {
           toast({
             title: 'Puppy records synced',
-            description: `Created ${r.created}, removed ${r.deleted}. Open Puppies to add names, color, and photos.`,
+            description: `Created ${r.created}, hidden ${r.deleted}. Open Puppies to add names, color, and photos.`,
           });
         }
       } catch (e) {
@@ -541,109 +530,6 @@ export default function UpcomingLitterForm() {
                 <FormLabel>Price label</FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="e.g. $1,500 to $2,000" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="deposit_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deposit amount ($)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value || '0', 10))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="refundable_deposit_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Refundable deposit amount ($)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    placeholder="Optional"
-                    {...field}
-                    value={field.value ?? ''}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      field.onChange(v === '' ? undefined : parseInt(v, 10));
-                    }}
-                  />
-                </FormControl>
-                <p className="text-sm text-muted-foreground">Refundable up to the date of birth.</p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="deposits_reserved_count"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deposits shown as filled</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={8}
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseInt(e.target.value || '0', 10))
-                    }
-                  />
-                </FormControl>
-                <p className="text-xs text-muted-foreground">
-                  Public site shows “X of Y reserve spots” for urgency. Must not exceed max slots below.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="max_deposit_slots"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Max deposit slots offered</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={8}
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(parseInt(e.target.value || '4', 10))
-                    }
-                  />
-                </FormControl>
-                <p className="text-xs text-muted-foreground">
-                  Sets how many reservation puppy tiles appear on the public site (and “X of Y” deposit slots). Not the same as expected litter size—adjust min/max expected puppies separately.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea {...field} rows={3} placeholder="Short description of typical puppy traits" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -832,63 +718,6 @@ export default function UpcomingLitterForm() {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="placeholder_image_path"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Placeholder image path</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g. puppy-placeholder/shih-tzu-default.png" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="deposit_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deposit link (optional)</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Stripe or other payment URL" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="cta_contact_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact CTA link</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="/contact" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-              <FormField
-                control={form.control}
-                name="sort_order"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sort order</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value || '0', 10))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
           </div>
 
@@ -938,6 +767,51 @@ export default function UpcomingLitterForm() {
                 )}
               />
 
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="male_puppy_count"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Male puppies born</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          readOnly
+                          className="bg-muted"
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="female_puppy_count"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Female puppies born</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === '' ? undefined : parseInt(v, 10));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
                 name="total_puppy_count"
@@ -971,7 +845,7 @@ export default function UpcomingLitterForm() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Actual number born. Requires date of birth above. Saving the form (or Sync below) creates that many sibling records in Puppies—price comes from the price label when possible.
+                      Auto-calculated from male + female counts. Requires date of birth above. Saving (or Sync below) creates/adjusts sibling puppy records without duplicates.
                     </p>
                     <FormMessage />
                   </FormItem>
