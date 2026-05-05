@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
-import { Footer } from "./Footer";
+import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
 import { useAuth } from "@/hooks/use-auth";
 import { LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ export function Layout({ children, bare = false }: LayoutProps) {
     <div className="flex min-h-screen flex-col">
       {!bare && <GalacticHomeNav />}
       <main className={cn("flex-1", bare && "flex flex-col")}>{children}</main>
-      {!bare && <Footer />}
+      {!bare && <GalacticHomeMiniFooter />}
       {!loading && isAdmin && (
         <Link
           to="/admin"

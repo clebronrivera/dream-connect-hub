@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
-import { Dog, Phone, Mail, MapPin, Lock } from "lucide-react";
+import { Phone, Mail, MapPin, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BUSINESS } from "@/lib/constants/business";
-import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
 
 export function GalacticHomeMiniFooter() {
   const { t } = useLanguage();
@@ -13,11 +12,10 @@ export function GalacticHomeMiniFooter() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <Dog className="h-6 w-6 text-[#ff3399]" />
+              <img src="/dream-puppies-logo.png" alt="Dream Puppies logo" className="h-6 w-6 rounded-full object-cover" />
               <span className="font-display text-lg text-white">Dream Puppies</span>
             </Link>
             <p className="text-sm text-white/70">{t("footerBrandDescription")}</p>
-            <DreamTag className="bg-[#ff3399]/15 text-white">a Dream Enterprises LLC company</DreamTag>
           </div>
 
           <div className="space-y-4">
@@ -61,7 +59,7 @@ export function GalacticHomeMiniFooter() {
               </div>
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <MapPin className="h-4 w-4" />
-                Raeford, North Carolina
+                North Carolina
               </div>
             </div>
           </div>

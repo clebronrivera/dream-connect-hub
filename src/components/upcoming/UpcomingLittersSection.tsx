@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,11 +16,12 @@ import {
   type UpcomingLitterParent,
 } from "@/lib/supabase";
 import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
-import { Calendar, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { getBirthWindow, getGoHomeWindow } from "@/lib/litter-timeline";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { DreamTag } from "@/components/redesign/PublicDesignPrimitives";
+import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
+import { BUSINESS } from "@/lib/constants/business";
 
 const FALLBACK_IMAGE_SRC =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='18' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ENo photo%3C/text%3E%3C/svg%3E";
@@ -33,6 +33,17 @@ function getDisplayBreed(litter: UpcomingLitter): string {
 function photoPathOrNull(path: string | null | undefined): string | null {
   const s = typeof path === "string" ? path.trim() : "";
   return s || null;
+}
+
+function buildReserveSmsHref(litter: UpcomingLitter): string {
+  const damName = litter.dam_name?.trim() || "Dam";
+  const sireName = litter.sire_name?.trim() || "Sire";
+  const message = `Hi ${BUSINESS.primaryBrand}, I would like to reserve the puppies of ${damName} and ${sireName}.`;
+  return `sms:+1${BUSINESS.phoneRaw}?body=${encodeURIComponent(message)}`;
+}
+
+function compactBreedLabel(label: string): string {
+  return label.replace("Miniature Poodle", "Mini Poodle");
 }
 
 export interface UpcomingLittersSectionProps {
@@ -74,21 +85,21 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
 
       {isLoading ? (
         <div className="flex justify-center min-h-[300px] items-center">
-          <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+          <Loader2 className="h-12 w-12 animate-spin text-white/60" />
         </div>
       ) : error ? (
-        <div className="text-center text-destructive py-12">{t("upcomingLoadError")}</div>
+        <div className="py-12 text-center text-rose-300">{t("upcomingLoadError")}</div>
       ) : !litters?.length ? (
-        <div className="text-center text-muted-foreground py-12">
+        <div className="py-12 text-center text-white/70">
           {t("upcomingEmptyPrefix")}{" "}
-          <Link to="/contact?subject=upcoming-litter" className="text-primary underline">
+          <Link to="/contact?subject=upcoming-litter" className="text-[#ff66b3] underline">
             {t("upcomingContactUs")}
           </Link>{" "}
           {t("upcomingEmptySuffix")}
         </div>
       ) : (
-        <div className="mx-auto max-w-5xl space-y-6">
-          <div className="space-y-5">
+        <div className="mx-auto max-w-4xl space-y-3">
+          <div className="space-y-3">
             {litters.map((litter) => {
               const imageUrl = FALLBACK_IMAGE_SRC;
               const dam = Array.isArray(litter.dam)
@@ -105,26 +116,29 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
               const sireHeroImage = sirePhotoPath
                 ? resolvePuppyPhotosPublicUrl(sirePhotoPath) ?? imageUrl
                 : imageUrl;
-              const damLabel = [litter.dam_name, litter.dam_breed].filter(Boolean).join(" • ");
-              const sireLabel = [litter.sire_name, litter.sire_breed].filter(Boolean).join(" • ");
               const birthWindow = getBirthWindow(litter.breeding_date);
               const goHomeWindow = getGoHomeWindow(litter.breeding_date);
               const displayBreedLabel = getDisplayBreed(litter);
+              const displayBreedCompact = compactBreedLabel(displayBreedLabel);
+              const reserveSmsHref = buildReserveSmsHref(litter);
+              const contactHref = litter.id
+                ? `/contact?subject=upcoming-litter&litter=${encodeURIComponent(String(litter.id))}`
+                : "/contact?subject=upcoming-litter";
+              const unifiedRowClass = "mx-auto grid w-full max-w-xl grid-cols-2 gap-2";
 
               return (
-                <Card key={litter.id} className="flex flex-col overflow-hidden border-line bg-bg text-white shadow-sm">
-                  <div className="p-3 md:p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="space-y-1">
-                        <CardTitle className="font-display text-2xl leading-tight text-white">{displayBreedLabel}</CardTitle>
-                        <p className="micro-label text-white/60">
-                          {(litter.dam_name || "Dam").toUpperCase()} x {(litter.sire_name || "Sire").toUpperCase()}
-                        </p>
-                      </div>
-                      <DreamTag className="bg-sun">{t("upcomingLitterBadge")}</DreamTag>
+                <article
+                  key={litter.id}
+                  className="rounded-3xl border border-white/10 bg-[#12051f]/90 p-3.5 text-white backdrop-blur-xl md:p-4"
+                >
+                  <div className="space-y-3">
+                    <div className="space-y-1.5 text-center">
+                      <h3 className="font-display text-lg font-black tracking-tight text-white md:text-xl">
+                          {displayBreedCompact}
+                      </h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                    <div className={`${unifiedRowClass} gap-1.5`}>
                       <button
                         type="button"
                         onClick={() =>
@@ -137,19 +151,19 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
                             imageUrl: damHeroImage,
                           })
                         }
-                        className="group relative rounded-md overflow-hidden border aspect-[4/3] bg-muted max-h-36 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition hover:opacity-95"
+                        className="group relative aspect-[4/3] w-full max-h-44 overflow-hidden rounded-2xl bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition hover:opacity-95"
                         aria-label={`View details for ${litter.dam_name || "Dam"}`}
                       >
                         <img
                           src={damHeroImage}
                           alt={`${litter.dam_name || "Dam"} photo`}
-                          className="w-full h-full object-contain"
+                          className="h-full w-full rounded-2xl object-contain object-center"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                           }}
                         />
-                        <Badge className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0" variant="outline">
-                          {t("upcomingLabelDam")}
+                        <Badge className="absolute bottom-2 left-2 bg-black/60 text-[10px] text-white" variant="outline">
+                          {litter.dam_name || t("upcomingLabelDam")}
                         </Badge>
                       </button>
                       <button
@@ -164,95 +178,64 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
                             imageUrl: sireHeroImage,
                           })
                         }
-                        className="group relative rounded-md overflow-hidden border aspect-[4/3] bg-muted max-h-36 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition hover:opacity-95"
+                        className="group relative aspect-[4/3] w-full max-h-44 overflow-hidden rounded-2xl bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition hover:opacity-95"
                         aria-label={`View details for ${litter.sire_name || "Sire"}`}
                       >
                         <img
                           src={sireHeroImage}
                           alt={`${litter.sire_name || "Sire"} photo`}
-                          className="w-full h-full object-contain"
+                          className="h-full w-full rounded-2xl object-contain object-center"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
                           }}
                         />
-                        <Badge className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0" variant="outline">
-                          {t("upcomingLabelSire")}
+                        <Badge className="absolute bottom-2 left-2 bg-black/60 text-[10px] text-white" variant="outline">
+                          {litter.sire_name || t("upcomingLabelSire")}
                         </Badge>
                       </button>
                     </div>
 
-                    <p className="text-center text-[10px] text-muted-foreground italic">
-                      {t("upcomingParentTapHint")}
-                    </p>
-
-                    {(damLabel || sireLabel) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 text-center text-[11px] sm:text-xs text-muted-foreground leading-snug max-w-lg mx-auto">
-                        {damLabel && (
-                          <p>
-                            <span className="font-medium text-foreground">{t("upcomingTableDam")}:</span>{" "}
-                            {damLabel}
-                          </p>
-                        )}
-                        {sireLabel && (
-                          <p>
-                            <span className="font-medium text-foreground">{t("upcomingTableSire")}:</span>{" "}
-                            {sireLabel}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <p className="text-center text-[11px] text-muted-foreground">
-                      <span className="font-medium text-foreground">{t("upcomingOffspringType")}:</span>{" "}
-                      {displayBreedLabel}
-                    </p>
-
-                    <p className="text-center text-[10px] text-muted-foreground tracking-wide uppercase">
-                      {t("upcomingFamilyTreeCaption")}
-                    </p>
-
-                    <div className="rounded-md border border-white/20 bg-white/5 px-3 py-2 space-y-1 text-[11px] sm:text-xs text-white/75 text-center leading-snug">
-                      {birthWindow ? (
-                        <p className="flex items-start justify-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                          <span>
-                            {t("upcomingBirthWindow")}: {format(birthWindow.earliest, "MMM d")} –{" "}
-                            {format(birthWindow.latest, "MMM d")}
-                          </span>
-                        </p>
-                      ) : null}
-                      {goHomeWindow ? (
-                        <p className="flex items-start justify-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                          <span>
-                            {t("upcomingGoHomeWindow")}: {format(goHomeWindow.earliest, "MMM d")} –{" "}
-                            {format(goHomeWindow.latest, "MMM d")}
-                          </span>
-                        </p>
-                      ) : null}
-                    </div>
-
-                    {(litter.example_puppy_image_paths?.length ?? 0) > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-center">{t("upcomingPastPuppies")}</p>
-                        <div className="flex gap-1.5 flex-wrap justify-center">
-                          {litter.example_puppy_image_paths!.slice(0, 3).map((path, i) => (
-                            <img
-                              key={path}
-                              src={resolvePuppyPhotosPublicUrl(path) ?? FALLBACK_IMAGE_SRC}
-                              alt={`Past puppy ${i + 1}`}
-                              className="h-12 w-12 rounded object-cover shrink-0 border"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = FALLBACK_IMAGE_SRC;
-                              }}
-                            />
-                          ))}
+                    <div className={`${unifiedRowClass} gap-1.5`}>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+                        <div className="mb-1 text-xs uppercase tracking-[0.14em] text-white/60">
+                          {t("upcomingBirthWindow")}
+                        </div>
+                        <div className="text-sm font-semibold text-white">
+                          {birthWindow
+                            ? `${format(birthWindow.earliest, "MMM d")} - ${format(birthWindow.latest, "MMM d")}`
+                            : "TBD"}
                         </div>
                       </div>
-                    )}
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+                        <div className="mb-1 text-xs uppercase tracking-[0.14em] text-white/60">
+                          {t("upcomingGoHomeWindow")}
+                        </div>
+                        <div className="text-sm font-semibold text-white">
+                          {goHomeWindow
+                            ? `${format(goHomeWindow.earliest, "MMM d")} - ${format(goHomeWindow.latest, "MMM d")}`
+                            : "TBD"}
+                        </div>
+                      </div>
+                    </div>
 
+                    <div className={`${unifiedRowClass} gap-1.5`}>
+                      <StickerButton
+                        size="lg"
+                        className="group relative w-full overflow-hidden rounded-3xl bg-[#ff3399] px-4 py-2.5 text-sm font-bold normal-case tracking-normal text-white before:pointer-events-none before:absolute before:inset-x-3 before:top-1.5 before:h-[48%] before:rounded-full before:bg-white/25 before:blur-md before:content-[''] shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]"
+                        asChild
+                      >
+                        <a href={reserveSmsHref} className="flex items-center justify-center">Text to reserve</a>
+                      </StickerButton>
+                      <StickerButton
+                        size="lg"
+                        className="group relative w-full overflow-hidden rounded-3xl bg-[#5b21b6] px-4 py-2.5 text-sm font-bold normal-case tracking-normal text-white before:pointer-events-none before:absolute before:inset-x-3 before:top-1.5 before:h-[48%] before:rounded-full before:bg-white/25 before:blur-md before:content-[''] shadow-[0_6px_0_#7c3aed,0_14px_30px_rgba(124,58,237,0.45)] hover:bg-[#7c3aed] hover:shadow-[0_6px_0_#a78bfa,0_16px_34px_rgba(167,139,250,0.5)]"
+                        asChild
+                      >
+                        <Link to={contactHref} className="flex items-center justify-center">Contact us form</Link>
+                      </StickerButton>
+                    </div>
                   </div>
-                </Card>
+                </article>
               );
             })}
           </div>
@@ -261,9 +244,13 @@ export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSect
 
       {!embedded ? (
         <div className="flex justify-center mt-12 pb-8">
-          <Button asChild size="lg" className="rounded-pill font-bold uppercase tracking-[0.06em]">
+          <StickerButton
+            asChild
+            size="lg"
+            className="group relative overflow-hidden rounded-3xl bg-[#ff3399] px-8 py-4 text-base font-bold normal-case tracking-normal text-white before:pointer-events-none before:absolute before:inset-x-3 before:top-1.5 before:h-[48%] before:rounded-full before:bg-white/25 before:blur-md before:content-[''] shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]"
+          >
             <Link to="/contact?subject=upcoming-litter">{t("upcomingContactCta")}</Link>
-          </Button>
+          </StickerButton>
         </div>
       ) : null}
 
