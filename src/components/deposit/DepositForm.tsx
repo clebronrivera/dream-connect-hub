@@ -38,7 +38,12 @@ import { LEGAL_REFERENCES } from '@/lib/constants/business';
 const depositFormSchema = z.object({
   buyer_name: z.string().min(2, 'Full name is required'),
   buyer_email: z.string().email('Valid email is required'),
-  buyer_phone: z.string().optional(),
+  buyer_phone: z
+    .string()
+    .refine(
+      (v) => v.replace(/\D/g, '').length >= 10,
+      'Phone number is required (10 digits)'
+    ),
   // OPD-05: structured address. ZIP drives sales-tax jurisdiction (OPD-15).
   // Per Wave E E1 the DB columns are nullable; form-side validation here
   // is intentionally light — tighter validation can land alongside OPD-15.
@@ -236,7 +241,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
     submitMutation.mutate({
       buyer_name: values.buyer_name,
       buyer_email: values.buyer_email,
-      buyer_phone: values.buyer_phone || undefined,
+      buyer_phone: values.buyer_phone,
       buyer_street: values.buyer_street || undefined,
       buyer_city: values.buyer_city || undefined,
       buyer_state: values.buyer_state || undefined,
@@ -326,8 +331,11 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 {errors.buyer_email && <p className="text-xs text-red-500 mt-1">{errors.buyer_email.message}</p>}
               </div>
               <div>
-                <Label htmlFor="buyer_phone">Phone</Label>
+                <Label htmlFor="buyer_phone">Phone *</Label>
                 <Input id="buyer_phone" {...register('buyer_phone')} placeholder="(555) 123-4567" />
+                {errors.buyer_phone && (
+                  <p className="text-xs text-red-500 mt-1">{errors.buyer_phone.message}</p>
+                )}
               </div>
             </div>
 

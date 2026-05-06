@@ -6,7 +6,7 @@ export interface DepositAgreement {
   agreement_number: string;
   buyer_name: string;
   buyer_email: string;
-  buyer_phone?: string;
+  buyer_phone: string;
   // Structured buyer address (Wave E E1, OPD-05). buyer_address blob retired.
   buyer_street?: string;
   buyer_city?: string;

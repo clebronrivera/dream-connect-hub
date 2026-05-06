@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -164,6 +165,14 @@ export function DepositRequestForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // OPD-02: phone is now required at intake. Reject early with a friendly
+    // message rather than letting the DB NOT NULL constraint surface a less
+    // helpful error.
+    if (phone.trim().replace(/\D/g, '').length < 10) {
+      toast.error('Phone number is required (10 digits) so we can reach you.');
+      return;
+    }
 
     const placeholderSummary = selectedPlaceholder
       ? formatPlaceholderSummary(selectedPlaceholder, t)
@@ -375,9 +384,16 @@ export function DepositRequestForm({
       </div>
 
       <div className={`space-y-2 ${activeStep === 2 ? "" : "hidden"}`}>
-        <Label htmlFor="dr-phone">Phone</Label>
-        <Input id="dr-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
-        <p className="text-xs text-muted-foreground">Optional — helpful if we need to reach you by phone.</p>
+        <Label htmlFor="dr-phone">Phone *</Label>
+        <Input
+          id="dr-phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="(555) 123-4567"
+          required
+        />
+        <p className="text-xs text-muted-foreground">Required — we use this to coordinate pickup and confirm payment.</p>
       </div>
 
       {/* 4. Payment preference */}
