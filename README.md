@@ -1,4 +1,4 @@
-# Puppy Heaven (Dream Connect Hub)
+# Dream Puppies — puppyheavenllc.com
 
 Family-operated puppy website: available puppies, upcoming litters, pet consultation, contact, and breed information. Built with Vite, React, TypeScript, and Supabase.
 
@@ -8,7 +8,7 @@ Family-operated puppy website: available puppies, upcoming litters, pet consulta
 
    ```sh
    git clone <YOUR_GIT_URL>
-   cd dream-connect-hub
+   cd dream-enterprises-puppy-heaven
    npm i
    ```
 
@@ -57,9 +57,13 @@ To receive emails when someone submits a puppy inquiry or contact message, see [
 
 ## Documentation and change tracking
 
+- **[CLAUDE.md](CLAUDE.md)** – Implementation plan (Waves A–H). What is being built next.
+- **[docs/spec/dream-connect-hub.md](docs/spec/dream-connect-hub.md)** – Product & field specification. What the system is and why.
+- **[docs/status-enums.md](docs/status-enums.md)** – Canonical source of truth for every status column.
 - **[CHANGELOG.md](CHANGELOG.md)** – **Changes, fixes, additions, and known issues** by date. Use this to see what was done recently and what was fixed.
-- **[docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** – Index of all project docs: where to find change history, setup, notifications, migrations, and feature guides.
-- **[docs/TECHNICAL_AUDIT_REPORT.md](docs/TECHNICAL_AUDIT_REPORT.md)** – Audit outcomes, implementation summary, and file map from the refactor. Use it to see where everything lives and how the system is wired.
+- **[docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** – Index of all project docs.
+- **[wave-status.md](wave-status.md)** – Status of the security/hardening waves currently in flight.
+- **[docs/security/wave-2-pending-hardening.md](docs/security/wave-2-pending-hardening.md)** – Outstanding Wave 2.x security hardening items.
 
 ## Database
 

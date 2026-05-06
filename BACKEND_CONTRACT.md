@@ -1065,3 +1065,194 @@ Storage associations:
 ### Dashboard-only / manual config items
 - ⚠️ Database Webhooks setup is manual (`docs/NOTIFICATIONS.md`), not migration-managed.
 - ⚠️ Edge function secrets (`RESEND_API_KEY`, etc.) are configured in Supabase dashboard/CLI, not in code.
+
+---
+
+## 12. DEPOSIT-FLOW TABLES (Wave A audit, 2026-05)
+
+These four tables drive the deposit-reservation workflow. They were not covered in §1 above (which was authored prior to the deposit workflow). Schema definitions are authoritative in the migrations; this section is the contract reference. Status enum values are canonical in [docs/status-enums.md](docs/status-enums.md).
+
+### `deposit_requests`
+Source: `20260414000000_deposit_requests.sql` + `20260416000000_deposit_requests_extra_fields.sql` + `20260422000000_fix_deposit_and_audit_rls.sql`
+
+Public-intake records (`/request-deposit`). Operator triages via `/admin/deposit-requests` and either declines or accepts, in which case a deposit link is emailed (`send-deposit-link`).
+
+Key columns:
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| id | uuid | yes | PK; `gen_random_uuid()` |
+| customer_name, customer_email | text | yes | Buyer contact |
+| customer_phone | text | no | Trigger-normalized to `customer_phone_e164` |
+| city, state | text | no | OPD-05 will split address into 4 sub-fields on `deposit_agreements`, not here |
+| upcoming_litter_id | uuid | no | FK → `upcoming_litters` ON DELETE SET NULL |
+| puppy_id | uuid | no | FK → `puppies` ON DELETE SET NULL |
+| preferred_payment_method | text | no | Buyer's stated preference |
+| proposed_pickup_date | date | no | Buyer's proposed pickup date |
+| how_heard | text | no | OPD-06 canonical list pending |
+| how_heard_referral_name | text | no | Shown when `how_heard='referral'` |
+| spoke_with | text | no | Internal — which seller buyer spoke to |
+| request_status | text | yes | Default `'pending'`; see status-enums.md |
+| origin | text | yes | `'public_form'` or `'admin_initiated'` |
+| deposit_link_url, deposit_link_sent_at, deposit_link_sent_via | text / timestamptz / text[] | no | Set by `send-deposit-link` |
+| deposit_agreement_id | uuid | no | FK → `deposit_agreements` set by trigger when buyer submits agreement |
+| converted_at | timestamptz | no | Set by trigger |
+| admin_notes, admin_reviewed_at, decline_reason | text / timestamptz / text | no | Operator state |
+
+Keys and constraints:
+- PK: `id`
+- FKs as listed above
+- Unique partial index prevents two `'converted'` requests pointing to the same agreement
+
+RLS:
+- `admin_all_deposit_requests` — admin via `profiles.user_id = auth.uid() AND role = 'admin'`
+- `public_insert_deposit_requests` — anonymous insert restricted to `request_status='pending'`, `origin='public_form'`, no admin/system fields populated
+
+Triggers:
+- `link_deposit_agreement_to_request` (in `20260422000000`) — when an agreement is inserted with `deposit_request_id` set, marks the request `converted` and back-links the agreement id
+
+Read files: `src/pages/admin/DepositRequests.tsx`, `src/components/admin/DepositRequestDetailPanel.tsx`, `src/components/admin/AdminInitiateDepositDialog.tsx`, `src/lib/deposit-service.ts`
+
+Write files: `src/components/DepositRequestForm.tsx` (public insert), `src/components/admin/AdminInitiateDepositDialog.tsx`, `src/lib/admin/deposit-requests-service.ts`, edge function `send-deposit-link`
+
+### `deposit_agreements`
+Source: `20260410000000_deposit_workflow.sql` (base) + `20260411000003_agreement_audit_trail.sql` + `20260414000000_deposit_requests.sql` (FK back-link) + `20260422000000_fix_deposit_and_audit_rls.sql` + `20260506000000_drop_deposit_tier_column.sql` (Wave A2: drops `deposit_tier`) + `20260506000001_drop_out_of_band_policies.sql` (Wave A6) + `20260506000002_drop_buyer_signed_status.sql` (Wave A5)
+
+The legal agreement record. One row per buyer reservation. State machine in [docs/status-enums.md](docs/status-enums.md).
+
+Key columns:
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| id, agreement_number | uuid / text | yes | `agreement_number` auto-generated as `DP-YYYY-XXXX` (UNIQUE) |
+| buyer_name, buyer_email | text | yes | Buyer identity |
+| buyer_phone | text | no | OPD-02 will make required |
+| buyer_address | text | no | OPD-05 will split into `buyer_street/city/state/zip` (Wave E) |
+| puppy_id, litter_id | uuid | no | FKs to `puppies` / `upcoming_litters` |
+| puppy_name | text | yes | Snapshot; default `'Undecided'` |
+| puppy_dob | date | no | Snapshot for pickup-date math |
+| purchase_price, deposit_amount | numeric(10,2) | yes | CHECK > 0; `deposit_amount` defaults to `DEFAULT_DEPOSIT_AMOUNT` (300) post-A2, overridable per-puppy via `puppies.deposit_amount` |
+| balance_due | numeric(10,2) | GENERATED | `purchase_price - deposit_amount` (STORED) |
+| deposit_payment_method | text | yes | CHECK constrained to enum incl. `split` (OPD-09 will remove) |
+| deposit_payment_detail | jsonb | no | `[{method, amount}]` for `split` |
+| payment_memo | text | GENERATED | `buyer_name \|\| ' - ' \|\| puppy_name` (STORED) |
+| deposit_status | text | yes | `pending`/`admin_confirmed`/`rejected`/`refunded` — see status-enums |
+| agreement_status | text | yes | `sent`/`admin_approved`/`complete`/`cancelled` (Wave A5 dropped `'buyer_signed'`) |
+| proposed_pickup_date, confirmed_pickup_date | date | mixed | proposed required; confirmed set by admin |
+| pickup_clock_start, pickup_deadline | date | computed | Set by trigger |
+| authorized_seller | text | yes | CHECK in `('carlos_lebron_rivera','yolanda_lebron_rivera')` |
+| buyer_signature_text, buyer_signature_font | text | mixed | Typed e-signature; default font `'Dancing Script'` |
+| buyer_signed_at | timestamptz | no | Lifecycle marker. `finalize-agreement` gates on this |
+| admin_signature_svg, admin_signature_name, admin_signed_at | text/text/timestamptz | no | Set when admin countersigns |
+| admin_approved_at | timestamptz | no | Set by `finalize-agreement` |
+| payment_confirmed_at | timestamptz | no | Set by `confirmDepositPayment` admin action |
+| ack_full_agreement_at, ack_statutory_rights_at, ack_esign_valid_at, ack_genetic_disclaimer_at, ack_arbitration_at, ack_age_accuracy_at, ack_welfare_responsibility_at | timestamptz | no | One per acknowledgment checkbox; Wave E adds 5 more (payment auth, identity, pre-dispute, pickup acceptance, FL venue) |
+| arbitration_typed_phrase, arbitration_typed_at | text/timestamptz | no | Buyer must type "I understand and agree to arbitration" |
+| buyer_ip_address, buyer_user_agent, buyer_signed_server_ts, admin_ip_address, admin_user_agent, admin_signed_server_ts | mixed | no | Audit trail |
+| signed_pdf_storage_path | text | no | Reserved for Wave F (PDF generation); never written today |
+| confirmation_email_sent_at, confirmation_email_opened_at | timestamptz | no | — |
+| reminder_count, reminder_last_sent_at, requires_manual_review | int/timestamptz/bool | mixed | `send-pending-reminders` cron updates these |
+| rejection_reason, rejection_is_within_window, notes | text/bool/text | no | Operator state |
+| deposit_request_id | uuid | no | FK → `deposit_requests` (set on insert; trigger marks request `converted`) |
+| created_at, updated_at | timestamptz | yes | `updated_at` trigger-maintained |
+
+Keys and constraints:
+- PK: `id`
+- UNIQUE: `agreement_number`
+- FKs: `puppy_id → puppies`, `litter_id → upcoming_litters`, `deposit_request_id → deposit_requests`
+- Generated columns: `balance_due`, `payment_memo`
+- CHECK on `agreement_status`, `deposit_status`, `deposit_payment_method`, `authorized_seller`
+- CHECK on `purchase_price > 0`, `deposit_amount > 0`
+
+RLS (post Wave A6):
+- `admin_all_deposit_agreements` — admin (`profiles.user_id = auth.uid() AND role = 'admin'`)
+- `public_insert_deposit_agreement` — anonymous insert with strict locked initial state (`agreement_status='sent'`, `deposit_status='pending'`, every admin/system field NULL/default; see migration `20260422000000` for the full CHECK)
+- *(Removed in A6: `public_insert_deposit_agreements` plural and `public_read_recent_deposit_agreements`. Wave D will add a buyer-token SELECT policy.)*
+
+Triggers:
+- `update_updated_at_column()`
+- `link_deposit_agreement_to_request()` — see `deposit_requests` above
+- Pickup-clock trigger sets `pickup_clock_start` and `pickup_deadline` based on `puppy_dob` and `created_at`
+
+Audit table: `agreement_audit_log` (per-event JSON; service-role write only since `20260422000000`).
+
+Read files: `src/pages/admin/AgreementsPage.tsx`, `src/pages/admin/AgreementDetailPanel.tsx`, `src/lib/admin/agreements-service.ts`, edge function `finalize-agreement`
+
+Write files: `src/components/deposit/DepositForm.tsx` (public insert via `submitDepositAgreement`), `src/lib/admin/agreements-service.ts` (admin actions), edge function `finalize-agreement`
+
+### `final_sales`
+Source: `20260410000000_deposit_workflow.sql`
+
+Tracks the final-payment + post-pickup phase. Per OPD-18 this table is **manually populated** until purchase agreement digital flow is built (post-Wave-G).
+
+Key columns:
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| id | uuid | yes | PK |
+| deposit_agreement_id | uuid | no | FK → `deposit_agreements` |
+| puppy_final_name | text | no | Final name at pickup (may differ from agreement) |
+| full_pay_flow | bool | yes | true if buyer paid in full at deposit time |
+| final_payment_method | text | yes | enum |
+| final_payment_detail | jsonb | no | `[{method, amount}]` — split-style |
+| final_payment_status | text | yes | `pending`/`admin_confirmed` (see status-enums) |
+| final_payment_confirmed_at | timestamptz | no | — |
+| pet_guide_generated_at, pet_guide_sent_at, pet_guide_storage_path | timestamptz/timestamptz/text | no | `send-puppy-guide` writes the email-sent timestamp; storage path reserved for Wave F |
+| sale_complete | bool | yes | Default false |
+| completed_at | timestamptz | no | — |
+| notes | text | no | — |
+| created_at, updated_at | timestamptz | yes | — |
+
+RLS: admin-only (no public reads or writes).
+
+### `payment_methods_config`
+Source: `20260410000000_deposit_workflow.sql`
+
+Operator-managed handle/recipient store consumed by `PaymentMethodSelector`. **All 6 seeded rows currently have NULL `handle_or_recipient` and `qr_code_public_url` values — operator must populate.** Canonical handle values are in [docs/spec/dream-connect-hub.md §3 Anchor A](docs/spec/dream-connect-hub.md).
+
+Key columns:
+| Column | Type | Required | Notes |
+|---|---|---:|---|
+| id, method_key | uuid / text | yes | UNIQUE on `method_key` (`zelle`, `venmo`, `cashapp`, `apple_pay`, `square`, `cash`) |
+| display_name | text | yes | Label for UI |
+| is_enabled | bool | yes | Default true |
+| qr_code_storage_path, qr_code_public_url | text | no | For methods that benefit from QR codes |
+| handle_or_recipient | text | no | The handle/phone/cashtag (currently NULL across all rows) |
+| payment_note | text | no | Per-method instruction text |
+| requires_manual_confirm | bool | yes | true for `cash` and `square`; false for the others |
+| display_order | int | yes | Sort order in UI |
+
+RLS: public SELECT (read-only). Admin-only write via service role / dashboard.
+
+Read files: `src/components/deposit/PaymentMethodSelector.tsx`, `src/lib/deposit-service.ts` (`fetchEnabledPaymentMethods`)
+
+---
+
+## 13. DEPOSIT-FLOW EDGE FUNCTIONS (Wave A audit, 2026-05)
+
+§6 above documents `notify-puppy-inquiry` and `notify-contact-message`. The 13 functions below are the rest of the live edge-function set, focused on the deposit reservation lifecycle and post-sale operations. All are deployed under `supabase/functions/` and share `_shared/email/send.ts` + `_shared/email/templates.ts` + `_shared/cors.ts`.
+
+| Function | Trigger | Purpose | Key env vars |
+|---|---|---|---|
+| `notify-deposit-request` | DB webhook on `deposit_requests` INSERT | Sends admin notification email + buyer acknowledgment email when a public intake submits | `RESEND_API_KEY`, `NOTIFY_EMAIL`, `RESEND_FROM`, `PUBLIC_SITE_URL` |
+| `submit-contact-message` | HTTP (public, no JWT) | Server-side insert path for the contact form (defense-in-depth wrapper around RLS) | `RESEND_API_KEY`, `NOTIFY_EMAIL` |
+| `submit-puppy-inquiry` | HTTP (public, no JWT) | Server-side insert path for puppy-inquiry form | `RESEND_API_KEY`, `NOTIFY_EMAIL` |
+| `submit-testimonial` | HTTP (public, no JWT) | Insert path for buyer testimonial submissions | — |
+| `send-request-decision` | HTTP (admin) | Buyer email on accept (deposit-link-coming) or decline (with reason) | `RESEND_API_KEY`, `RESEND_FROM`, `PUBLIC_SITE_URL` |
+| `send-deposit-link` | HTTP (admin) | Builds `${SITE_URL}/deposit?…` URL, writes it to `deposit_requests.deposit_link_url`, transitions request to `'deposit_link_sent'`, emails buyer with CTA. **OPD-11 / Wave B will switch URL format to `?requestId=` only** | `RESEND_API_KEY`, `RESEND_FROM`, `PUBLIC_SITE_URL` |
+| `send-deposit-receipt` | HTTP (admin) | Buyer email after operator clicks "Confirm Payment" on `/admin/agreements`. Includes agreement #, amount, method, memo | `RESEND_API_KEY`, `RESEND_FROM` |
+| `finalize-agreement` | HTTP (admin) | Gates on `buyer_signed_at IS NOT NULL` AND `admin_signed_at IS NOT NULL` AND `deposit_status='admin_confirmed'`. Sets `agreement_status='admin_approved'`, `admin_approved_at=now()`. Sends buyer + admin notification emails. **Wave F will trigger `generate-agreement-pdf` synchronously here.** | `RESEND_API_KEY`, `RESEND_FROM`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `send-puppy-guide` | HTTP (admin, post-finalization) | Buyer email with care-guide HTML. Does not yet write `pet_guide_storage_path` (Wave F) | `RESEND_API_KEY`, `RESEND_FROM` |
+| `send-testimonial-invite` | HTTP (admin) | Buyer email inviting them to leave a review on a public reviews page | `RESEND_API_KEY`, `RESEND_FROM`, `PUBLIC_SITE_URL` |
+| `send-pending-reminders` | Cron (hourly) | Iterates agreements past reminder thresholds; emails admin a digest; flags rows for manual review after 5 reminders | `RESEND_API_KEY`, `NOTIFY_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `send-newsletter` | HTTP (admin) | Marketing send to opted-in audience with subject/headline/body/CTA | `RESEND_API_KEY`, `RESEND_FROM` |
+| `generate-training-plan` | HTTP (admin) | Generates and emails a personalized training-plan HTML; logs in `training_plan_submissions` | `RESEND_API_KEY`, `RESEND_FROM` |
+
+**Future edge functions** (per [CLAUDE.md](CLAUDE.md)):
+- Wave D: `mark-payment-sent`, `submit-payment-attestation`
+- Wave F: `generate-agreement-pdf`, `agreement-download-url`
+- Wave H: `finalize-pickup-handover`, `generate-dispute-evidence-packet`
+
+**Shared helpers** (`supabase/functions/_shared/`):
+- `email/send.ts` — Resend wrapper + admin-recipients lookup
+- `email/templates.ts` — ~20 reusable HTML email templates
+- `cors.ts` — CORS allowlist for browser-originated calls
+- *Wave D will add* `auth/verifyBuyerToken.ts`
+- *Wave F will add* `auth/verifyAdmin.ts` + `pdf/depositAgreementFieldMap.ts` + `pdf/templates/*.pdf`
