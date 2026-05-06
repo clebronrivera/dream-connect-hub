@@ -84,10 +84,58 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  // 4) Wave H1 attestation gate — DEFERRED. When the payment_attestations
-  //    table lands, validate attestation_status='signed' and the screenshot
-  //    + transaction-reference-id fields here, returning 422 with the
-  //    missing precondition.
+  // 4) H1 + H2 attestation gate (Wave H phase 1e). The buyer can only
+  //    "mark sent" after they've signed the attestation (H1) AND uploaded
+  //    the confirmation screenshot + transaction reference (H2). This
+  //    server-side check is the source of truth — the dashboard hides
+  //    the button until both are done, but the function rejects anyway
+  //    if a client somehow bypasses the UI.
+  const { data: attestation, error: attestationErr } = await admin
+    .from("payment_attestations")
+    .select(
+      "attestation_status, buyer_payment_handle_screenshot_path, " +
+      "confirmation_screenshot_path, transaction_reference_id"
+    )
+    .eq("agreement_id", body.agreement_id)
+    .maybeSingle();
+
+  if (attestationErr) {
+    return jsonResponse(500, {
+      error: "Failed to look up payment attestation",
+      details: attestationErr.message,
+    });
+  }
+  if (!attestation) {
+    return jsonResponse(422, {
+      error: "Payment attestation has not been signed",
+      missing_precondition: "h1_attestation",
+    });
+  }
+  if (attestation.attestation_status !== "signed") {
+    return jsonResponse(422, {
+      error: "Payment attestation is not signed",
+      missing_precondition: "h1_attestation",
+      current_status: attestation.attestation_status,
+    });
+  }
+  if (!attestation.buyer_payment_handle_screenshot_path) {
+    return jsonResponse(422, {
+      error: "Buyer payment-handle screenshot is missing",
+      missing_precondition: "h1_handle_screenshot",
+    });
+  }
+  if (!attestation.confirmation_screenshot_path) {
+    return jsonResponse(422, {
+      error: "Payment confirmation screenshot is missing",
+      missing_precondition: "h2_confirmation_screenshot",
+    });
+  }
+  if (!attestation.transaction_reference_id) {
+    return jsonResponse(422, {
+      error: "Transaction reference id is missing",
+      missing_precondition: "h2_transaction_reference_id",
+    });
+  }
 
   // 5) Race-safe UPDATE: only sets buyer_marked_payment_sent_at if it's
   //    still NULL. If two clicks arrive simultaneously, only the first
