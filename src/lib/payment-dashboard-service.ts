@@ -14,6 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { appEnv } from '@/lib/env';
+import { supabase } from '@/lib/supabase-client';
 import type { DepositAgreement } from '@/types/deposit';
 
 function buyerTokenClient(buyerToken: string) {
@@ -85,4 +86,44 @@ export async function fetchAgreementByToken(
     return { status: 'expired' };
   }
   return { status: 'ok', agreement };
+}
+
+export interface MarkPaymentSentResult {
+  success: boolean;
+  already_marked?: boolean;
+  marked_at?: string;
+}
+
+/**
+ * Calls the public `mark-payment-sent` edge function (Wave D D3) when the
+ * buyer clicks "I have sent payment" on the dashboard. The function
+ * validates the (agreement_id, buyer_access_token) pair server-side via
+ * verifyBuyerToken, then idempotently sets buyer_marked_payment_sent_at
+ * and emails admins.
+ */
+export async function markPaymentSent(
+  agreementId: string,
+  buyerToken: string
+): Promise<MarkPaymentSentResult> {
+  const { data, error } = await supabase.functions.invoke<MarkPaymentSentResult>(
+    'mark-payment-sent',
+    {
+      body: { agreement_id: agreementId, buyer_access_token: buyerToken },
+    }
+  );
+  if (error) {
+    let detail = error.message || 'Failed to record payment notice';
+    try {
+      // @ts-expect-error context is a Response on FunctionsHttpError
+      const ctx: Response | undefined = error.context;
+      if (ctx && typeof ctx.json === 'function') {
+        const body = await ctx.json();
+        if (body?.error) detail = body.details ? `${body.error}: ${body.details}` : body.error;
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+    throw new Error(detail);
+  }
+  return data!;
 }

@@ -12,12 +12,13 @@
 // attestation.
 
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchAgreementByToken } from '@/lib/payment-dashboard-service';
+import { fetchAgreementByToken, markPaymentSent } from '@/lib/payment-dashboard-service';
 import { fetchEnabledPaymentMethods } from '@/lib/deposit-service';
 import { generatePaymentMemo, calculateBalanceDue } from '@/lib/utils/depositCalc';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
@@ -30,6 +31,8 @@ export default function PaymentDashboard() {
     buyerToken: string;
   }>();
 
+  const qc = useQueryClient();
+
   const agreementQuery = useQuery({
     queryKey: ['payment-dashboard', agreementId, buyerToken],
     queryFn: () => fetchAgreementByToken(agreementId, buyerToken),
@@ -40,6 +43,21 @@ export default function PaymentDashboard() {
   const methodsQuery = useQuery({
     queryKey: ['payment-methods-enabled'],
     queryFn: fetchEnabledPaymentMethods,
+  });
+
+  const markSentMut = useMutation({
+    mutationFn: () => markPaymentSent(agreementId, buyerToken),
+    onSuccess: (res) => {
+      if (res.already_marked) {
+        toast.success("We had already recorded your payment notice.");
+      } else {
+        toast.success("Got it — we'll watch for your payment and email a receipt once it lands.");
+      }
+      qc.invalidateQueries({ queryKey: ['payment-dashboard', agreementId, buyerToken] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Couldn't record your payment notice. Please try again or call us.");
+    },
   });
 
   if (!agreementId || !buyerToken) {
@@ -160,15 +178,11 @@ export default function PaymentDashboard() {
                 <Button
                   type="button"
                   className="bg-blue-600 hover:bg-blue-700"
-                  disabled
-                  title="Coming in the next deploy"
+                  onClick={() => markSentMut.mutate()}
+                  disabled={markSentMut.isPending}
                 >
-                  I have sent payment
+                  {markSentMut.isPending ? "Recording…" : "I have sent payment"}
                 </Button>
-                <p className="text-xs text-blue-800/70">
-                  (Button activates after the next deploy. Until then, we'll see your
-                  payment land via the memo string above.)
-                </p>
               </>
             )}
           </section>

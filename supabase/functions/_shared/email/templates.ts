@@ -559,6 +559,43 @@ export function adminManualReviewRequired(args: {
   };
 }
 
+// Wave D D3: fires from mark-payment-sent when the buyer clicks
+// "I have sent payment" on /payment/<id>/<token>. Operator should watch
+// the chosen payment app for an incoming transfer matching the memo.
+export function adminBuyerMarkedPaymentSent(args: {
+  agreementNumber: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone?: string | null;
+  puppyName: string;
+  depositAmount: number;
+  paymentMethod: string;
+  paymentMemo: string;
+}): EmailTemplate {
+  const body =
+    heading("Buyer says payment sent") +
+    paragraph(
+      `${args.buyerName} just clicked "I have sent payment" on the buyer dashboard for ${args.puppyName} (Agreement ${args.agreementNumber}). Watch your ${args.paymentMethod} for an incoming transfer matching the memo string below; once it lands, confirm payment received in /admin/agreements.`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Buyer", args.buyerName) +
+        row("Email", args.buyerEmail) +
+        (args.buyerPhone ? row("Phone", args.buyerPhone) : "") +
+        row("Puppy", args.puppyName) +
+        row("Method", args.paymentMethod) +
+        row("Amount expected", money(args.depositAmount)) +
+        row("Memo to look for", args.paymentMemo)
+    );
+  return {
+    subject: `Buyer says payment sent — ${args.agreementNumber}`,
+    html: wrap({
+      previewText: `${args.buyerName} marked payment sent for ${args.puppyName}.`,
+      bodyHtml: body,
+    }),
+  };
+}
+
 export function adminNewTrainingLead(args: {
   customerEmail: string;
   dogName: string;
