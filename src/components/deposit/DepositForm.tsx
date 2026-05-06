@@ -105,6 +105,11 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
     arbitration: null,
     age_attestation: null,
     welfare_responsibility: null,
+    // Wave E E5 H6 contract clauses (FL venue held back per CLAUDE.md).
+    payment_authorization: null,
+    identity_attestation: null,
+    pre_dispute_contact: null,
+    pickup_acceptance: null,
   });
   const [arbitrationPhrase, setArbitrationPhrase] = useState('');
 
@@ -271,6 +276,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       ack_arbitration_at: acks.arbitration || undefined,
       ack_age_attestation_at: acks.age_attestation || undefined,
       ack_welfare_responsibility_at: acks.welfare_responsibility || undefined,
+      ack_payment_authorization_at: acks.payment_authorization || undefined,
+      ack_identity_attestation_at: acks.identity_attestation || undefined,
+      ack_pre_dispute_contact_at: acks.pre_dispute_contact || undefined,
+      ack_pickup_acceptance_at: acks.pickup_acceptance || undefined,
       arbitration_typed_phrase: arbitrationPhrase,
       arbitration_typed_at: arbitrationValid ? new Date().toISOString() : undefined,
       // Link this agreement back to its originating deposit request, if any.
@@ -669,6 +678,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
               <p><strong>4. Balance.</strong> The remaining balance is due at or before pickup. Payment must be made using one of the accepted payment methods.</p>
               <p><strong>5. Health Guarantee.</strong> Dream Puppies provides a health guarantee as detailed in the Pet Guide provided at pickup.</p>
               <p><strong>6. Electronic Signature.</strong> By typing your name below, you acknowledge that this constitutes a valid electronic signature under Florida law (Fla. Stat. § 668.50).</p>
+              <p><strong>7. Payment Authorization.</strong> Buyer authorizes the deposit payment to Dream Enterprises LLC (DBA Dream Puppies) via the selected payment method. The payment handle or account Buyer uses to send the deposit must be in Buyer's legal name.</p>
+              <p><strong>8. Identity Attestation.</strong> Buyer confirms that the name, address, phone, and email provided match Buyer's legal identification, and that Buyer will present matching photo ID at pickup.</p>
+              <p><strong>9. Pre-Dispute Contact.</strong> Buyer agrees to contact Dream Puppies at (321) 697-8864 to attempt resolution before initiating any payment dispute, chargeback, or bank reversal. Failure to attempt resolution prior to filing a dispute constitutes breach of this Agreement.</p>
+              <p><strong>10. Pickup Acceptance.</strong> Signing the pickup handover document at the time of physical delivery constitutes Buyer's final acceptance of the puppy and waives any subsequent claim of non-delivery or non-receipt.</p>
             </div>
           </div>
 
@@ -698,6 +711,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 { key: 'arbitration', label: 'I understand and agree to binding arbitration for any disputes.' },
                 { key: 'age_attestation', label: 'I am at least 18 years old and all information provided is accurate.' },
                 { key: 'welfare_responsibility', label: "I accept full responsibility for the puppy's welfare and actions after transfer." },
+                { key: 'payment_authorization', label: 'I authorize the deposit payment using a payment account in my own legal name.' },
+                { key: 'identity_attestation', label: 'My contact information matches my legal photo ID, which I will present at pickup.' },
+                { key: 'pre_dispute_contact', label: 'I will contact Dream Puppies at (321) 697-8864 to attempt resolution before filing any payment dispute, chargeback, or bank reversal.' },
+                { key: 'pickup_acceptance', label: 'Signing the pickup handover document at delivery is my final acceptance and waives non-delivery claims thereafter.' },
               ].map(({ key, label }) => (
                 <label key={key} className="flex items-start gap-3 cursor-pointer">
                   <Checkbox
