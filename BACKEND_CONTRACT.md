@@ -1133,7 +1133,7 @@ Key columns:
 | balance_due | numeric(10,2) | GENERATED | `purchase_price - deposit_amount` (STORED) |
 | deposit_payment_method | text | yes | CHECK constrained to enum incl. `split` (OPD-09 will remove) |
 | deposit_payment_detail | jsonb | no | `[{method, amount}]` for `split` |
-| payment_memo | text | GENERATED | `buyer_name \|\| ' - ' \|\| puppy_name` (STORED) |
+| payment_memo | text | GENERATED | STORED. Spec format `[name] · [phone] · [Deposit \| Full Payment]` per `20260506000003_payment_memo_format.sql`; phone segment omitted when `buyer_phone` is NULL/empty; suffix branches on `full_pay_flow`. |
 | deposit_status | text | yes | `pending`/`admin_confirmed`/`rejected`/`refunded` — see status-enums |
 | agreement_status | text | yes | `sent`/`admin_approved`/`complete`/`cancelled` (Wave A5 dropped `'buyer_signed'`) |
 | proposed_pickup_date, confirmed_pickup_date | date | mixed | proposed required; confirmed set by admin |

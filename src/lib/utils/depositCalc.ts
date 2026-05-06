@@ -76,12 +76,32 @@ export function isValidPickupDate(
   return proposedDate >= earliest;
 }
 
+export type PaymentType = 'Deposit' | 'Final Payment' | 'Full Payment';
+
 /**
- * Generates the required payment memo string.
- * Example: "Jane Smith - Luna"
+ * Generates the canonical payment memo string for the buyer to include in
+ * their Zelle / Venmo / Cash App / Apple Pay note.
+ *
+ * Spec format (Deposit Agreement PDF §6 — see docs/spec/dream-connect-hub.md
+ * Anchor A):
+ *   "[Full Legal Name] · [Phone Number] · [Deposit / Final Payment / Full Payment]"
+ *
+ * The phone segment is omitted when no phone is provided (matches the SQL
+ * generated column on deposit_agreements, which uses
+ * `COALESCE(' · ' || NULLIF(buyer_phone,''), '')`).
+ *
+ * Example: "Maria Gonzalez · (321) 555-0100 · Deposit"
+ *          "Maria Gonzalez · Deposit"             (when phone is omitted)
  */
-export function generatePaymentMemo(buyerName: string, puppyName: string): string {
-  return `${buyerName} - ${puppyName || 'Undecided'}`;
+export function generatePaymentMemo(
+  buyerName: string,
+  buyerPhone?: string | null,
+  paymentType: PaymentType = 'Deposit'
+): string {
+  const phoneSegment = buyerPhone && buyerPhone.trim().length > 0
+    ? ` · ${buyerPhone.trim()}`
+    : '';
+  return `${buyerName}${phoneSegment} · ${paymentType}`;
 }
 
 /**

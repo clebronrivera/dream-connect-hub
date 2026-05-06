@@ -141,8 +141,9 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   });
 
   const buyerName = watch('buyer_name');
+  const buyerPhone = watch('buyer_phone');
   const proposedPickupDate = watch('proposed_pickup_date');
-  const paymentMemo = generatePaymentMemo(buyerName || 'Your Name', puppyName);
+  const paymentMemo = generatePaymentMemo(buyerName || 'Your Name', buyerPhone, 'Deposit');
 
   // Flat default unless the puppy row carries a per-puppy override.
   const depositAmount = resolveDepositAmount({ puppyOverride: puppy?.deposit_amount });

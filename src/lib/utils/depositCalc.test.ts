@@ -3,6 +3,7 @@ import {
   getEarliestPickupDate,
   isValidPickupDate,
   resolveDepositAmount,
+  generatePaymentMemo,
 } from './depositCalc';
 import { DEFAULT_DEPOSIT_AMOUNT } from '@/lib/constants/deposit';
 
@@ -92,5 +93,35 @@ describe('resolveDepositAmount', () => {
   it('falls back to the default for non-positive overrides', () => {
     expect(resolveDepositAmount({ puppyOverride: 0 })).toBe(DEFAULT_DEPOSIT_AMOUNT);
     expect(resolveDepositAmount({ puppyOverride: -50 })).toBe(DEFAULT_DEPOSIT_AMOUNT);
+  });
+});
+
+describe('generatePaymentMemo', () => {
+  it('formats name + phone + Deposit by default', () => {
+    expect(generatePaymentMemo('Maria Gonzalez', '(321) 555-0100')).toBe(
+      'Maria Gonzalez · (321) 555-0100 · Deposit'
+    );
+  });
+
+  it('omits the phone segment when phone is missing', () => {
+    expect(generatePaymentMemo('Maria Gonzalez')).toBe('Maria Gonzalez · Deposit');
+    expect(generatePaymentMemo('Maria Gonzalez', null)).toBe('Maria Gonzalez · Deposit');
+    expect(generatePaymentMemo('Maria Gonzalez', '')).toBe('Maria Gonzalez · Deposit');
+    expect(generatePaymentMemo('Maria Gonzalez', '   ')).toBe('Maria Gonzalez · Deposit');
+  });
+
+  it('trims surrounding whitespace from phone', () => {
+    expect(generatePaymentMemo('Maria Gonzalez', '  (321) 555-0100  ')).toBe(
+      'Maria Gonzalez · (321) 555-0100 · Deposit'
+    );
+  });
+
+  it('supports Final Payment and Full Payment suffixes', () => {
+    expect(generatePaymentMemo('John Smith', '4075551212', 'Final Payment')).toBe(
+      'John Smith · 4075551212 · Final Payment'
+    );
+    expect(generatePaymentMemo('John Smith', '4075551212', 'Full Payment')).toBe(
+      'John Smith · 4075551212 · Full Payment'
+    );
   });
 });
