@@ -37,6 +37,7 @@ const KitForm = lazy(() => import("./pages/admin/inventory/KitForm"));
 const Inquiries = lazy(() => import("./pages/admin/Inquiries"));
 const BusinessModes = lazy(() => import("./pages/admin/BusinessModes"));
 const DepositAgreement = lazy(() => import("./pages/DepositAgreement"));
+const PaymentDashboard = lazy(() => import("./pages/PaymentDashboard"));
 const AgreementsPage = lazy(() => import("./pages/admin/AgreementsPage"));
 const PaymentMethodsSettings = lazy(() => import("./pages/admin/PaymentMethodsSettings"));
 const FaqPage = lazy(() => import("./pages/FaqPage"));
@@ -88,6 +89,7 @@ export function AppRoutes() {
         <Route path="/upcoming-litters" element={<UpcomingLitters />} />
         <Route path="/breeds" element={<Breeds />} />
         <Route path="/deposit" element={<DepositAgreement />} />
+        <Route path="/payment/:agreementId/:buyerToken" element={<PaymentDashboard />} />
         <Route path="/request-deposit" element={<RequestDeposit />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />

@@ -66,6 +66,10 @@ export interface DepositAgreement {
   // Finalization
   admin_approved_at?: string;
   payment_confirmed_at?: string;
+  // Buyer-token surface (Wave D)
+  buyer_access_token: string;
+  buyer_access_token_expires_at: string;
+  buyer_marked_payment_sent_at?: string;
   // Reminders
   reminder_last_sent_at?: string;
   reminder_count: number;

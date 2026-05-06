@@ -1,7 +1,8 @@
 // src/components/deposit/DepositForm.tsx
 // Full customer deposit form — handles the buyer-facing deposit submission flow.
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,7 +31,6 @@ import { submitDepositAgreement, fetchPuppyForDeposit, fetchLitterForDeposit } f
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LEGAL_REFERENCES } from '@/lib/constants/business';
-import { CheckCircle2 } from 'lucide-react';
 
 // --- Zod schema ---
 const depositFormSchema = z.object({
@@ -57,8 +57,7 @@ interface DepositFormProps {
 }
 
 export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) {
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [agreementNumber, setAgreementNumber] = useState<string>('');
+  const navigate = useNavigate();
 
   // Acknowledgment checkboxes (Article IX) — each stores timestamp when checked
   const [acks, setAcks] = useState<Record<string, string | null>>({
@@ -160,9 +159,9 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   const submitMutation = useMutation({
     mutationFn: submitDepositAgreement,
     onSuccess: (data) => {
-      setAgreementNumber(data.agreement_number);
-      setIsSubmitted(true);
-      toast.success('Deposit agreement submitted successfully!');
+      toast.success('Deposit agreement submitted — taking you to your payment dashboard…');
+      // Wave D: redirect to the buyer-token-scoped payment dashboard.
+      navigate(`/payment/${data.id}/${data.buyer_access_token}`, { replace: true });
     },
     onError: (err: Error) => {
       toast.error(`Submission failed: ${err.message}`);
@@ -212,26 +211,9 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
     });
   }
 
-  // --- Success screen ---
-  if (isSubmitted) {
-    return (
-      <Card className="max-w-lg mx-auto">
-        <CardContent className="pt-8 text-center space-y-4">
-          <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-foreground">Reservation Request Received</h2>
-          <p className="text-muted-foreground">
-            Agreement # <span className="font-mono font-bold">{agreementNumber}</span>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            We will confirm availability within 48 hours. You will receive a confirmation email at the address you provided.
-          </p>
-          <p className="text-xs text-muted-foreground mt-4">Dream Puppies — hobby breeding program</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // --- Main form ---
+  // (Wave D: success state replaced by an immediate redirect to the
+  // payment dashboard at /payment/<id>/<token> — see submitMutation.onSuccess.)
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto space-y-6">
       <Card>
