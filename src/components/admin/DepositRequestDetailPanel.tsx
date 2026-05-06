@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Check,
+  ClipboardCheck,
   X,
   Send,
   Mail,
@@ -20,11 +20,11 @@ import {
 } from "lucide-react";
 import type { DepositRequest } from "@/types/deposit-request";
 import {
-  acceptDepositRequest,
   declineDepositRequest,
   sendDepositLink,
   updateDepositRequestNotes,
 } from "@/lib/admin/deposit-requests-service";
+import { OperatorReviewForm } from "@/components/admin/OperatorReviewForm";
 
 /**
  * Defensive URL normalization for the displayed deposit link. Wave B
@@ -59,19 +59,11 @@ export function DepositRequestDetailPanel({ request }: Props) {
 
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [notes, setNotes] = useState(request.admin_notes ?? "");
 
   // Send-link state (email-only)
   const [customMessage, setCustomMessage] = useState("");
-
-  const acceptMut = useMutation({
-    mutationFn: () => acceptDepositRequest(request.id),
-    onSuccess: () => {
-      toast.success("Request accepted. You can now send the deposit link.");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const declineMut = useMutation({
     mutationFn: () => declineDepositRequest(request.id, declineReason),
@@ -170,25 +162,31 @@ export function DepositRequestDetailPanel({ request }: Props) {
 
         {status === "pending" && (
           <div className="space-y-3">
-            <p className="text-sm text-foreground">
-              Review this request. Accept to move to the send-link stage, or decline with a reason.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={() => acceptMut.mutate()}
-                disabled={acceptMut.isPending}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Check className="h-4 w-4 mr-1" /> Accept Request
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowDecline((v) => !v)}
-                disabled={declineMut.isPending}
-              >
-                <X className="h-4 w-4 mr-1" /> Decline
-              </Button>
-            </div>
+            {!showReview && !showDecline && (
+              <>
+                <p className="text-sm text-foreground">
+                  Open the review form to accept (assigns a puppy, sets price + deposit), or decline with a reason.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => setShowReview(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <ClipboardCheck className="h-4 w-4 mr-1" /> Open Review Form
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDecline(true)}
+                    disabled={declineMut.isPending}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Decline
+                  </Button>
+                </div>
+              </>
+            )}
+            {showReview && (
+              <OperatorReviewForm request={request} onClose={() => setShowReview(false)} />
+            )}
             {showDecline && (
               <div className="space-y-2 pt-2 border-t">
                 <Label htmlFor="decline-reason">Decline reason</Label>

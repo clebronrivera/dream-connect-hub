@@ -88,19 +88,6 @@ async function notifyCustomerOfDecision(
   }
 }
 
-/** Accept a pending request. Sends customer "link coming" email (O4). */
-export async function acceptDepositRequest(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("deposit_requests")
-    .update({
-      request_status: "accepted",
-      admin_reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw error;
-  await notifyCustomerOfDecision(id, "accepted");
-}
-
 /** Decline a request with a reason. Sends customer closure email. */
 export async function declineDepositRequest(
   id: string,
@@ -128,6 +115,74 @@ export async function updateDepositRequestNotes(
     .update({ admin_notes: notes })
     .eq("id", id);
   if (error) throw error;
+}
+
+// ── Wave C: operator review-form helpers ───────────────────────────────────
+
+/** Litter-scoped puppy summary for the OperatorReviewForm dropdown. */
+export interface PuppyForReview {
+  id: string;
+  name: string | null;
+  breed: string | null;
+  gender: string | null;
+  status: string | null;
+  base_price: number | null;
+  final_price: number | null;
+  deposit_amount: number | null;
+}
+
+/** List puppies belonging to an upcoming litter, for operator assignment. */
+export async function fetchPuppiesForLitter(
+  upcomingLitterId: string
+): Promise<PuppyForReview[]> {
+  const { data, error } = await supabase
+    .from("puppies")
+    .select(
+      "id, name, breed, gender, status, base_price, final_price, deposit_amount"
+    )
+    .eq("upcoming_litter_id", upcomingLitterId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as PuppyForReview[];
+}
+
+export interface AcceptWithPuppyAssignmentInput {
+  requestId: string;
+  puppyId: string;
+  basePrice: number;
+  depositAmount: number;
+}
+
+/**
+ * Operator's review-form submission. Writes the price/deposit override to the
+ * puppy row, snapshots the puppy on the request, and transitions the request
+ * to `'accepted'`. Does NOT send the deposit link — the caller decides
+ * whether to follow up with `sendDepositLink()`.
+ */
+export async function acceptWithPuppyAssignment(
+  input: AcceptWithPuppyAssignmentInput
+): Promise<void> {
+  const { data: puppy, error: puppyErr } = await supabase
+    .from("puppies")
+    .update({
+      base_price: input.basePrice,
+      deposit_amount: input.depositAmount,
+    })
+    .eq("id", input.puppyId)
+    .select("name")
+    .single();
+  if (puppyErr) throw puppyErr;
+
+  const { error: reqErr } = await supabase
+    .from("deposit_requests")
+    .update({
+      puppy_id: input.puppyId,
+      puppy_name: puppy?.name ?? null,
+      request_status: "accepted",
+      admin_reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", input.requestId);
+  if (reqErr) throw reqErr;
 }
 
 export interface SendDepositLinkResponse {
