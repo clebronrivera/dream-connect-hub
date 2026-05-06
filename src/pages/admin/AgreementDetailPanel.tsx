@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminSignaturePad } from '@/components/signatures/AdminSignaturePad';
+import { AgreementCommunicationsCard } from '@/components/admin/AgreementCommunicationsCard';
 import {
   confirmDepositPayment,
   fetchAttestedBuyerHandle,
@@ -408,6 +409,9 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Communications timeline + manual log (Wave H H5) */}
+      <AgreementCommunicationsCard agreementId={agreement.id} />
 
       {/* Notes */}
       <Card>
