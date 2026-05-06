@@ -31,9 +31,8 @@ State diagram:
 
 ## puppies.status
 - Available — listed publicly, accepting deposits. (Title-case is the existing convention.)
-- Reserved — has an active non-terminal deposit_agreement. Set when an agreement reaches `complete`. Cleared on agreement cancellation.
-- Sold — picked up. Terminal.
-(Confirmed against live DB: only "Available" and "Sold" exist today; "Reserved" is added by the workflow.)
+- Reserved — has an active non-terminal deposit_agreement. Set automatically by the `sync_puppy_status_from_agreement` trigger (Wave G partial) when an agreement enters `admin_approved` or `complete`. Cleared back to `Available` when the agreement transitions to `cancelled`.
+- Sold — picked up. Terminal — the trigger never overwrites it.
 
 ## final_sales.final_payment_status
 - pending — balance not yet collected.
