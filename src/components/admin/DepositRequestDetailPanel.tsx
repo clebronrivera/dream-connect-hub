@@ -26,6 +26,26 @@ import {
   updateDepositRequestNotes,
 } from "@/lib/admin/deposit-requests-service";
 
+/**
+ * Defensive URL normalization for the displayed deposit link. Wave B
+ * canonicalized the URL format to `/deposit?requestId=<uuid>`, but rows
+ * sent before that change may carry the legacy `?litter=…&request=…` form.
+ * Append `?requestId=` (or `&requestId=`) so the link still works when the
+ * admin opens or copies it.
+ */
+function normalizeDepositLinkUrl(rawUrl: string | null, requestId: string): string | null {
+  if (!rawUrl) return null;
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.searchParams.has('requestId')) {
+      parsed.searchParams.set('requestId', requestId);
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 interface Props {
   request: DepositRequest;
 }
@@ -211,28 +231,32 @@ export function DepositRequestDetailPanel({ request }: Props) {
                     </p>
                   </div>
                 </div>
-                {request.deposit_link_url && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <code className="flex-1 text-xs bg-white border rounded px-2 py-1 truncate">
-                      {request.deposit_link_url}
-                    </code>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        navigator.clipboard.writeText(request.deposit_link_url!);
-                        toast.success("Link copied");
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <a href={request.deposit_link_url} target="_blank" rel="noopener noreferrer">
-                      <Button size="icon" variant="ghost">
-                        <ExternalLink className="h-3.5 w-3.5" />
+                {(() => {
+                  const displayUrl = normalizeDepositLinkUrl(request.deposit_link_url, request.id);
+                  if (!displayUrl) return null;
+                  return (
+                    <div className="flex items-center gap-2 pt-1">
+                      <code className="flex-1 text-xs bg-white border rounded px-2 py-1 truncate">
+                        {displayUrl}
+                      </code>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText(displayUrl);
+                          toast.success("Link copied");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
-                    </a>
-                  </div>
-                )}
+                      <a href={displayUrl} target="_blank" rel="noopener noreferrer">
+                        <Button size="icon" variant="ghost">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

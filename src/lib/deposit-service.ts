@@ -70,17 +70,25 @@ export async function submitDepositAgreement(payload: CreateDepositPayload): Pro
 }
 
 /**
- * Validate a deposit request link. Returns the request if valid (status is
- * deposit_link_sent and the litter matches), otherwise null.
- * Used by DepositAgreement page to warn customers when a link is stale.
+ * Outcome of validating a deposit-request link. On success, carries the
+ * request's puppy/litter context so the deposit form can pre-fill without
+ * a second fetch.
+ */
+export type DepositRequestValidation =
+  | { valid: false; reason: string }
+  | { valid: true; puppyId: string | null; litterId: string | null };
+
+/**
+ * Validate a deposit-request link. The request must exist, not yet be
+ * converted, and be in `'deposit_link_sent'` status. Used by DepositAgreement
+ * to gate the public form on an operator-issued link.
  */
 export async function validateDepositRequest(
-  requestId: string,
-  expectedLitterId?: string
-): Promise<{ valid: boolean; reason?: string }> {
+  requestId: string
+): Promise<DepositRequestValidation> {
   const { data, error } = await supabase
     .from('deposit_requests')
-    .select('id, request_status, upcoming_litter_id, deposit_agreement_id')
+    .select('id, request_status, puppy_id, upcoming_litter_id, deposit_agreement_id')
     .eq('id', requestId)
     .maybeSingle();
 
@@ -93,10 +101,11 @@ export async function validateDepositRequest(
   if (data.request_status !== 'deposit_link_sent') {
     return { valid: false, reason: `Request status is ${data.request_status}` };
   }
-  if (expectedLitterId && data.upcoming_litter_id !== expectedLitterId) {
-    return { valid: false, reason: 'Litter mismatch' };
-  }
-  return { valid: true };
+  return {
+    valid: true,
+    puppyId: data.puppy_id,
+    litterId: data.upcoming_litter_id,
+  };
 }
 
 /** Fetch enabled payment methods for the deposit form */

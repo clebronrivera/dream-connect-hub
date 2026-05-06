@@ -1,50 +1,157 @@
 // src/pages/DepositAgreement.tsx
-// Public route for buyer-facing deposit form
+// Public route for the buyer-facing deposit agreement form.
+// Wave B: gated on a valid `?requestId=` (operator-issued link only).
+// No public access without a valid request id; the litter/puppy context is
+// resolved from the request row, not URL params.
 
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, MailQuestion } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { DepositForm } from '@/components/deposit/DepositForm';
 import { validateDepositRequest } from '@/lib/deposit-service';
 
 export default function DepositAgreement() {
   const [searchParams] = useSearchParams();
-  const puppyId = searchParams.get('puppy') ?? undefined;
-  const litterId = searchParams.get('litter') ?? undefined;
-  const requestId = searchParams.get('request') ?? undefined;
+  const requestId = searchParams.get('requestId') ?? undefined;
 
-  // Validate the request link if present. Non-blocking — the customer can
-  // still complete the form even if validation fails; they just won't be
-  // linked to an existing reservation request.
-  const { data: requestValidation, isLoading: validatingRequest } = useQuery({
-    queryKey: ['deposit-request-validation', requestId, litterId],
-    queryFn: () => validateDepositRequest(requestId!, litterId),
-    enabled: !!requestId,
+  // No request id → operator-only entry landing.
+  if (!requestId) {
+    return (
+      <GateLanding
+        title="Operator-only entry"
+        body="The deposit agreement form is reached via a personalized link sent by Dream Puppies after we accept your deposit request. Please start at the request form."
+        ctaHref="/request-deposit"
+        ctaLabel="Start a deposit request"
+      />
+    );
+  }
+
+  return <ValidatedDepositAgreement requestId={requestId} />;
+}
+
+function ValidatedDepositAgreement({ requestId }: { requestId: string }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['deposit-request-validation', requestId],
+    queryFn: () => validateDepositRequest(requestId),
     retry: false,
   });
 
-  // Only pass requestId to the form if it validated successfully. This
-  // prevents creating a stale linkage; the customer's submission will go
-  // through as a standalone agreement instead.
-  const validatedRequestId = requestValidation?.valid ? requestId : undefined;
+  if (isLoading) {
+    return (
+      <GateLanding
+        title="Loading your reservation…"
+        body="One moment while we look up your deposit link."
+      />
+    );
+  }
 
+  if (isError || !data) {
+    return (
+      <GateLanding
+        title="Could not verify reservation"
+        body="There was a problem looking up your deposit link. Please try again, or contact us if the issue persists."
+        ctaHref="/request-deposit"
+        ctaLabel="Start a new deposit request"
+      />
+    );
+  }
+
+  if (!data.valid) {
+    return <GateLanding {...messageFor(data.reason)} />;
+  }
+
+  // Valid — render the form, scoped to the request's puppy/litter context.
   return (
     <div className="min-h-screen bg-paper py-8 px-4">
-      {requestId && !validatingRequest && requestValidation && !requestValidation.valid && (
-        <div className="max-w-2xl mx-auto mb-4">
-          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 flex items-start gap-2 text-sm">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-amber-900">Request link could not be verified</p>
-              <p className="text-amber-800">
-                You can still continue with the deposit agreement, but it may not be linked
-                to an existing reservation request.
-              </p>
-            </div>
-          </div>
+      <div className="max-w-2xl mx-auto mb-4">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          Reservation <span className="font-mono font-bold">#DEP-{requestId.slice(0, 8).toUpperCase()}</span>
         </div>
-      )}
-      <DepositForm puppyId={puppyId} litterId={litterId} requestId={validatedRequestId} />
+      </div>
+      <DepositForm
+        puppyId={data.puppyId ?? undefined}
+        litterId={data.litterId ?? undefined}
+        requestId={requestId}
+      />
     </div>
   );
+}
+
+interface GateLandingProps {
+  title: string;
+  body: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+}
+
+function GateLanding({ title, body, ctaHref, ctaLabel }: GateLandingProps) {
+  return (
+    <div className="min-h-screen bg-paper py-12 px-4 flex items-start justify-center">
+      <Card className="max-w-lg w-full">
+        <CardContent className="pt-8 space-y-4 text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+            {ctaHref ? (
+              <MailQuestion className="h-6 w-6 text-amber-700" />
+            ) : (
+              <AlertCircle className="h-6 w-6 text-amber-700" />
+            )}
+          </div>
+          <h1 className="text-xl font-bold text-foreground">{title}</h1>
+          <p className="text-sm text-muted-foreground">{body}</p>
+          {ctaHref && ctaLabel && (
+            <a
+              href={ctaHref}
+              className="inline-block rounded-md bg-primaryDeep px-4 py-2 text-sm font-medium text-white hover:bg-primaryDeep/90"
+            >
+              {ctaLabel}
+            </a>
+          )}
+          <p className="text-xs text-muted-foreground pt-4">
+            Questions? Call (321) 697-8864 — Dream Puppies, Orlando, FL.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function messageFor(reason: string): GateLandingProps {
+  if (reason === 'Request not found') {
+    return {
+      title: 'Reservation link not recognized',
+      body: 'This deposit link is not associated with any active reservation. If you received it from us, please reach out and we\'ll resend a fresh link.',
+      ctaHref: '/request-deposit',
+      ctaLabel: 'Start a new deposit request',
+    };
+  }
+  if (reason === 'Request already converted') {
+    return {
+      title: 'Reservation already submitted',
+      body: 'You\'ve already completed the deposit agreement for this reservation. Check your email for the confirmation, or reach out if you need anything.',
+    };
+  }
+  if (reason.startsWith('Request status is ')) {
+    const status = reason.replace('Request status is ', '');
+    if (status === 'pending' || status === 'accepted') {
+      return {
+        title: 'Reservation not yet ready',
+        body: 'Your deposit request is in review. You\'ll receive an email with the agreement link once it\'s ready.',
+      };
+    }
+    if (status === 'declined') {
+      return {
+        title: 'Reservation declined',
+        body: 'This deposit request was declined. Please reach out to us if you have questions.',
+      };
+    }
+    return {
+      title: 'Reservation not active',
+      body: `This deposit link is not currently active (status: ${status}). Please contact us for assistance.`,
+    };
+  }
+  return {
+    title: 'Reservation link not active',
+    body: 'This deposit link is not currently active. Please contact us so we can sort it out.',
+  };
 }

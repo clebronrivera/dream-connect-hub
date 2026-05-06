@@ -85,28 +85,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
       error: `Request must be 'accepted' or 'deposit_link_sent'. Current: ${request.request_status}`,
     });
   }
-  if (!request.upcoming_litter_id) {
-    return jsonResponse(400, { error: "Request has no upcoming_litter_id" });
+  if (!request.upcoming_litter_id && !request.puppy_id) {
+    return jsonResponse(400, {
+      error: "Request must reference either an upcoming litter or an available puppy",
+    });
   }
 
-  // --- Build deposit link ---
-  const depositLink = `${SITE_URL}/deposit?litter=${request.upcoming_litter_id}&request=${request.id}`;
+  // --- Build canonical deposit link (Wave B / OPD-11: requestId only) ---
+  const depositLink = `${SITE_URL}/deposit?requestId=${request.id}`;
 
-  // --- Load litter deposit amount ---
+  // --- Resolve deposit amount: per-puppy override, else flat $300 default ---
   let depositAmount = 300;
-  const { data: litter } = await admin
-    .from("upcoming_litters")
-    .select("deposit_amount")
-    .eq("id", request.upcoming_litter_id)
-    .single();
-  if (litter?.deposit_amount && litter.deposit_amount > 0) {
-    depositAmount = Number(litter.deposit_amount);
+  if (request.puppy_id) {
+    const { data: puppy } = await admin
+      .from("puppies")
+      .select("deposit_amount")
+      .eq("id", request.puppy_id)
+      .single();
+    if (puppy?.deposit_amount && Number(puppy.deposit_amount) > 0) {
+      depositAmount = Number(puppy.deposit_amount);
+    }
   }
 
   // --- Send email ---
+  const reservationLabel =
+    request.puppy_name ?? request.upcoming_litter_label ?? "your puppy";
   const tpl = depositLinkSent({
     customerName: request.customer_name,
-    litterLabel: request.upcoming_litter_label ?? "your litter",
+    litterLabel: reservationLabel,
     depositAmount,
     depositLink,
     customMessage: body.custom_message,
