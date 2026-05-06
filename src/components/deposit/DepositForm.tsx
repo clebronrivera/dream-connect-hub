@@ -28,7 +28,6 @@ import {
 import { DEFAULT_AUTHORIZED_SELLER } from '@/lib/constants/deposit';
 import { submitDepositAgreement, fetchPuppyForDeposit, fetchLitterForDeposit } from '@/lib/deposit-service';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
-import type { SplitPaymentDetail } from '@/types/deposit';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LEGAL_REFERENCES } from '@/lib/constants/business';
 import { CheckCircle2 } from 'lucide-react';
@@ -58,7 +57,6 @@ interface DepositFormProps {
 }
 
 export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) {
-  const [splitDetails, setSplitDetails] = useState<SplitPaymentDetail[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [agreementNumber, setAgreementNumber] = useState<string>('');
 
@@ -179,16 +177,6 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
 
     const amount = depositAmount;
 
-    // Validate split total
-    if (values.deposit_payment_method === 'split') {
-      const splitTotal = splitDetails.reduce((sum, d) => sum + (d.amount || 0), 0);
-      const diff = Math.abs(splitTotal - amount);
-      if (diff > 0.01) {
-        toast.error(`Split payment total ($${splitTotal.toFixed(2)}) must equal deposit amount ($${amount.toFixed(2)})`);
-        return;
-      }
-    }
-
     submitMutation.mutate({
       buyer_name: values.buyer_name,
       buyer_email: values.buyer_email,
@@ -202,7 +190,6 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       purchase_price: purchasePrice,
       deposit_amount: amount,
       deposit_payment_method: values.deposit_payment_method as PaymentMethodKey,
-      deposit_payment_detail: values.deposit_payment_method === 'split' ? splitDetails : undefined,
       final_payment_method_intended: values.final_payment_method_intended as PaymentMethodKey | undefined,
       proposed_pickup_date: values.proposed_pickup_date,
       authorized_seller:
@@ -322,9 +309,6 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 <PaymentMethodSelector
                   value={field.value as PaymentMethodKey}
                   onChange={field.onChange}
-                  splitDetails={splitDetails}
-                  onSplitChange={setSplitDetails}
-                  depositAmount={depositAmount}
                   paymentMemo={paymentMemo}
                 />
               )}

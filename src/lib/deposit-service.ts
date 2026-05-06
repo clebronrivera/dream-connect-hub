@@ -2,7 +2,7 @@
 // Public-facing Supabase calls for deposit agreements
 
 import { supabase } from '@/lib/supabase-client';
-import type { DepositAgreement, PaymentMethodConfig, SplitPaymentDetail } from '@/types/deposit';
+import type { DepositAgreement, PaymentMethodConfig } from '@/types/deposit';
 import type { PaymentMethodKey, AuthorizedSellerId } from '@/lib/constants/deposit';
 
 export interface CreateDepositPayload {
@@ -18,7 +18,6 @@ export interface CreateDepositPayload {
   purchase_price: number;
   deposit_amount: number;
   deposit_payment_method: PaymentMethodKey;
-  deposit_payment_detail?: SplitPaymentDetail[];
   final_payment_method_intended?: PaymentMethodKey;
   proposed_pickup_date: string;
   authorized_seller: AuthorizedSellerId;

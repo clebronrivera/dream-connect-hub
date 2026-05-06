@@ -1,11 +1,6 @@
 // src/types/deposit.ts
 import type { AuthorizedSellerId, PaymentMethodKey } from '@/lib/constants/deposit';
 
-export interface SplitPaymentDetail {
-  method: PaymentMethodKey;
-  amount: number;
-}
-
 export interface DepositAgreement {
   id: string;
   agreement_number: string;
@@ -22,7 +17,6 @@ export interface DepositAgreement {
   deposit_amount: number;
   balance_due: number; // GENERATED
   deposit_payment_method: PaymentMethodKey;
-  deposit_payment_detail?: SplitPaymentDetail[];
   final_payment_method_intended?: PaymentMethodKey;
   payment_memo: string; // GENERATED
   deposit_status: 'pending' | 'admin_confirmed' | 'rejected' | 'refunded';
@@ -89,7 +83,6 @@ export interface FinalSale {
   puppy_final_name?: string;
   full_pay_flow: boolean;
   final_payment_method: PaymentMethodKey;
-  final_payment_detail?: SplitPaymentDetail[];
   final_payment_status: 'pending' | 'admin_confirmed';
   final_payment_confirmed_at?: string;
   pet_guide_generated_at?: string;

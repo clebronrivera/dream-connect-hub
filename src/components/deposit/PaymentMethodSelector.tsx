@@ -1,32 +1,27 @@
 // src/components/deposit/PaymentMethodSelector.tsx
-// Payment method selection with QR codes and split payment support
+// Payment method selector with QR code + payment-memo display. Split payment
+// was retired by OPD-09 (2026-05-05); rare multi-method scenarios are handled
+// manually by the operator outside the form.
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchEnabledPaymentMethods } from '@/lib/deposit-service';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
-import type { SplitPaymentDetail, PaymentMethodConfig } from '@/types/deposit';
-import { AlertCircle, Plus, Trash2, Copy, Check } from 'lucide-react';
+import type { PaymentMethodConfig } from '@/types/deposit';
+import { AlertCircle, Copy, Check } from 'lucide-react';
 
 interface PaymentMethodSelectorProps {
   value: PaymentMethodKey;
   onChange: (method: PaymentMethodKey) => void;
-  splitDetails?: SplitPaymentDetail[];
-  onSplitChange?: (details: SplitPaymentDetail[]) => void;
-  depositAmount: number;
   paymentMemo: string;
 }
 
 export function PaymentMethodSelector({
   value,
   onChange,
-  splitDetails = [],
-  onSplitChange,
-  depositAmount,
   paymentMemo,
 }: PaymentMethodSelectorProps) {
   const [memoCopied, setMemoCopied] = useState(false);
@@ -41,30 +36,6 @@ export function PaymentMethodSelector({
     setTimeout(() => setMemoCopied(false), 2000);
   }
 
-  function handleAddSplitRow() {
-    if (!onSplitChange) return;
-    const availableMethod = methods.find(m => m.method_key !== 'split')?.method_key as PaymentMethodKey;
-    onSplitChange([...splitDetails, { method: availableMethod || 'zelle', amount: 0 }]);
-  }
-
-  function handleRemoveSplitRow(index: number) {
-    if (!onSplitChange) return;
-    onSplitChange(splitDetails.filter((_, i) => i !== index));
-  }
-
-  function handleSplitRowChange(index: number, field: keyof SplitPaymentDetail, val: string | number) {
-    if (!onSplitChange) return;
-    const updated = [...splitDetails];
-    if (field === 'amount') {
-      updated[index] = { ...updated[index], amount: Number(val) };
-    } else {
-      updated[index] = { ...updated[index], [field]: val };
-    }
-    onSplitChange(updated);
-  }
-
-  const splitTotal = splitDetails.reduce((sum, d) => sum + (d.amount || 0), 0);
-  const splitRemaining = Math.round((depositAmount - splitTotal) * 100) / 100;
   const selectedMethod = methods.find(m => m.method_key === value);
 
   return (
@@ -93,19 +64,6 @@ export function PaymentMethodSelector({
             )}
           </button>
         ))}
-        {/* Split payment option */}
-        <button
-          type="button"
-          onClick={() => onChange('split')}
-          className={`relative rounded-lg border-2 p-3 text-left transition-colors ${
-            value === 'split'
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-line hover:border-line'
-          }`}
-        >
-          <p className="font-medium text-sm">Split Payment</p>
-          <p className="text-xs text-muted-foreground mt-1">Use multiple methods</p>
-        </button>
       </div>
 
       {/* Manual confirmation notice */}
@@ -119,7 +77,7 @@ export function PaymentMethodSelector({
       )}
 
       {/* QR code display for selected method */}
-      {selectedMethod?.qr_code_public_url && value !== 'split' && (
+      {selectedMethod?.qr_code_public_url && (
         <div className="flex justify-center">
           <img
             src={selectedMethod.qr_code_public_url}
@@ -132,54 +90,6 @@ export function PaymentMethodSelector({
       {/* Payment note */}
       {selectedMethod?.payment_note && (
         <p className="text-sm text-muted-foreground italic">{selectedMethod.payment_note}</p>
-      )}
-
-      {/* Split payment rows */}
-      {value === 'split' && (
-        <div className="space-y-3 rounded-lg border border-line p-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Split Payment Details</Label>
-            <Button type="button" variant="outline" size="sm" onClick={handleAddSplitRow}>
-              <Plus className="h-3 w-3 mr-1" /> Add Method
-            </Button>
-          </div>
-
-          {splitDetails.map((detail, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <select
-                value={detail.method}
-                onChange={e => handleSplitRowChange(idx, 'method', e.target.value)}
-                className="rounded-md border border-line px-2 py-1.5 text-sm flex-1"
-              >
-                {methods.map(m => (
-                  <option key={m.method_key} value={m.method_key}>{m.display_name}</option>
-                ))}
-              </select>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input
-                  type="number"
-                  value={detail.amount || ''}
-                  onChange={e => handleSplitRowChange(idx, 'amount', e.target.value)}
-                  className="pl-6 w-28"
-                  min={0}
-                  step={0.01}
-                />
-              </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveSplitRow(idx)}>
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
-            </div>
-          ))}
-
-          {splitDetails.length > 0 && (
-            <div className={`text-sm font-medium ${splitRemaining === 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {splitRemaining === 0
-                ? 'Split total matches deposit amount'
-                : `Remaining: $${splitRemaining.toFixed(2)}`}
-            </div>
-          )}
-        </div>
       )}
 
       {/* Payment memo (auto-generated, read-only) */}

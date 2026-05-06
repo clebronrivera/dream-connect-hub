@@ -31,7 +31,9 @@ export {
   type AuthorizedSellerId,
 } from './business';
 
-// Payment methods — SINGLE SOURCE OF TRUTH
+// Payment methods — SINGLE SOURCE OF TRUTH.
+// `split` was retired by OPD-09 (2026-05-05); rare multi-method scenarios are
+// now handled manually by the operator outside the form.
 export const PAYMENT_METHODS = [
   { key: 'zelle',     label: 'Zelle',      requiresManualConfirm: false },
   { key: 'venmo',     label: 'Venmo',      requiresManualConfirm: false },
@@ -39,7 +41,6 @@ export const PAYMENT_METHODS = [
   { key: 'apple_pay', label: 'Apple Pay',  requiresManualConfirm: false },
   { key: 'square',    label: 'Square',     requiresManualConfirm: true  },
   { key: 'cash',      label: 'Cash',       requiresManualConfirm: true  },
-  { key: 'split',     label: 'Split Payment', requiresManualConfirm: false },
 ] as const;
 
 export type PaymentMethodKey = (typeof PAYMENT_METHODS)[number]['key'];

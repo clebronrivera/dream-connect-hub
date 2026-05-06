@@ -26,8 +26,10 @@ const DEFAULT_DEPOSIT_AMOUNT = 300;
 
 type InterestType = "available_puppy" | "upcoming_litter";
 
-// Exclude "split" from the simple preference buttons — that's an agreement-form concern
-const PAYMENT_PREFERENCE_OPTIONS = PAYMENT_METHODS.filter((m) => m.key !== "split");
+// Payment-preference buttons in the intake form. After OPD-09 (split removed),
+// PAYMENT_METHODS already contains only direct methods; this alias is kept for
+// readability at the call-site.
+const PAYMENT_PREFERENCE_OPTIONS = PAYMENT_METHODS;
 
 function getLitterLabel(litter: UpcomingLitter): string {
   const breed = (litter.display_breed || litter.breed || "Upcoming Litter").trim();
