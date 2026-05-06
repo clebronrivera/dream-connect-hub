@@ -97,6 +97,10 @@ export interface DepositAgreement {
   buyer_access_token: string;
   buyer_access_token_expires_at: string;
   buyer_marked_payment_sent_at?: string;
+  // H3 — operator payment verification (Wave H phase 1).
+  operator_verified_sender_handle?: string | null;
+  operator_verified_sender_handle_at?: string | null;
+  operator_handle_mismatch_flagged: boolean;
   // Reminders
   reminder_last_sent_at?: string;
   reminder_count: number;

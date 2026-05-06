@@ -2,7 +2,7 @@
 // Per-agreement action panel for admin dashboard
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminSignaturePad } from '@/components/signatures/AdminSignaturePad';
 import {
   confirmDepositPayment,
+  fetchAttestedBuyerHandle,
   saveAdminSignature,
   finalizeAgreement,
   confirmPickupDate,
@@ -37,13 +38,34 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
   const [notes, setNotes] = useState(agreement.notes ?? '');
   const [counterDate, setCounterDate] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [senderHandle, setSenderHandle] = useState('');
   const [showDangerZone, setShowDangerZone] = useState(false);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['agreements'] });
 
+  const isPaymentConfirmed = agreement.deposit_status === 'admin_confirmed';
+
+  // Buyer's claimed payment handle from H1 attestation. Loaded only while
+  // payment is unconfirmed — once confirmed the handle is captured on the
+  // agreement row itself (operator_verified_sender_handle).
+  const attestedHandleQ = useQuery({
+    queryKey: ['attested-buyer-handle', agreement.id],
+    queryFn: () => fetchAttestedBuyerHandle(agreement.id),
+    enabled: !isPaymentConfirmed,
+  });
+
   const confirmPaymentMut = useMutation({
-    mutationFn: () => confirmDepositPayment(agreement.id),
-    onSuccess: () => { toast.success('Payment confirmed'); invalidate(); },
+    mutationFn: () => confirmDepositPayment(agreement.id, senderHandle),
+    onSuccess: (result) => {
+      if (result.mismatch) {
+        toast.warning('Payment confirmed — sender handle does NOT match buyer attestation. Flagged for chargeback evidence.');
+      } else {
+        toast.success('Payment confirmed');
+      }
+      setSenderHandle('');
+      invalidate();
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const adminSignMut = useMutation({
@@ -96,7 +118,6 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
 
   const isBuyerSigned = !!agreement.buyer_signed_at;
   const isAdminSigned = !!agreement.admin_signed_at;
-  const isPaymentConfirmed = agreement.deposit_status === 'admin_confirmed';
   const allConditionsMet = isBuyerSigned && isAdminSigned && isPaymentConfirmed;
   const isCancelled = agreement.agreement_status === 'cancelled';
 
@@ -191,7 +212,7 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Payment Confirmation</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           <div className="text-sm space-y-1">
             <p><span className="text-muted-foreground">Method:</span> {agreement.deposit_payment_method}</p>
             <p><span className="text-muted-foreground">Amount:</span> ${agreement.deposit_amount.toFixed(2)}</p>
@@ -204,18 +225,66 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
             </div>
           )}
           {!isPaymentConfirmed && !isCancelled && (
-            <Button
-              size="sm"
-              onClick={() => confirmPaymentMut.mutate()}
-              disabled={confirmPaymentMut.isPending}
-            >
-              Confirm Payment Received
-            </Button>
+            <div className="space-y-2 rounded border bg-muted/30 p-3">
+              <div className="text-sm">
+                <p className="text-muted-foreground">Buyer's claimed handle (from H1 attestation)</p>
+                {attestedHandleQ.isLoading ? (
+                  <p className="text-xs text-muted-foreground italic">Loading…</p>
+                ) : attestedHandleQ.data ? (
+                  <code className="bg-muted px-1 rounded font-medium">{attestedHandleQ.data}</code>
+                ) : (
+                  <p className="text-xs text-amber-700 italic">
+                    Buyer has not signed the H1 attestation yet — sender handle cannot be cross-checked.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sender-handle" className="text-sm">
+                  Sender handle (as it appeared in your payment app)
+                </Label>
+                <Input
+                  id="sender-handle"
+                  value={senderHandle}
+                  onChange={e => setSenderHandle(e.target.value)}
+                  placeholder="e.g. maria@example.com or +14075551212"
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Type exactly as shown in the payment app. Mismatch with the buyer's claimed handle will be flagged but won't block confirmation.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => confirmPaymentMut.mutate()}
+                disabled={confirmPaymentMut.isPending || !senderHandle.trim()}
+              >
+                {confirmPaymentMut.isPending ? 'Confirming…' : 'Confirm Payment Received'}
+              </Button>
+            </div>
           )}
           {isPaymentConfirmed && (
-            <p className="text-sm text-green-600">
-              Confirmed at {agreement.payment_confirmed_at ? format(new Date(agreement.payment_confirmed_at), 'MMM d, yyyy h:mm a') : ''}
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-green-600">
+                Confirmed at {agreement.payment_confirmed_at ? format(new Date(agreement.payment_confirmed_at), 'MMM d, yyyy h:mm a') : ''}
+              </p>
+              {agreement.operator_verified_sender_handle && (
+                <p className="text-xs text-muted-foreground">
+                  Sender handle recorded:{' '}
+                  <code className="bg-muted px-1 rounded">{agreement.operator_verified_sender_handle}</code>
+                </p>
+              )}
+              {agreement.operator_handle_mismatch_flagged && (
+                <div className="flex items-start gap-2 p-2 rounded bg-amber-50 border border-amber-300">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-amber-900">
+                    <p className="font-medium">Sender handle mismatch flagged</p>
+                    <p className="text-xs">
+                      The handle you typed differs from the buyer's H1 attestation. This is preserved as chargeback evidence — review before pickup if relevant.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

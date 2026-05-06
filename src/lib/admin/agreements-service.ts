@@ -27,14 +27,53 @@ export async function fetchAgreement(id: string): Promise<DepositAgreement> {
   return data as DepositAgreement;
 }
 
+/**
+ * Look up the buyer's claimed payment handle from payment_attestations.
+ * Admin RLS allows this (admin_all_payment_attestations policy).
+ * Returns null when no attestation exists yet (buyer hasn't completed
+ * the H1 form on the dashboard).
+ */
+export async function fetchAttestedBuyerHandle(agreementId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('payment_attestations')
+    .select('buyer_payment_handle')
+    .eq('agreement_id', agreementId)
+    .maybeSingle();
+  return data?.buyer_payment_handle ?? null;
+}
+
 /** Confirm deposit payment (admin). Sends standalone deposit receipt to the
- * buyer (O12). Email failures are logged but do not roll back the confirmation. */
-export async function confirmDepositPayment(id: string): Promise<void> {
+ * buyer (O12). Email failures are logged but do not roll back the confirmation.
+ *
+ * Wave H phase 1f: now requires the operator to type the sender handle as
+ * it appeared in their payment app. Compared (case-insensitive, trimmed)
+ * against payment_attestations.buyer_payment_handle. Mismatch sets
+ * operator_handle_mismatch_flagged=true but does NOT block the confirmation
+ * — the flag exists for chargeback-evidence purposes (H8). */
+export async function confirmDepositPayment(
+  id: string,
+  senderHandle: string
+): Promise<{ mismatch: boolean }> {
+  const trimmedSenderHandle = senderHandle.trim();
+  if (!trimmedSenderHandle) {
+    throw new Error('Please type the sender handle as it appears in your payment app.');
+  }
+
+  const buyerHandle = await fetchAttestedBuyerHandle(id);
+  const buyerHandleNormalized = buyerHandle?.trim().toLowerCase() ?? '';
+  const senderHandleNormalized = trimmedSenderHandle.toLowerCase();
+  const mismatch =
+    !!buyerHandleNormalized && buyerHandleNormalized !== senderHandleNormalized;
+
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from('deposit_agreements')
     .update({
       deposit_status: 'admin_confirmed',
-      payment_confirmed_at: new Date().toISOString(),
+      payment_confirmed_at: now,
+      operator_verified_sender_handle: trimmedSenderHandle,
+      operator_verified_sender_handle_at: now,
+      operator_handle_mismatch_flagged: mismatch,
     })
     .eq('id', id);
 
@@ -43,14 +82,17 @@ export async function confirmDepositPayment(id: string): Promise<void> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
-    if (!accessToken) return;
-    await supabase.functions.invoke('send-deposit-receipt', {
-      body: { agreement_id: id },
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    if (accessToken) {
+      await supabase.functions.invoke('send-deposit-receipt', {
+        body: { agreement_id: id },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    }
   } catch (err) {
     console.error('send-deposit-receipt failed:', err);
   }
+
+  return { mismatch };
 }
 
 /** Save admin signature */
