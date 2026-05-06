@@ -27,6 +27,7 @@ import {
   generatePaymentMemo,
 } from '@/lib/utils/depositCalc';
 import { DEFAULT_AUTHORIZED_SELLER } from '@/lib/constants/deposit';
+import { US_STATES } from '@/data/statesData';
 import { submitDepositAgreement, fetchPuppyForDeposit, fetchLitterForDeposit } from '@/lib/deposit-service';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,8 +38,19 @@ const depositFormSchema = z.object({
   buyer_name: z.string().min(2, 'Full name is required'),
   buyer_email: z.string().email('Valid email is required'),
   buyer_phone: z.string().optional(),
-  // OPD-05: structured address fields land in Wave E E3.
-  // The legacy buyer_address blob is retired in this commit.
+  // OPD-05: structured address. ZIP drives sales-tax jurisdiction (OPD-15).
+  // Per Wave E E1 the DB columns are nullable; form-side validation here
+  // is intentionally light — tighter validation can land alongside OPD-15.
+  buyer_street: z.string().optional(),
+  buyer_city: z.string().optional(),
+  buyer_state: z.string().optional(),
+  buyer_zip: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || /^\d{5}(-\d{4})?$/.test(v),
+      'ZIP must be 5 digits, optionally with -4 extension'
+    ),
   proposed_pickup_date: z.string().min(1, 'Pickup date is required'),
   deposit_payment_method: z.string().min(1, 'Payment method is required'),
   final_payment_method_intended: z.string().optional(),
@@ -129,6 +141,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       buyer_name: '',
       buyer_email: '',
       buyer_phone: '',
+      buyer_street: '',
+      buyer_city: '',
+      buyer_state: '',
+      buyer_zip: '',
       proposed_pickup_date: '',
       deposit_payment_method: 'zelle',
       final_payment_method_intended: '',
@@ -180,7 +196,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       buyer_name: values.buyer_name,
       buyer_email: values.buyer_email,
       buyer_phone: values.buyer_phone || undefined,
-      // Structured address fields (buyer_street/city/state/zip) wired in E3.
+      buyer_street: values.buyer_street || undefined,
+      buyer_city: values.buyer_city || undefined,
+      buyer_state: values.buyer_state || undefined,
+      buyer_zip: values.buyer_zip || undefined,
       puppy_id: puppyId,
       litter_id: litterId,
       puppy_name: puppyName,
@@ -253,7 +272,57 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 <Label htmlFor="buyer_phone">Phone</Label>
                 <Input id="buyer_phone" {...register('buyer_phone')} placeholder="(555) 123-4567" />
               </div>
-              {/* Structured address fields (buyer_street/city/state/zip) land in Wave E E3. */}
+            </div>
+
+            {/* Structured address (Wave E E3 / OPD-05) */}
+            <div className="space-y-3 pt-2">
+              <div>
+                <Label htmlFor="buyer_street">Street Address</Label>
+                <Input
+                  id="buyer_street"
+                  {...register('buyer_street')}
+                  placeholder="123 Main St, Apt 4"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="buyer_city">City</Label>
+                  <Input id="buyer_city" {...register('buyer_city')} placeholder="Orlando" />
+                </div>
+                <div>
+                  <Label htmlFor="buyer_state">State</Label>
+                  <Controller
+                    name="buyer_state"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger id="buyer_state">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {US_STATES.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="buyer_zip">ZIP</Label>
+                  <Input
+                    id="buyer_zip"
+                    {...register('buyer_zip')}
+                    placeholder="32801"
+                    inputMode="numeric"
+                  />
+                  {errors.buyer_zip && (
+                    <p className="text-xs text-red-500 mt-1">{errors.buyer_zip.message}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
