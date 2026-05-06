@@ -103,6 +103,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     to: agreement.buyer_email,
     subject: tpl.subject,
     html: tpl.html,
+    agreementId: body.agreement_id,
+    summary: `Buyer emailed deposit receipt — ${agreement.agreement_number}`,
   });
 
   if (!r.ok) {

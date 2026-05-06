@@ -117,6 +117,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     depositLink,
     customMessage: body.custom_message,
   });
+  // H5 auto-log intentionally omitted: this email fires before any
+  // deposit_agreements row exists (only deposit_request_id is in scope).
+  // The agreement_communications table is keyed on agreement_id NOT NULL,
+  // so the email cannot be associated with an agreement at this point.
   const emailResult = await sendEmail({
     to: request.customer_email,
     subject: tpl.subject,

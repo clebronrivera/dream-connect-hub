@@ -94,6 +94,9 @@ const handler = async (req: Request): Promise<Response> => {
       rowsHtml,
       reviewLink: `${SITE_URL}/admin/deposit-requests`,
     });
+    // H5 auto-log intentionally omitted: this fires from a deposit_requests
+    // INSERT webhook — no deposit_agreements row exists yet, so there is
+    // no agreement_id to log against.
     const r = await sendEmail({
       to: admins,
       subject: tpl.subject,
@@ -111,6 +114,8 @@ const handler = async (req: Request): Promise<Response> => {
       customerName,
       litterLabel,
     });
+    // H5 auto-log intentionally omitted: same reason as the admin notify
+    // above — no agreement_id exists at deposit_request INSERT time.
     const r = await sendEmail({
       to: customerEmail,
       subject: tpl.subject,

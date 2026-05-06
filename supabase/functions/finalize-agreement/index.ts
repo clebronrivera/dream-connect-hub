@@ -136,6 +136,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       to: agreement.buyer_email,
       subject: tpl.subject,
       html: tpl.html,
+      agreementId: body.agreement_id,
+      summary: `Buyer notified — agreement finalized (${agreement.agreement_number})`,
     });
     if (!r.ok) console.error("Failed to send buyer email:", r.error);
   }
@@ -152,6 +154,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       to: admins,
       subject: tpl.subject,
       html: tpl.html,
+      agreementId: body.agreement_id,
+      summary: `Admin notified — agreement finalized (${agreement.agreement_number})`,
     });
     if (!r.ok) console.error("Failed to send admin email:", r.error);
   }

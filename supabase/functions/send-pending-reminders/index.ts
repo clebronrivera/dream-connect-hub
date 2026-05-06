@@ -109,6 +109,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           to: admins,
           subject: tpl.subject,
           html: tpl.html,
+          agreementId: agreement.id,
+          summary: `Admin alerted — manual review required (${agreement.agreement_number})`,
         });
         if (!r.ok) console.error("Manual review alert failed:", r.error);
       }
@@ -135,6 +137,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           to: admins,
           subject: tpl.subject,
           html: tpl.html,
+          agreementId: agreement.id,
+          summary: `Admin reminded — buyer payment still pending (#${newCount})`,
         });
         if (!r.ok) console.error("Pending reminder failed:", r.error);
       }

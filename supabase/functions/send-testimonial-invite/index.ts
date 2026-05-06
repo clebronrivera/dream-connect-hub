@@ -97,6 +97,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     to: agreement.buyer_email,
     subject: tpl.subject,
     html: tpl.html,
+    agreementId: body.agreement_id,
+    summary: `Buyer emailed testimonial invitation — ${agreement.puppy_name}`,
   });
 
   if (!r.ok) {

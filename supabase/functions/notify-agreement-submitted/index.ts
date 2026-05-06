@@ -102,6 +102,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     to: record.buyer_email,
     subject: tpl.subject,
     html: tpl.html,
+    agreementId: record.id,
+    summary: `Buyer emailed payment dashboard link — ${record.agreement_number}`,
   });
 
   if (!result.ok) {

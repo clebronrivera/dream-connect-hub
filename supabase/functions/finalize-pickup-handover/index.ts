@@ -207,6 +207,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       to: agreement.buyer_email,
       subject: tpl.subject,
       html: tpl.html,
+      agreementId: body.agreement_id,
+      summary: `Buyer emailed welcome-home — ${agreement.puppy_name} pickup complete`,
     });
     if (!r.ok) console.error("finalize-pickup-handover: buyer email failed:", r.error);
   }
@@ -225,6 +227,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       to: admins,
       subject: tpl.subject,
       html: tpl.html,
+      agreementId: body.agreement_id,
+      summary: `Admin notified — pickup handover complete (${agreement.agreement_number})`,
     });
     if (!r.ok) console.error("finalize-pickup-handover: admin email failed:", r.error);
   }
