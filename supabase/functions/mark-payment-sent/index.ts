@@ -178,6 +178,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       to: recipients,
       subject: tpl.subject,
       html: tpl.html,
+      agreementId: body.agreement_id,
+      summary: `Admin notified — buyer marked payment sent (${agreement.deposit_payment_method})`,
     });
     if (!emailResult.ok) {
       console.error("mark-payment-sent: admin email failed:", emailResult.error);
