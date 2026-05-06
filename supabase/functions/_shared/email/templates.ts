@@ -559,6 +559,49 @@ export function adminManualReviewRequired(args: {
   };
 }
 
+// Wave D D4: fires from notify-agreement-submitted when a deposit_agreements
+// row is inserted. Gives the buyer their persistent payment-dashboard link
+// so they can return after closing the tab — the dashboard URL only lives
+// in the address bar after the redirect-on-submit, and that's lost the
+// moment the buyer closes the tab.
+export function agreementSubmittedBuyer(args: {
+  buyerName: string;
+  agreementNumber: string;
+  puppyName: string;
+  depositAmount: number;
+  paymentMethod: string;
+  paymentMemo: string;
+  paymentLink: string;
+}): EmailTemplate {
+  const body =
+    heading("Your reservation is in") +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `Your deposit agreement for ${args.puppyName} (Agreement ${args.agreementNumber}) is signed. Below is your link to send the deposit and watch its status — bookmark it; the same link works for 30 days.`
+    ) +
+    button("Open my payment dashboard", args.paymentLink) +
+    rawParagraph(
+      `Or copy this link into your browser:<br/><a href="${args.paymentLink}" style="color:${COLORS.primary};word-break:break-all;">${escape(args.paymentLink)}</a>`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Puppy", args.puppyName) +
+        row("Deposit amount", money(args.depositAmount)) +
+        row("Payment method", args.paymentMethod) +
+        row("Memo to include", args.paymentMemo)
+    ) +
+    rawParagraph(
+      `This link is active for 30 days. After that, call us at <strong>${escape(BRAND.phone)}</strong> and we'll send a fresh one.`
+    );
+  return {
+    subject: `Your Dream Puppies reservation — ${args.agreementNumber}`,
+    html: wrap({
+      previewText: "Your payment dashboard link — bookmark for the next 30 days.",
+      bodyHtml: body,
+    }),
+  };
+}
+
 // Wave D D3: fires from mark-payment-sent when the buyer clicks
 // "I have sent payment" on /payment/<id>/<token>. Operator should watch
 // the chosen payment app for an incoming transfer matching the memo.
