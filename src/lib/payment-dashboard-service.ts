@@ -88,6 +88,56 @@ export async function fetchAgreementByToken(
   return { status: 'ok', agreement };
 }
 
+export interface PaymentAttestationRow {
+  id: string;
+  agreement_id: string;
+  attestation_status: 'draft' | 'signed';
+  payment_method_handle_to_use: string | null;
+  buyer_payment_handle: string | null;
+  buyer_payment_handle_screenshot_path: string | null;
+  buyer_phone_at_payment: string | null;
+  payment_attestation_text: string | null;
+  payment_attestation_signed_at: string | null;
+  confirmation_screenshot_path: string | null;
+  transaction_reference_id: string | null;
+  payment_memo_used: string | null;
+  confirmation_captured_at: string | null;
+}
+
+/**
+ * Fetch the buyer's payment_attestations row (one per agreement). Uses the
+ * same one-shot buyer-token-bearing client as fetchAgreementByToken; the
+ * Wave H phase 1a public_select_via_buyer_token RLS policy gates access.
+ *
+ * Returns null when the row doesn't exist yet (buyer hasn't started the
+ * H1 attestation form). Returns the row otherwise — caller branches on
+ * attestation_status / confirmation_captured_at to decide which UI step
+ * to render.
+ */
+export async function fetchPaymentAttestation(
+  agreementId: string,
+  buyerToken: string
+): Promise<PaymentAttestationRow | null> {
+  const url = appEnv.supabaseUrl;
+  const anonKey = appEnv.supabaseAnonKey;
+  if (!url || !anonKey) {
+    throw new Error(
+      'Missing Supabase config. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+    );
+  }
+  const c = createClient(url, anonKey, {
+    global: { headers: { 'x-buyer-token': buyerToken } },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data, error } = await c
+    .from('payment_attestations')
+    .select('*')
+    .eq('agreement_id', agreementId)
+    .maybeSingle();
+  if (error) return null;
+  return (data as PaymentAttestationRow | null) ?? null;
+}
+
 export interface MarkPaymentSentResult {
   success: boolean;
   already_marked?: boolean;
