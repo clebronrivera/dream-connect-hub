@@ -9,7 +9,11 @@ export interface CreateDepositPayload {
   buyer_name: string;
   buyer_email: string;
   buyer_phone?: string;
-  buyer_address?: string;
+  // Structured buyer address (Wave E E1, OPD-05). buyer_address blob retired.
+  buyer_street?: string;
+  buyer_city?: string;
+  buyer_state?: string;
+  buyer_zip?: string;
   puppy_id?: string;
   litter_id?: string;
   puppy_name: string;

@@ -37,7 +37,8 @@ const depositFormSchema = z.object({
   buyer_name: z.string().min(2, 'Full name is required'),
   buyer_email: z.string().email('Valid email is required'),
   buyer_phone: z.string().optional(),
-  buyer_address: z.string().optional(),
+  // OPD-05: structured address fields land in Wave E E3.
+  // The legacy buyer_address blob is retired in this commit.
   proposed_pickup_date: z.string().min(1, 'Pickup date is required'),
   deposit_payment_method: z.string().min(1, 'Payment method is required'),
   final_payment_method_intended: z.string().optional(),
@@ -66,7 +67,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
     esign_valid: null,
     genetic_disclaimer: null,
     arbitration: null,
-    age_accuracy: null,
+    age_attestation: null,
     welfare_responsibility: null,
   });
   const [arbitrationPhrase, setArbitrationPhrase] = useState('');
@@ -128,7 +129,6 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       buyer_name: '',
       buyer_email: '',
       buyer_phone: '',
-      buyer_address: '',
       proposed_pickup_date: '',
       deposit_payment_method: 'zelle',
       final_payment_method_intended: '',
@@ -180,7 +180,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       buyer_name: values.buyer_name,
       buyer_email: values.buyer_email,
       buyer_phone: values.buyer_phone || undefined,
-      buyer_address: values.buyer_address || undefined,
+      // Structured address fields (buyer_street/city/state/zip) wired in E3.
       puppy_id: puppyId,
       litter_id: litterId,
       puppy_name: puppyName,
@@ -202,7 +202,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       ack_esign_valid_at: acks.esign_valid || undefined,
       ack_genetic_disclaimer_at: acks.genetic_disclaimer || undefined,
       ack_arbitration_at: acks.arbitration || undefined,
-      ack_age_accuracy_at: acks.age_accuracy || undefined,
+      ack_age_attestation_at: acks.age_attestation || undefined,
       ack_welfare_responsibility_at: acks.welfare_responsibility || undefined,
       arbitration_typed_phrase: arbitrationPhrase,
       arbitration_typed_at: arbitrationValid ? new Date().toISOString() : undefined,
@@ -253,10 +253,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 <Label htmlFor="buyer_phone">Phone</Label>
                 <Input id="buyer_phone" {...register('buyer_phone')} placeholder="(555) 123-4567" />
               </div>
-              <div>
-                <Label htmlFor="buyer_address">Address</Label>
-                <Input id="buyer_address" {...register('buyer_address')} placeholder="123 Main St, City, FL" />
-              </div>
+              {/* Structured address fields (buyer_street/city/state/zip) land in Wave E E3. */}
             </div>
           </div>
 
@@ -360,7 +357,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                   </>
                 )},
                 { key: 'arbitration', label: 'I understand and agree to binding arbitration for any disputes.' },
-                { key: 'age_accuracy', label: 'I am at least 18 years old and all information provided is accurate.' },
+                { key: 'age_attestation', label: 'I am at least 18 years old and all information provided is accurate.' },
                 { key: 'welfare_responsibility', label: "I accept full responsibility for the puppy's welfare and actions after transfer." },
               ].map(({ key, label }) => (
                 <label key={key} className="flex items-start gap-3 cursor-pointer">

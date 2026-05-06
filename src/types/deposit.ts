@@ -7,7 +7,11 @@ export interface DepositAgreement {
   buyer_name: string;
   buyer_email: string;
   buyer_phone?: string;
-  buyer_address?: string;
+  // Structured buyer address (Wave E E1, OPD-05). buyer_address blob retired.
+  buyer_street?: string;
+  buyer_city?: string;
+  buyer_state?: string;
+  buyer_zip?: string;
   puppy_id?: string;
   litter_id?: string;
   puppy_name: string;
@@ -42,14 +46,37 @@ export interface DepositAgreement {
   admin_ip_address?: string;
   admin_user_agent?: string;
   admin_signed_server_ts?: string;
-  // 7 acknowledgment timestamps (Article IX)
+  // Acknowledgment timestamps (Article IX + Wave E E3 H6 clauses).
   ack_full_agreement_at?: string;
   ack_statutory_rights_at?: string;
   ack_esign_valid_at?: string;
   ack_genetic_disclaimer_at?: string;
   ack_arbitration_at?: string;
-  ack_age_accuracy_at?: string;
+  ack_age_attestation_at?: string;
   ack_welfare_responsibility_at?: string;
+  // H6 contract-clause acks (Wave E E3 — option A, FL venue held back).
+  ack_payment_authorization_at?: string;
+  ack_identity_attestation_at?: string;
+  ack_pre_dispute_contact_at?: string;
+  ack_pickup_acceptance_at?: string;
+  // How-heard (OPD-06).
+  how_heard?: string;
+  how_heard_referral_name?: string;
+  how_heard_other_text?: string;
+  // Pickup preferences (OPD-08).
+  pickup_time_preference?: 'morning' | 'afternoon' | 'evening';
+  pickup_day_preference?: 'weekday' | 'weekend' | 'either';
+  pickup_alt_date?: string;
+  pickup_alt_time?: 'morning' | 'afternoon' | 'evening';
+  pickup_alt_day?: 'weekday' | 'weekend' | 'either';
+  pickup_notes?: string;
+  // Section 3 questionnaire (OPD-07 — all optional).
+  q_first_dog?: string;
+  q_living_situation?: string;
+  q_hours_alone?: string;
+  q_household_members?: string;
+  q_puppy_goal?: string;
+  q_training_experience?: string;
   // Arbitration
   arbitration_typed_phrase?: string;
   arbitration_typed_at?: string;
