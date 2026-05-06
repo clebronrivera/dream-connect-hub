@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 import { BuyerSignature } from '@/components/signatures/BuyerSignature';
 import { DepositSummary } from '@/components/deposit/DepositSummary';
@@ -52,6 +53,22 @@ const depositFormSchema = z.object({
       'ZIP must be 5 digits, optionally with -4 extension'
     ),
   proposed_pickup_date: z.string().min(1, 'Pickup date is required'),
+  // OPD-08 pickup preferences (all optional). The DB CHECK constraint
+  // enforces the enum values on write; the <Select>s only emit valid
+  // values, so the schema is loose here on purpose.
+  pickup_time_preference: z.string().optional(),
+  pickup_day_preference: z.string().optional(),
+  pickup_alt_date: z.string().optional(),
+  pickup_alt_time: z.string().optional(),
+  pickup_alt_day: z.string().optional(),
+  pickup_notes: z.string().optional(),
+  // OPD-07 Section 3 questionnaire (all optional, free-form).
+  q_first_dog: z.string().optional(),
+  q_living_situation: z.string().optional(),
+  q_hours_alone: z.string().optional(),
+  q_household_members: z.string().optional(),
+  q_puppy_goal: z.string().optional(),
+  q_training_experience: z.string().optional(),
   deposit_payment_method: z.string().min(1, 'Payment method is required'),
   final_payment_method_intended: z.string().optional(),
   buyer_signature_text: z.string().min(2, 'Signature is required — type your full legal name'),
@@ -61,6 +78,13 @@ const depositFormSchema = z.object({
 });
 
 type DepositFormValues = z.infer<typeof depositFormSchema>;
+
+/** Convert an empty form string to `undefined` so the payload field is omitted. */
+function emptyToUndef(v: string | undefined | null): string | undefined {
+  if (!v) return undefined;
+  const trimmed = v.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
 interface DepositFormProps {
   puppyId?: string;
@@ -146,6 +170,18 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       buyer_state: '',
       buyer_zip: '',
       proposed_pickup_date: '',
+      pickup_time_preference: '',
+      pickup_day_preference: '',
+      pickup_alt_date: '',
+      pickup_alt_time: '',
+      pickup_alt_day: '',
+      pickup_notes: '',
+      q_first_dog: '',
+      q_living_situation: '',
+      q_hours_alone: '',
+      q_household_members: '',
+      q_puppy_goal: '',
+      q_training_experience: '',
       deposit_payment_method: 'zelle',
       final_payment_method_intended: '',
       buyer_signature_text: '',
@@ -210,6 +246,18 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       deposit_payment_method: values.deposit_payment_method as PaymentMethodKey,
       final_payment_method_intended: values.final_payment_method_intended as PaymentMethodKey | undefined,
       proposed_pickup_date: values.proposed_pickup_date,
+      pickup_time_preference: emptyToUndef(values.pickup_time_preference) as 'morning' | 'afternoon' | 'evening' | undefined,
+      pickup_day_preference: emptyToUndef(values.pickup_day_preference) as 'weekday' | 'weekend' | 'either' | undefined,
+      pickup_alt_date: emptyToUndef(values.pickup_alt_date),
+      pickup_alt_time: emptyToUndef(values.pickup_alt_time) as 'morning' | 'afternoon' | 'evening' | undefined,
+      pickup_alt_day: emptyToUndef(values.pickup_alt_day) as 'weekday' | 'weekend' | 'either' | undefined,
+      pickup_notes: emptyToUndef(values.pickup_notes),
+      q_first_dog: emptyToUndef(values.q_first_dog),
+      q_living_situation: emptyToUndef(values.q_living_situation),
+      q_hours_alone: emptyToUndef(values.q_hours_alone),
+      q_household_members: emptyToUndef(values.q_household_members),
+      q_puppy_goal: emptyToUndef(values.q_puppy_goal),
+      q_training_experience: emptyToUndef(values.q_training_experience),
       authorized_seller:
         (values.authorized_seller as 'carlos_lebron_rivera' | 'yolanda_lebron_rivera') ||
         DEFAULT_AUTHORIZED_SELLER,
@@ -326,25 +374,247 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
             </div>
           </div>
 
-          {/* Pickup Date */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Proposed Pickup Date</h3>
-            <Input
-              type="date"
-              min={earliestPickupStr}
-              {...register('proposed_pickup_date')}
-            />
-            {pickupDateError && (
-              <p className="text-xs text-red-500">{pickupDateError}</p>
-            )}
-            {errors.proposed_pickup_date && (
-              <p className="text-xs text-red-500">{errors.proposed_pickup_date.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {earliestPickup
-                ? `Earliest pickup: ${format(earliestPickup, 'MMM d, yyyy')} (puppies go home at 8 weeks)`
-                : 'Pick any date — earliest pickup will be set once the litter is born (puppies go home 8 weeks after birth).'}
-            </p>
+          {/* Pickup */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Pickup</h3>
+            <div className="space-y-2">
+              <Label htmlFor="proposed_pickup_date">Primary date *</Label>
+              <Input
+                id="proposed_pickup_date"
+                type="date"
+                min={earliestPickupStr}
+                {...register('proposed_pickup_date')}
+              />
+              {pickupDateError && (
+                <p className="text-xs text-red-500">{pickupDateError}</p>
+              )}
+              {errors.proposed_pickup_date && (
+                <p className="text-xs text-red-500">{errors.proposed_pickup_date.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {earliestPickup
+                  ? `Earliest pickup: ${format(earliestPickup, 'MMM d, yyyy')} (puppies go home at 8 weeks)`
+                  : 'Pick any date — earliest pickup will be set once the litter is born (puppies go home 8 weeks after birth).'}
+              </p>
+            </div>
+
+            {/* OPD-08 pickup preferences (all optional) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="pickup_time_preference">Preferred time</Label>
+                <Controller
+                  name="pickup_time_preference"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="pickup_time_preference">
+                        <SelectValue placeholder="No preference" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="morning">Morning</SelectItem>
+                        <SelectItem value="afternoon">Afternoon</SelectItem>
+                        <SelectItem value="evening">Evening</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pickup_day_preference">Preferred day</Label>
+                <Controller
+                  name="pickup_day_preference"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="pickup_day_preference">
+                        <SelectValue placeholder="No preference" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekday">Weekday</SelectItem>
+                        <SelectItem value="weekend">Weekend</SelectItem>
+                        <SelectItem value="either">Either</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pickup_alt_date">Alternative date (optional)</Label>
+                <Input
+                  id="pickup_alt_date"
+                  type="date"
+                  min={earliestPickupStr}
+                  {...register('pickup_alt_date')}
+                />
+              </div>
+              <div className="hidden sm:block" />
+              <div>
+                <Label htmlFor="pickup_alt_time">Alt time</Label>
+                <Controller
+                  name="pickup_alt_time"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="pickup_alt_time">
+                        <SelectValue placeholder="No preference" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="morning">Morning</SelectItem>
+                        <SelectItem value="afternoon">Afternoon</SelectItem>
+                        <SelectItem value="evening">Evening</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pickup_alt_day">Alt day</Label>
+                <Controller
+                  name="pickup_alt_day"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="pickup_alt_day">
+                        <SelectValue placeholder="No preference" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekday">Weekday</SelectItem>
+                        <SelectItem value="weekend">Weekend</SelectItem>
+                        <SelectItem value="either">Either</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="pickup_notes">Notes about pickup (optional)</Label>
+              <Textarea
+                id="pickup_notes"
+                rows={2}
+                {...register('pickup_notes')}
+                placeholder="e.g. driving in from out of state; need a stroller; etc."
+              />
+            </div>
+          </div>
+
+          {/* OPD-07 Section 3 questionnaire — all optional */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                About You & Your Home (Optional)
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Helps us prepare a personalized care guide. None of these questions are required.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="q_first_dog">Is this your first dog?</Label>
+                <Controller
+                  name="q_first_dog"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="q_first_dog">
+                        <SelectValue placeholder="Skip" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes — first dog</SelectItem>
+                        <SelectItem value="no">No — had a dog before</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="q_living_situation">Where will the puppy primarily live?</Label>
+                <Controller
+                  name="q_living_situation"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="q_living_situation">
+                        <SelectValue placeholder="Skip" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="house_yard">House with yard</SelectItem>
+                        <SelectItem value="house_no_yard">House without yard</SelectItem>
+                        <SelectItem value="apartment">Apartment / Condo</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="q_hours_alone">Hours alone per day?</Label>
+                <Controller
+                  name="q_hours_alone"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="q_hours_alone">
+                        <SelectValue placeholder="Skip" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="under_4">Less than 4</SelectItem>
+                        <SelectItem value="4_to_8">4 to 8</SelectItem>
+                        <SelectItem value="over_8">More than 8</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="q_household_members">Young children or other pets?</Label>
+                <Input
+                  id="q_household_members"
+                  {...register('q_household_members')}
+                  placeholder="e.g. 1 toddler + 1 cat"
+                />
+              </div>
+              <div>
+                <Label htmlFor="q_puppy_goal">Main goal for this puppy?</Label>
+                <Controller
+                  name="q_puppy_goal"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="q_puppy_goal">
+                        <SelectValue placeholder="Skip" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="family_pet">Family pet</SelectItem>
+                        <SelectItem value="service">Service / therapy</SelectItem>
+                        <SelectItem value="show">Show / breeding</SelectItem>
+                        <SelectItem value="working">Working dog</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div>
+                <Label htmlFor="q_training_experience">Dog training experience?</Label>
+                <Controller
+                  name="q_training_experience"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger id="q_training_experience">
+                        <SelectValue placeholder="Skip" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="some">Some basics</SelectItem>
+                        <SelectItem value="extensive">Extensive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Payment Method */}
