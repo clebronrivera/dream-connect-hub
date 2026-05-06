@@ -27,9 +27,10 @@ import {
   cancelAgreement,
   sendPuppyGuide,
   sendTestimonialInvite,
+  generateDisputeEvidencePacket,
 } from '@/lib/admin/agreements-service';
 import type { DepositAgreement } from '@/types/deposit';
-import { CheckCircle2, XCircle, AlertTriangle, BookOpen, MessageSquarePlus, ClipboardCheck } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, BookOpen, MessageSquarePlus, ClipboardCheck, FileArchive } from 'lucide-react';
 
 interface AgreementDetailPanelProps {
   agreement: DepositAgreement;
@@ -116,6 +117,16 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
     mutationFn: () => sendTestimonialInvite(agreement.id),
     onSuccess: () => toast.success('Testimonial invitation sent'),
     onError: (err: Error) => toast.error('Failed to send invitation: ' + err.message),
+  });
+
+  const evidencePacketMut = useMutation({
+    mutationFn: () => generateDisputeEvidencePacket(agreement.id),
+    onSuccess: ({ signed_url }) => {
+      // Open ZIP download in a new tab; the signed URL expires in 1 hour.
+      window.open(signed_url, '_blank', 'noopener,noreferrer');
+      toast.success('Evidence packet ready — download opened in new tab. Link expires in 1 hour.');
+    },
+    onError: (err: Error) => toast.error('Failed to generate evidence packet: ' + err.message),
   });
 
   const isBuyerSigned = !!agreement.buyer_signed_at;
@@ -404,6 +415,27 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
                 className="shrink-0"
               >
                 {testimonialMut.isPending ? 'Sending…' : 'Send Invite'}
+              </Button>
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <FileArchive className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Generate Dispute Evidence Packet</p>
+                  <p className="text-xs text-muted-foreground">
+                    Downloads a ZIP with all audit data, screenshots, communications, and
+                    handover records. Upload manually to Square disputes portal if needed.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => evidencePacketMut.mutate()}
+                disabled={evidencePacketMut.isPending}
+                className="shrink-0"
+              >
+                {evidencePacketMut.isPending ? 'Building…' : 'Generate Packet'}
               </Button>
             </div>
           </CardContent>

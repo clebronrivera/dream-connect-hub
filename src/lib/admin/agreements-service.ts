@@ -266,6 +266,29 @@ export async function sendTestimonialInvite(agreementId: string): Promise<void> 
   if (error) throw error;
 }
 
+/** Generate a dispute-evidence ZIP for the given agreement.
+ * Admin-only (requires active session JWT). Returns a 1-hour signed URL
+ * pointing to the ZIP in the dispute-evidence bucket. */
+export async function generateDisputeEvidencePacket(
+  agreementId: string
+): Promise<{ signed_url: string; zip_path: string; generated_at: string }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('No active session');
+
+  const { data, error } = await supabase.functions.invoke(
+    'generate-dispute-evidence-packet',
+    {
+      body: { agreement_id: agreementId },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (error) throw error;
+  if (!data?.signed_url) throw new Error('No download URL returned from evidence packet generator.');
+  return data as { signed_url: string; zip_path: string; generated_at: string };
+}
+
 /** Fetch opted-in newsletter subscribers from puppy_inquiries */
 export async function fetchNewsletterSubscribers(): Promise<
   Array<{ id: string; name: string; email: string }>

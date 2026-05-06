@@ -316,7 +316,9 @@ Before Wave F begins, three preconditions:
 
 The wave-by-wave implementation plan lives at [CLAUDE.md](../../CLAUDE.md). It defines eight sequential waves (A–H) covering audit/cleanup, token-gating, operator review form, buyer payment dashboard, schema completeness, PDF generation, tests/docs, and chargeback-defense / pickup handover.
 
-**Wave status (post 2026-05-05):** A1–A6 done. A7+A8 in progress. B onward pending. Refer to CLAUDE.md for the live wave checklist.
+**Wave status (post 2026-05-06):** A1–A6 done, H1–H8 done. A7+A8, B–G pending. Refer to CLAUDE.md for the live wave checklist.
+
+**H5 auto-log coverage note (2026-05-06):** The `agreement_communications` auto-log in `_shared/email/send.ts` was propagated to 7 edge functions. Two functions (`send-deposit-link`, `notify-deposit-request`) intentionally omit logging — no `agreement_id` exists at the time they fire. Of the 7 logged functions, `mark-payment-sent` was end-to-end smoke-tested; the remaining 6 were code-reviewed for correct `agreementId` sourcing. Full smoke-test coverage will close naturally as admin flows are exercised in production.
 
 ---
 
