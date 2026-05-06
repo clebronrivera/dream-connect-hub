@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminSignaturePad } from '@/components/signatures/AdminSignaturePad';
-import { getDepositExplanation } from '@/lib/utils/depositCalc';
 import {
   confirmDepositPayment,
   saveAdminSignature,
@@ -95,7 +94,6 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
     onError: (err: Error) => toast.error('Failed to send invitation: ' + err.message),
   });
 
-  const puppyDob = agreement.puppy_dob ? new Date(agreement.puppy_dob) : null;
   const isBuyerSigned = !!agreement.buyer_signed_at;
   const isAdminSigned = !!agreement.admin_signed_at;
   const isPaymentConfirmed = agreement.deposit_status === 'admin_confirmed';
@@ -120,14 +118,13 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
         </div>
       </div>
 
-      {/* Deposit tier explanation */}
+      {/* Deposit summary */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Deposit Tier</CardTitle>
+          <CardTitle className="text-sm">Deposit</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm">{getDepositExplanation(agreement.purchase_price, puppyDob)}</p>
-          <div className="grid grid-cols-3 gap-4 mt-3 text-center text-sm">
+          <div className="grid grid-cols-3 gap-4 text-center text-sm">
             <div>
               <p className="text-muted-foreground">Price</p>
               <p className="font-bold">${agreement.purchase_price.toLocaleString()}</p>

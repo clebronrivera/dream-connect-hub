@@ -20,8 +20,7 @@ import { DepositSummary } from '@/components/deposit/DepositSummary';
 import { PaymentMethodSelector } from '@/components/deposit/PaymentMethodSelector';
 
 import {
-  getDepositTier,
-  calculateDepositAmount,
+  resolveDepositAmount,
   getEarliestPickupDate,
   isValidPickupDate,
   generatePaymentMemo,
@@ -101,11 +100,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
     enabled: !!litterId,
   });
 
-  // Derive pricing and DOB. Purchase price comes from the selected puppy; if
-  // no puppy is linked yet (admin-initiated against an upcoming litter) we
-  // fall back to the litter's own deposit_amount for the check below.
+  // Derive pricing and DOB. Purchase price comes from the selected puppy.
+  // Deposit defaults to a flat amount; the operator can set a per-puppy
+  // override via puppies.deposit_amount in OperatorReviewForm (Wave C).
   const purchasePrice = puppy?.final_price ?? puppy?.base_price ?? 0;
-  const litterFallbackDeposit = Number(litter?.deposit_amount) || 0;
   const puppyDob = puppy?.date_of_birth ? new Date(puppy.date_of_birth) : (litter?.date_of_birth ? new Date(litter.date_of_birth) : null);
   // Fallback when puppy isn't born yet: the litter's expected whelping date (or
   // the breeding date, which pairs with the project's own +63d helper).
@@ -146,12 +144,8 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   const proposedPickupDate = watch('proposed_pickup_date');
   const paymentMemo = generatePaymentMemo(buyerName || 'Your Name', puppyName);
 
-  // Re-evaluate tier at submit time (Build Rule #2).
-  // If the puppy has a price, compute tiered deposit; else fall back to the
-  // litter's configured deposit_amount so the form still works for upcoming
-  // litters with no per-puppy price yet.
-  const depositAmount =
-    purchasePrice > 0 ? calculateDepositAmount(purchasePrice, puppyDob) : litterFallbackDeposit;
+  // Flat default unless the puppy row carries a per-puppy override.
+  const depositAmount = resolveDepositAmount({ puppyOverride: puppy?.deposit_amount });
 
   // Pickup date validation
   const pickupDateError = useMemo(() => {
@@ -182,17 +176,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       return;
     }
 
-    // Re-evaluate tier at submit time (Build Rule #2)
-    const tier = getDepositTier(puppyDob);
-    const amount =
-      purchasePrice > 0 ? calculateDepositAmount(purchasePrice, puppyDob) : litterFallbackDeposit;
-
-    if (!(amount > 0)) {
-      toast.error(
-        'No deposit amount is configured for this puppy or litter. Please contact the breeder to set the deposit amount before submitting.'
-      );
-      return;
-    }
+    const amount = depositAmount;
 
     // Validate split total
     if (values.deposit_payment_method === 'split') {
@@ -215,7 +199,6 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
       breed,
       puppy_dob: puppyDob ? format(puppyDob, 'yyyy-MM-dd') : undefined,
       purchase_price: purchasePrice,
-      deposit_tier: tier.key,
       deposit_amount: amount,
       deposit_payment_method: values.deposit_payment_method as PaymentMethodKey,
       deposit_payment_detail: values.deposit_payment_method === 'split' ? splitDetails : undefined,
@@ -276,7 +259,10 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
         <CardContent className="space-y-6">
           {/* Deposit Summary */}
           {purchasePrice > 0 && (
-            <DepositSummary purchasePrice={purchasePrice} puppyDob={puppyDob} />
+            <DepositSummary
+              purchasePrice={purchasePrice}
+              puppyOverride={puppy?.deposit_amount}
+            />
           )}
 
           {/* Buyer Info */}

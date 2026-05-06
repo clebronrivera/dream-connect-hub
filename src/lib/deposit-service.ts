@@ -16,7 +16,6 @@ export interface CreateDepositPayload {
   breed?: string;
   puppy_dob?: string;
   purchase_price: number;
-  deposit_tier: 'pre_8_weeks' | 'post_8_weeks';
   deposit_amount: number;
   deposit_payment_method: PaymentMethodKey;
   deposit_payment_detail?: SplitPaymentDetail[];
@@ -116,7 +115,7 @@ export async function fetchEnabledPaymentMethods(): Promise<PaymentMethodConfig[
 export async function fetchPuppyForDeposit(puppyId: string) {
   const { data, error } = await supabase
     .from('puppies')
-    .select('id, name, breed, date_of_birth, base_price, final_price, status, primary_photo')
+    .select('id, name, breed, date_of_birth, base_price, final_price, deposit_amount, status, primary_photo')
     .eq('id', puppyId)
     .single();
 
@@ -129,7 +128,7 @@ export async function fetchLitterForDeposit(litterId: string) {
   const { data, error } = await supabase
     .from('upcoming_litters')
     .select(
-      'id, breed, deposit_amount, price_label, due_label, date_of_birth, expected_whelping_date, breeding_date'
+      'id, breed, price_label, due_label, date_of_birth, expected_whelping_date, breeding_date'
     )
     .eq('id', litterId)
     .single();

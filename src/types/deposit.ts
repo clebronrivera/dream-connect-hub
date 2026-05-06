@@ -19,7 +19,6 @@ export interface DepositAgreement {
   breed?: string;
   puppy_dob?: string; // ISO date string
   purchase_price: number;
-  deposit_tier: 'pre_8_weeks' | 'post_8_weeks';
   deposit_amount: number;
   balance_due: number; // GENERATED
   deposit_payment_method: PaymentMethodKey;
@@ -27,7 +26,7 @@ export interface DepositAgreement {
   final_payment_method_intended?: PaymentMethodKey;
   payment_memo: string; // GENERATED
   deposit_status: 'pending' | 'admin_confirmed' | 'rejected' | 'refunded';
-  agreement_status: 'sent' | 'buyer_signed' | 'admin_approved' | 'complete' | 'cancelled';
+  agreement_status: 'sent' | 'admin_approved' | 'complete' | 'cancelled';
   proposed_pickup_date: string; // ISO date
   confirmed_pickup_date?: string;
   pickup_clock_start: string; // GENERATED

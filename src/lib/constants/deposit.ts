@@ -1,24 +1,12 @@
 // src/lib/constants/deposit.ts
-// Deposit tier logic — SOURCE OF TRUTH for all deposit calculations.
+// Deposit constants — SOURCE OF TRUTH for all deposit calculations.
 // Do not hardcode these values anywhere else in the codebase.
 
-export const DEPOSIT_TIERS = {
-  PRE_8_WEEKS: {
-    key: 'pre_8_weeks',
-    fraction: 1 / 4,
-    label: 'Early Reservation (before 8 weeks)',
-    description: 'Deposit is 1/4 of purchase price. Buyer commits before go-home window.',
-  },
-  POST_8_WEEKS: {
-    key: 'post_8_weeks',
-    fraction: 1 / 3,
-    label: 'Standard Reservation (8 weeks or older)',
-    description:
-      'Deposit is 1/3 of purchase price. Puppy is ready; greater seller risk applies.',
-  },
-} as const;
+// Flat deposit amount used when no per-puppy override is set.
+// Override path: puppies.deposit_amount (set by operator in OperatorReviewForm — Wave C).
+export const DEFAULT_DEPOSIT_AMOUNT = 300;
 
-// Age threshold in days for deposit tier calculation
+// Age threshold in days for go-home / pickup-clock calculations.
 export const PUPPY_GO_HOME_AGE_DAYS = 56; // 8 weeks = 56 days
 
 // Maximum days after go-home date before reservation is forfeited (no written extension)
@@ -64,10 +52,11 @@ export const DEPOSIT_STATUS = {
   REFUNDED:         'refunded',
 } as const;
 
-// Agreement status enum — matches Supabase column values exactly
+// Agreement status enum — matches Supabase column values exactly.
+// Lifecycle marker for buyer signing is buyer_signed_at (timestamp), not status —
+// agreement_status never transitions to 'buyer_signed' (value retired in Wave A5).
 export const AGREEMENT_STATUS = {
   SENT:           'sent',
-  BUYER_SIGNED:   'buyer_signed',
   ADMIN_APPROVED: 'admin_approved',
   COMPLETE:       'complete',
   CANCELLED:      'cancelled',

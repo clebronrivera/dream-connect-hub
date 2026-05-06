@@ -66,7 +66,6 @@ DROP TRIGGER IF EXISTS trg_upcoming_litters_sync_placeholders ON public.upcoming
 DROP TRIGGER IF EXISTS trg_upcoming_litters_seed_placeholders ON public.upcoming_litters;
 DROP FUNCTION IF EXISTS public.sync_upcoming_litter_placeholders_for_row();
 DROP FUNCTION IF EXISTS public.seed_placeholders_for_new_upcoming_litter();
-DROP TRIGGER IF EXISTS trg_upcoming_litter_puppy_placeholders_updated_at ON public.upcoming_litter_puppy_placeholders;
 DROP FUNCTION IF EXISTS public.set_upcoming_litter_puppy_placeholders_updated_at();
 
 ALTER TABLE IF EXISTS public.deposit_requests
@@ -77,8 +76,22 @@ ALTER TABLE IF EXISTS public.contact_messages
 DROP INDEX IF EXISTS public.idx_upcoming_puppy_ph_litter;
 DROP INDEX IF EXISTS public.idx_placeholders_hold;
 
-DROP POLICY IF EXISTS upcoming_litter_puppy_placeholders_public_read ON public.upcoming_litter_puppy_placeholders;
-DROP POLICY IF EXISTS upcoming_litter_puppy_placeholders_admin_all ON public.upcoming_litter_puppy_placeholders;
+-- Drops on upcoming_litter_puppy_placeholders need the table to exist; in some
+-- environments it was already removed out-of-band before this migration ran.
+-- Postgres' DROP TRIGGER/POLICY ... ON <table> requires the <table> to be
+-- resolvable even with IF EXISTS — so guard the whole block on table presence.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class
+    WHERE relname = 'upcoming_litter_puppy_placeholders'
+      AND relnamespace = 'public'::regnamespace
+  ) THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS trg_upcoming_litter_puppy_placeholders_updated_at ON public.upcoming_litter_puppy_placeholders';
+    EXECUTE 'DROP POLICY IF EXISTS upcoming_litter_puppy_placeholders_public_read ON public.upcoming_litter_puppy_placeholders';
+    EXECUTE 'DROP POLICY IF EXISTS upcoming_litter_puppy_placeholders_admin_all ON public.upcoming_litter_puppy_placeholders';
+  END IF;
+END $$;
 
 DROP TABLE IF EXISTS public.upcoming_litter_puppy_placeholders;
 

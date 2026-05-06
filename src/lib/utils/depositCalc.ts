@@ -1,25 +1,16 @@
 // src/lib/utils/depositCalc.ts
 // All deposit math goes through this file. No inline calculations elsewhere.
 
-import { DEPOSIT_TIERS, PUPPY_GO_HOME_AGE_DAYS } from '@/lib/constants/deposit';
+import { DEFAULT_DEPOSIT_AMOUNT, PUPPY_GO_HOME_AGE_DAYS } from '@/lib/constants/deposit';
 
 /**
- * Determines which deposit tier applies based on puppy DOB.
- * If puppyDob is null (litter not yet born), defaults to PRE_8_WEEKS.
+ * Resolves the deposit amount: per-puppy override falls back to flat default.
+ * Litter-level overrides were retired in 2026-05 along with the slot machinery.
  */
-export function getDepositTier(puppyDob: Date | null): typeof DEPOSIT_TIERS[keyof typeof DEPOSIT_TIERS] {
-  if (!puppyDob) return DEPOSIT_TIERS.PRE_8_WEEKS;
-  const goHomeDate = new Date(puppyDob);
-  goHomeDate.setDate(goHomeDate.getDate() + PUPPY_GO_HOME_AGE_DAYS);
-  return new Date() < goHomeDate ? DEPOSIT_TIERS.PRE_8_WEEKS : DEPOSIT_TIERS.POST_8_WEEKS;
-}
-
-/**
- * Calculates deposit amount. Rounds to nearest cent.
- */
-export function calculateDepositAmount(purchasePrice: number, puppyDob: Date | null): number {
-  const tier = getDepositTier(puppyDob);
-  return Math.round(purchasePrice * tier.fraction * 100) / 100;
+export function resolveDepositAmount(opts: { puppyOverride?: number | null }): number {
+  const override = opts.puppyOverride;
+  if (typeof override === 'number' && override > 0) return override;
+  return DEFAULT_DEPOSIT_AMOUNT;
 }
 
 /**
@@ -83,17 +74,6 @@ export function isValidPickupDate(
   const earliest = getEarliestPickupDate(puppyDob, expectedWhelpingDate);
   if (!earliest) return true;
   return proposedDate >= earliest;
-}
-
-/**
- * Generates a deposit explanation string for display in UI.
- * Example: "1/4 of $2,000 = $500 deposit (early reservation rate)"
- */
-export function getDepositExplanation(purchasePrice: number, puppyDob: Date | null): string {
-  const tier = getDepositTier(puppyDob);
-  const amount = calculateDepositAmount(purchasePrice, puppyDob);
-  const fractionLabel = tier === DEPOSIT_TIERS.PRE_8_WEEKS ? '1/4' : '1/3';
-  return `${fractionLabel} of $${purchasePrice.toLocaleString()} = $${amount.toFixed(2)} deposit — ${tier.label}`;
 }
 
 /**

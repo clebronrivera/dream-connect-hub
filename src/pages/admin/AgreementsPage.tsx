@@ -143,12 +143,11 @@ export default function AgreementsPage() {
       ) : (
         <div className="space-y-2">
           {/* Table header */}
-          <div className="hidden md:grid grid-cols-8 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="hidden md:grid grid-cols-7 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             <span>Agreement #</span>
             <span>Buyer</span>
             <span>Puppy</span>
             <span>Deposit</span>
-            <span>Tier</span>
             <span>Status</span>
             <span>Pickup</span>
             <span>Deadline</span>
@@ -162,14 +161,11 @@ export default function AgreementsPage() {
                 onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}
               >
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-2 md:grid-cols-8 gap-2 items-center text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-7 gap-2 items-center text-sm">
                     <span className="font-mono font-medium">{a.agreement_number}</span>
                     <span className="truncate">{a.buyer_name}</span>
                     <span className="truncate">{a.puppy_name}</span>
                     <span className="font-medium">${a.deposit_amount.toFixed(2)}</span>
-                    <Badge variant="outline" className="w-fit text-xs">
-                      {a.deposit_tier === 'pre_8_weeks' ? '1/4' : '1/3'}
-                    </Badge>
                     <div className="flex gap-1">
                       <Badge variant={a.deposit_status === 'admin_confirmed' ? 'default' : 'secondary'} className="text-[10px]">
                         {a.deposit_status}

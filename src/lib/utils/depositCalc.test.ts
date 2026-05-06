@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getEarliestPickupDate, isValidPickupDate } from './depositCalc';
+import {
+  getEarliestPickupDate,
+  isValidPickupDate,
+  resolveDepositAmount,
+} from './depositCalc';
+import { DEFAULT_DEPOSIT_AMOUNT } from '@/lib/constants/deposit';
 
 const addDays = (d: Date, n: number) => {
   const out = new Date(d);
@@ -68,5 +73,24 @@ describe('isValidPickupDate', () => {
     const farFuture = new Date('2099-12-31');
     expect(isValidPickupDate(farPast, null)).toBe(true);
     expect(isValidPickupDate(farFuture, null)).toBe(true);
+  });
+});
+
+describe('resolveDepositAmount', () => {
+  it('returns DEFAULT_DEPOSIT_AMOUNT when no override is provided', () => {
+    expect(resolveDepositAmount({})).toBe(DEFAULT_DEPOSIT_AMOUNT);
+    expect(resolveDepositAmount({ puppyOverride: null })).toBe(DEFAULT_DEPOSIT_AMOUNT);
+    expect(resolveDepositAmount({ puppyOverride: undefined })).toBe(DEFAULT_DEPOSIT_AMOUNT);
+  });
+
+  it('returns the puppy override when it is a positive number', () => {
+    expect(resolveDepositAmount({ puppyOverride: 500 })).toBe(500);
+    expect(resolveDepositAmount({ puppyOverride: 1 })).toBe(1);
+    expect(resolveDepositAmount({ puppyOverride: 1234.56 })).toBe(1234.56);
+  });
+
+  it('falls back to the default for non-positive overrides', () => {
+    expect(resolveDepositAmount({ puppyOverride: 0 })).toBe(DEFAULT_DEPOSIT_AMOUNT);
+    expect(resolveDepositAmount({ puppyOverride: -50 })).toBe(DEFAULT_DEPOSIT_AMOUNT);
   });
 });

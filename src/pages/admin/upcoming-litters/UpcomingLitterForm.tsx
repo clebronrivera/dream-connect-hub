@@ -319,7 +319,6 @@ export default function UpcomingLitterForm() {
     }
 
     const patch: Record<string, unknown> = { date_of_birth: dob, breed };
-    const readyDate = getReadyDateFromDob(dob);
     if (readyDate) patch.ready_date = readyDate;
     if (basePrice != null) patch.base_price = basePrice;
 
