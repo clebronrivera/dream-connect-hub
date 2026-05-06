@@ -39,6 +39,7 @@ const BusinessModes = lazy(() => import("./pages/admin/BusinessModes"));
 const DepositAgreement = lazy(() => import("./pages/DepositAgreement"));
 const PaymentDashboard = lazy(() => import("./pages/PaymentDashboard"));
 const AgreementsPage = lazy(() => import("./pages/admin/AgreementsPage"));
+const PickupHandover = lazy(() => import("./pages/admin/PickupHandover"));
 const PaymentMethodsSettings = lazy(() => import("./pages/admin/PaymentMethodsSettings"));
 const FaqPage = lazy(() => import("./pages/FaqPage"));
 const FaqManager = lazy(() => import("./pages/admin/FaqManager"));
@@ -125,6 +126,7 @@ export function AppRoutes() {
             <Route path="inquiries" element={<Inquiries />} />
             <Route path="business-modes" element={<BusinessModes />} />
             <Route path="agreements" element={<AgreementsPage />} />
+            <Route path="pickup/:agreementId" element={<PickupHandover />} />
             <Route path="deposit-requests" element={<DepositRequests />} />
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />
             <Route path="faq" element={<FaqManager />} />

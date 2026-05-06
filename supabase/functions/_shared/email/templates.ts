@@ -659,5 +659,64 @@ export function adminNewTrainingLead(args: {
   };
 }
 
+// Wave H phase 2 — pickup-day handover complete (welcome home).
+// Sent by finalize-pickup-handover after the operator completes the
+// in-person ID check, photo capture, and signatures at /admin/pickup.
+export function pickupCompleteBuyer(args: {
+  buyerName: string;
+  puppyName: string;
+  agreementNumber: string;
+  pickupDate: string;
+}): EmailTemplate {
+  const body =
+    heading(`Welcome home, ${escape(args.puppyName)}!`) +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `It was wonderful to send ${escape(args.puppyName)} home with you today. Pickup is complete and your file is officially closed on our end — congratulations on your new family member.`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Pickup date", args.pickupDate)
+    ) +
+    paragraph(
+      `Watch your inbox for the new owner care guide we send out separately, and please don't hesitate to reach out with any questions as you settle in together.`
+    ) +
+    rawParagraph(
+      `If you'd like to share photos or testimonials, we always love hearing how things are going — just reply to this email or call us at <strong>${escape(BRAND.phone)}</strong>.`
+    );
+  return {
+    subject: `Welcome home — ${args.puppyName} pickup complete`,
+    html: wrap({
+      previewText: `${args.puppyName} is home — thanks for choosing Dream Puppies.`,
+      bodyHtml: body,
+    }),
+  };
+}
+
+export function adminPickupCompleted(args: {
+  agreementNumber: string;
+  buyerName: string;
+  puppyName: string;
+  pickupDate: string;
+  staffInitials?: string | null;
+}): EmailTemplate {
+  const body =
+    heading("Pickup handover complete") +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Buyer", args.buyerName) +
+        row("Puppy", args.puppyName) +
+        row("Pickup date", args.pickupDate) +
+        row("Staff initials", args.staffInitials ?? "—")
+    ) +
+    paragraph(
+      `The pickup_handovers row is now in_person_verified. Photos, ID last-4 + state, and signatures are stored under pickup-evidence/. The puppy has been transitioned to Sold.`
+    );
+  return {
+    subject: `Pickup complete — ${args.agreementNumber} (${args.puppyName})`,
+    html: wrap({ bodyHtml: body }),
+  };
+}
+
 // Suppress unused-import warnings in environments that lint unused symbols.
 export const _unused = { FONT_STACK };

@@ -2,6 +2,7 @@
 // Per-agreement action panel for admin dashboard
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -27,7 +28,7 @@ import {
   sendTestimonialInvite,
 } from '@/lib/admin/agreements-service';
 import type { DepositAgreement } from '@/types/deposit';
-import { CheckCircle2, XCircle, AlertTriangle, BookOpen, MessageSquarePlus } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, BookOpen, MessageSquarePlus, ClipboardCheck } from 'lucide-react';
 
 interface AgreementDetailPanelProps {
   agreement: DepositAgreement;
@@ -350,6 +351,20 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
             <CardTitle className="text-sm">Post-Sale Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <ClipboardCheck className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Pickup Handover</p>
+                  <p className="text-xs text-muted-foreground">
+                    Tablet flow at the kennel: ID check, photos, buyer signature, vet certificate.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" asChild className="shrink-0">
+                <Link to={`/admin/pickup/${agreement.id}`}>Open Pickup Form</Link>
+              </Button>
+            </div>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2 min-w-0">
                 <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
