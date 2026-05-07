@@ -80,6 +80,7 @@ export default function RequestDeposit() {
         ) : (
           <div className="rounded-lg border border-line bg-card p-6 shadow-sm">
             <DepositRequestForm
+              stepMode
               litters={litters}
               initialInterestType={puppyId ? "available_puppy" : litterId ? "upcoming_litter" : undefined}
               initialLitterId={litterId}

@@ -11,7 +11,7 @@
     --ink-soft: 251 17% 40%;
     --line: 264 50% 92%;
     --primary: 252 91% 76%;
-    --primary-deep: 252 100% 68%;
+    --primary-deep: 252 100% 65%; /* was 68% — darkened 3pts for WCAG AA contrast (white text passes 4.5:1) */
     --accent: 327 100% 72%;
     --sun: 43 100% 71%;
     --leaf: 149 73% 63%;

@@ -472,7 +472,7 @@ export function DepositRequestForm({
       </div>
 
       {/* 8. Info callout */}
-      <div className={`rounded-md border bg-amber-50 border-amber-200 p-3 text-sm space-y-2 ${activeStep === 3 ? "" : "hidden"}`}>
+      <div className={`rounded-md border bg-sun/15 border-sun/30 p-3 text-sm space-y-2 ${activeStep === 3 ? "" : "hidden"}`}>
         <p className="text-foreground">
           <strong>Deposit: ${depositAmount}</strong> (credited toward total at pickup).
         </p>
