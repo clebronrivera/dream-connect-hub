@@ -139,9 +139,9 @@ export default function PaymentDashboard() {
   return (
     <PageShell>
       <Card>
-        <CardHeader className="border-b bg-emerald-50">
+        <CardHeader className="border-b bg-leaf/10">
           <CardTitle className="text-lg">Reservation #{a.agreement_number}</CardTitle>
-          <p className="text-sm text-emerald-900">
+          <p className="text-sm text-ink">
             Reserved: <strong>{a.puppy_name}</strong>
             {a.breed ? ` · ${a.breed}` : ''}
           </p>
@@ -160,7 +160,7 @@ export default function PaymentDashboard() {
             ) : methodsQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading payment instructions…</p>
             ) : (
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-ink">
                 Selected method <code>{a.deposit_payment_method}</code> is not currently
                 enabled. Please call us at <strong>{PHONE}</strong>.
               </p>
@@ -245,13 +245,13 @@ function PaymentInstructions({
         <p className="text-sm italic text-muted-foreground">{method.payment_note}</p>
       )}
       {methodKey === 'square' && (
-        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
+        <p className="text-sm text-ink bg-sun/15 border border-sun/30 rounded-sm p-2">
           For Square, we'll email you the invoice link after we receive your reservation.
           Tax is calculated at checkout.
         </p>
       )}
       {methodKey === 'cash' && (
-        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
+        <p className="text-sm text-ink bg-sun/15 border border-sun/30 rounded-sm p-2">
           We prefer payment before pickup for safety. Call <strong>{PHONE}</strong> to
           coordinate.
         </p>
@@ -272,7 +272,7 @@ function Stat({
   return (
     <div>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className={`text-lg font-bold ${highlight ? 'text-emerald-700' : 'text-foreground'}`}>
+      <p className={`text-lg font-bold ${highlight ? 'text-leaf' : 'text-foreground'}`}>
         {value}
       </p>
     </div>
@@ -306,11 +306,11 @@ function FlowSection({
 }: FlowSectionProps) {
   if (agreement.buyer_marked_payment_sent_at) {
     return (
-      <section className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-        <h3 className="text-sm font-semibold text-emerald-900">Payment recorded</h3>
+      <section className="space-y-3 rounded-lg border border-leaf/30 bg-leaf/10 p-4">
+        <h3 className="text-sm font-semibold text-ink">Payment recorded</h3>
         <div className="flex items-start gap-2">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-emerald-900">
+          <CheckCircle2 className="h-5 w-5 text-leaf mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-ink">
             <p className="font-medium">We've recorded that you sent payment.</p>
             <p className="text-xs">
               Marked sent{' '}
@@ -346,15 +346,15 @@ function FlowSection({
   // Awaiting "I have sent payment" click — H1 + H2 both done, just need the click.
   if (attestation && attestation.attestation_status === 'signed' && attestation.confirmation_captured_at) {
     return (
-      <section className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="text-sm font-semibold text-blue-900">Final step</h3>
-        <p className="text-sm text-blue-900">
+      <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/10 p-4">
+        <h3 className="text-sm font-semibold text-ink">Final step</h3>
+        <p className="text-sm text-ink">
           You've signed the attestation and uploaded your confirmation. Click below to let
           us know to start watching for your payment.
         </p>
         <Button
           type="button"
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primaryDeep hover:bg-primary"
           onClick={onMarkSent}
           disabled={markSentPending}
         >
@@ -421,10 +421,10 @@ function H1Form({ agreement, method, agreementId, buyerToken }: H1FormProps) {
   const canSubmit = !!file && !!buyerHandle.trim() && !submitMut.isPending;
 
   return (
-    <section className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+    <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/10 p-4">
       <div>
-        <h3 className="text-sm font-semibold text-blue-900">Step 2 — Sign the payment attestation</h3>
-        <p className="text-xs text-blue-800/80 mt-1">
+        <h3 className="text-sm font-semibold text-ink">Step 2 — Sign the payment attestation</h3>
+        <p className="text-xs text-inkSoft mt-1">
           Before sending payment, please confirm a few details so we can match the
           incoming transfer to your reservation.
         </p>
@@ -477,14 +477,14 @@ function H1Form({ agreement, method, agreementId, buyerToken }: H1FormProps) {
           )}
         </div>
 
-        <div className="rounded border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 space-y-1">
+        <div className="rounded-sm border border-primary/20 bg-primary/10 p-3 text-xs text-ink space-y-1">
           <p className="font-medium">By clicking below you sign:</p>
           <p className="italic">{attestationText}</p>
         </div>
 
         <Button
           type="button"
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primaryDeep hover:bg-primary"
           onClick={() => submitMut.mutate()}
           disabled={!canSubmit}
         >
@@ -529,10 +529,10 @@ function H2Form({ agreementId, buyerToken, memoPreview }: H2FormProps) {
   const canSubmit = !!file && !!transactionId.trim() && !submitMut.isPending;
 
   return (
-    <section className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+    <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/10 p-4">
       <div>
-        <h3 className="text-sm font-semibold text-blue-900">Step 3 — Upload your payment confirmation</h3>
-        <p className="text-xs text-blue-800/80 mt-1">
+        <h3 className="text-sm font-semibold text-ink">Step 3 — Upload your payment confirmation</h3>
+        <p className="text-xs text-inkSoft mt-1">
           After you send the deposit, attach a screenshot of the confirmation page from
           your payment app and the transaction reference id.
         </p>
@@ -582,7 +582,7 @@ function H2Form({ agreementId, buyerToken, memoPreview }: H2FormProps) {
 
         <Button
           type="button"
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primaryDeep hover:bg-primary"
           onClick={() => submitMut.mutate()}
           disabled={!canSubmit}
         >
@@ -610,8 +610,8 @@ function GateMessage({ title, body }: GateMessageProps) {
   return (
     <Card>
       <CardContent className="pt-8 space-y-3 text-center">
-        <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-          <AlertCircle className="h-6 w-6 text-amber-700" />
+        <div className="mx-auto h-12 w-12 rounded-full bg-sun/15 flex items-center justify-center">
+          <AlertCircle className="h-6 w-6 text-ink" />
         </div>
         <h2 className="text-xl font-bold">{title}</h2>
         <p className="text-sm text-muted-foreground">{body}</p>

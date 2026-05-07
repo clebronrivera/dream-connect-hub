@@ -65,7 +65,7 @@ function ValidatedDepositAgreement({ requestId }: { requestId: string }) {
   return (
     <div className="min-h-screen bg-paper py-8 px-4">
       <div className="max-w-2xl mx-auto mb-4">
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div className="rounded-sm border border-leaf/30 bg-leaf/10 p-3 text-sm text-ink">
           Reservation <span className="font-mono font-bold">#DEP-{requestId.slice(0, 8).toUpperCase()}</span>
         </div>
       </div>
@@ -90,11 +90,11 @@ function GateLanding({ title, body, ctaHref, ctaLabel }: GateLandingProps) {
     <div className="min-h-screen bg-paper py-12 px-4 flex items-start justify-center">
       <Card className="max-w-lg w-full">
         <CardContent className="pt-8 space-y-4 text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-sun/15 flex items-center justify-center">
             {ctaHref ? (
-              <MailQuestion className="h-6 w-6 text-amber-700" />
+              <MailQuestion className="h-6 w-6 text-ink" />
             ) : (
-              <AlertCircle className="h-6 w-6 text-amber-700" />
+              <AlertCircle className="h-6 w-6 text-ink" />
             )}
           </div>
           <h1 className="text-xl font-bold text-foreground">{title}</h1>

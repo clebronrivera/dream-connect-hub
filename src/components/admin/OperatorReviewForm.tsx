@@ -132,7 +132,7 @@ export function OperatorReviewForm({ request, onClose }: Props) {
       <div className="space-y-2">
         <Label htmlFor="puppy-select">Puppy</Label>
         {!litterId ? (
-          <p className="text-sm text-amber-700">
+          <p className="text-sm text-ink">
             This request has no upcoming-litter context — assign by hand or decline.
           </p>
         ) : puppiesLoading ? (
@@ -140,16 +140,16 @@ export function OperatorReviewForm({ request, onClose }: Props) {
         ) : puppiesError ? (
           <p className="text-sm text-red-600">Couldn't load puppies. Try again.</p>
         ) : puppies.length === 0 ? (
-          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-            <p className="font-medium text-amber-900">No puppies on this litter yet</p>
-            <p className="text-xs text-amber-800 mt-0.5">
+          <div className="rounded-md border border-sun/30 bg-sun/15 p-3 text-sm">
+            <p className="font-medium text-ink">No puppies on this litter yet</p>
+            <p className="text-xs text-ink mt-0.5">
               Create one in the puppies admin first, then return to this form.
             </p>
             <a
               href={`/admin/puppies/new?litter=${litterId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primaryDeep hover:underline"
             >
               <ExternalLink className="h-3 w-3" /> Create puppy
             </a>
@@ -223,7 +223,7 @@ export function OperatorReviewForm({ request, onClose }: Props) {
           type="button"
           onClick={() => saveAndSendMut.mutate()}
           disabled={!canSubmit}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-primaryDeep hover:bg-primary"
         >
           <Send className="h-4 w-4 mr-1" />
           {saveAndSendMut.isPending ? "Saving…" : "Save & Send Deposit Link"}

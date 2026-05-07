@@ -107,7 +107,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
           <Field
             label="Email"
             value={
-              <a href={`mailto:${request.customer_email}`} className="text-blue-600 hover:underline">
+              <a href={`mailto:${request.customer_email}`} className="text-primaryDeep hover:underline">
                 {request.customer_email}
               </a>
             }
@@ -170,7 +170,7 @@ export function DepositRequestDetailPanel({ request }: Props) {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => setShowReview(true)}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-primaryDeep hover:bg-primary"
                   >
                     <ClipboardCheck className="h-4 w-4 mr-1" /> Open Review Form
                   </Button>
@@ -218,12 +218,12 @@ export function DepositRequestDetailPanel({ request }: Props) {
         {(status === "accepted" || status === "deposit_link_sent") && (
           <div className="space-y-3">
             {status === "deposit_link_sent" && (
-              <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm space-y-2">
+              <div className="rounded-md bg-primary/10 border border-primary/20 p-3 text-sm space-y-2">
                 <div className="flex items-start gap-2">
-                  <Clock className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <Clock className="h-4 w-4 text-primary mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-medium text-blue-900">Link already sent</p>
-                    <p className="text-xs text-blue-700">
+                    <p className="font-medium text-ink">Link already sent</p>
+                    <p className="text-xs text-inkSoft">
                       Sent {request.deposit_link_sent_at ? new Date(request.deposit_link_sent_at).toLocaleString() : ""}
                       {" "}via {request.deposit_link_sent_via?.join(" + ") ?? "—"}
                     </p>
@@ -294,9 +294,9 @@ export function DepositRequestDetailPanel({ request }: Props) {
 
         {status === "converted" && (
           <div className="space-y-2">
-            <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm">
-              <p className="font-medium text-green-900">Agreement submitted</p>
-              <p className="text-xs text-green-700">
+            <div className="rounded-md bg-leaf/10 border border-leaf/30 p-3 text-sm">
+              <p className="font-medium text-ink">Agreement submitted</p>
+              <p className="text-xs text-leaf">
                 {request.converted_at ? `Converted ${new Date(request.converted_at).toLocaleString()}` : ""}
               </p>
             </div>
@@ -311,12 +311,12 @@ export function DepositRequestDetailPanel({ request }: Props) {
         )}
 
         {status === "declined" && (
-          <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm space-y-1">
+          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm space-y-1">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
               <div>
-                <p className="font-medium text-red-900">Request declined</p>
-                <p className="text-xs text-red-700 whitespace-pre-wrap">
+                <p className="font-medium text-ink">Request declined</p>
+                <p className="text-xs text-destructive whitespace-pre-wrap">
                   {request.decline_reason ?? "No reason provided."}
                 </p>
               </div>

@@ -69,7 +69,7 @@ export default function PickupHandoverPage() {
     return <div className="p-6">Loading…</div>;
   }
   if (agreementQ.error || !agreementQ.data) {
-    return <div className="p-6 text-red-700">Failed to load agreement.</div>;
+    return <div className="p-6 text-destructive">Failed to load agreement.</div>;
   }
 
   const agreement = agreementQ.data;
@@ -97,7 +97,7 @@ export default function PickupHandoverPage() {
               </p>
             </div>
             {isVerified && (
-              <Badge className="bg-green-100 text-green-800 border-green-300">
+              <Badge className="bg-leaf/15 text-ink border-leaf/30">
                 In-person verified
               </Badge>
             )}
@@ -490,7 +490,7 @@ function PhotoCard({
           {label}
           {optional && <Badge variant="outline" className="text-xs">Optional</Badge>}
           {currentPath && !optional && (
-            <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
+            <Badge className="bg-leaf/15 text-ink border-leaf/30 text-xs">
               <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
             </Badge>
           )}

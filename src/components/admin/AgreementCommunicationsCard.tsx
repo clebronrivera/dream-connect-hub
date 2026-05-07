@@ -170,7 +170,7 @@ export function AgreementCommunicationsCard({ agreementId }: Props) {
         {listQ.isLoading ? (
           <p className="text-xs text-muted-foreground italic">Loading timeline…</p>
         ) : listQ.error ? (
-          <p className="text-xs text-red-700">Failed to load communications.</p>
+          <p className="text-xs text-destructive">Failed to load communications.</p>
         ) : grouped.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">
             No communications recorded yet.
@@ -262,8 +262,8 @@ function ChannelIcon({ channel }: { channel: CommunicationChannel }) {
 
 function DirectionIcon({ direction }: { direction: CommunicationDirection }) {
   return direction === 'outbound' ? (
-    <ArrowUpRight className="h-3 w-3 text-blue-600" />
+    <ArrowUpRight className="h-3 w-3 text-primary" />
   ) : (
-    <ArrowDownLeft className="h-3 w-3 text-green-700" />
+    <ArrowDownLeft className="h-3 w-3 text-leaf" />
   );
 }

@@ -297,7 +297,7 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
             </div>
             <div>
               <p className="text-muted-foreground">Deposit</p>
-              <p className="font-bold text-green-700">${agreement.deposit_amount.toFixed(2)}</p>
+              <p className="font-bold text-leaf">${agreement.deposit_amount.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Balance</p>
@@ -364,9 +364,9 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
             <p><span className="text-muted-foreground">Memo:</span> <code className="bg-muted px-1 rounded">{agreement.payment_memo}</code></p>
           </div>
           {['cash', 'square'].includes(agreement.deposit_payment_method) && (
-            <div className="flex items-center gap-2 p-2 rounded bg-amber-50 border border-amber-200">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <span className="text-sm text-amber-800">Manual confirmation required</span>
+            <div className="flex items-center gap-2 p-2 rounded-sm bg-sun/15 border border-sun/30">
+              <AlertTriangle className="h-4 w-4 text-ink" />
+              <span className="text-sm text-ink">Manual confirmation required</span>
             </div>
           )}
           {!isPaymentConfirmed && !isCancelled && (
@@ -378,7 +378,7 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
                 ) : attestedHandleQ.data ? (
                   <code className="bg-muted px-1 rounded font-medium">{attestedHandleQ.data}</code>
                 ) : (
-                  <p className="text-xs text-amber-700 italic">
+                  <p className="text-xs text-ink italic">
                     Buyer has not signed the H1 attestation yet — sender handle cannot be cross-checked.
                   </p>
                 )}
@@ -409,7 +409,7 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
           )}
           {isPaymentConfirmed && (
             <div className="space-y-2">
-              <p className="text-sm text-green-600">
+              <p className="text-sm text-leaf">
                 Confirmed at {agreement.payment_confirmed_at ? format(new Date(agreement.payment_confirmed_at), 'MMM d, yyyy h:mm a') : ''}
               </p>
               {agreement.operator_verified_sender_handle && (
@@ -419,9 +419,9 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
                 </p>
               )}
               {agreement.operator_handle_mismatch_flagged && (
-                <div className="flex items-start gap-2 p-2 rounded bg-amber-50 border border-amber-300">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                  <div className="text-sm text-amber-900">
+                <div className="flex items-start gap-2 p-2 rounded-sm bg-sun/15 border border-sun/30">
+                  <AlertTriangle className="h-4 w-4 text-ink mt-0.5 shrink-0" />
+                  <div className="text-sm text-ink">
                     <p className="font-medium">Sender handle mismatch flagged</p>
                     <p className="text-xs">
                       The handle you typed differs from the buyer's H1 attestation. This is preserved as chargeback evidence — review before pickup if relevant.
@@ -476,14 +476,14 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
           </div>
           {allConditionsMet && agreement.agreement_status !== 'admin_approved' && (
             <div className="pt-2">
-              <p className="text-sm font-bold text-green-700 mb-2">All conditions met — ready to finalize</p>
+              <p className="text-sm font-bold text-leaf mb-2">All conditions met — ready to finalize</p>
               <Button onClick={() => finalizeMut.mutate()} disabled={finalizeMut.isPending}>
                 Finalize Agreement
               </Button>
             </div>
           )}
           {agreement.agreement_status === 'admin_approved' && (
-            <p className="text-sm font-bold text-green-700 pt-2">SALE FINAL</p>
+            <p className="text-sm font-bold text-leaf pt-2">SALE FINAL</p>
           )}
         </CardContent>
       </Card>
@@ -634,7 +634,7 @@ function StatusLine({ met, label, timestamp }: { met: boolean; label: string; ti
   return (
     <div className="flex items-center gap-2 text-sm">
       {met ? (
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
+        <CheckCircle2 className="h-4 w-4 text-leaf" />
       ) : (
         <XCircle className="h-4 w-4 text-muted-foreground/50" />
       )}
