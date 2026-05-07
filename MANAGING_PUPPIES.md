@@ -17,6 +17,61 @@ The `puppies` table and related schema are created by Supabase migrations. See *
 
 ---
 
+## 🐾 Puppy status and the reservation workflow
+
+Starting with Wave G (May 2026), `puppies.status` is automatically managed by
+the reservation workflow. The allowed values are:
+
+| Status | Meaning | How it gets set |
+|--------|---------|-----------------|
+| `Available` | Listed publicly; accepting deposits | Default on creation; also restored if an agreement is cancelled |
+| `Reserved` | Has an active non-terminal deposit agreement | Set automatically when `finalize-agreement` generates the PDF (`agreement_status = 'complete'`) |
+| `Sold` | Picked up; terminal | Set automatically by `finalize-pickup-handover` when the operator completes the pickup-day handover |
+
+**Important:** do not manually set `status = 'Reserved'` or `status = 'Sold'`
+via the Table Editor — those transitions are owned by the workflow. Manually
+overriding them can cause mismatches between the `deposit_agreements` state
+and what the public `/puppies` page shows.
+
+If you need to cancel a reservation and restore a puppy to `Available`:
+1. Open `/admin/agreements`, find the agreement
+2. Click **Cancel Agreement** — this sets `agreement_status = 'cancelled'`
+3. Then manually set `puppies.status = 'Available'` via the admin puppy form
+
+---
+
+## 🏗️ Operator Review Form (Wave C)
+
+When a buyer submits a deposit request via `/request-deposit`, the operator
+needs to fill out the **Operator Review Form** before sending the deposit link.
+
+### How to use it
+
+1. Open `/admin/deposit-requests`
+2. Find the pending request and click to expand it
+3. Click **Open Review Form**
+4. Fill in the required fields:
+   - **Puppy** — select the puppy being reserved (or create a new one)
+   - **Purchase price** — full price of the puppy (required)
+   - **Deposit amount** — defaults to **$300**; edit if this puppy has a custom
+     deposit amount
+   - **Confirmed pickup date** — optional; can also be set later on the agreement
+   - **Notes to buyer** — optional message included in the deposit link email
+5. Click **Submit** → request moves to `accepted`
+6. Click **Send Deposit Link** → buyer receives email with token-gated URL
+
+### Deposit amount rules
+
+- Default: **$300** (`DEFAULT_DEPOSIT_AMOUNT` in `src/lib/constants/deposit.ts`)
+- Per-puppy override: set `puppies.deposit_amount` — the form pre-fills with
+  this value when a puppy is selected
+- Per-litter override: set `upcoming_litters.deposit_amount` — used as fallback
+  when no per-puppy override is set
+- The buyer's deposit agreement PDF will show the actual deposit amount (not $300
+  if an override was set)
+
+---
+
 ## 📊 Managing Puppies
 
 ### Adding New Puppies

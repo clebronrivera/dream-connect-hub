@@ -31,7 +31,15 @@ interface RequestBody {
   buyer_access_token: string;
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+/**
+ * Extracted handler — accepts an optional pre-built client so tests can
+ * inject a mock without touching the real Supabase service role key.
+ * Production: client is always undefined → createClient() is called internally.
+ */
+export async function handler(
+  req: Request,
+  adminOverride?: ReturnType<typeof createClient>
+): Promise<Response> {
   const cors = corsHeaders(req);
 
   function jsonResponse(status: number, body: unknown): Response {
@@ -53,7 +61,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResponse(400, { error: "Invalid JSON" });
   }
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const admin = adminOverride ?? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // 1) Verify the buyer token (also fetches the row).
   const verification = await verifyBuyerToken(
@@ -187,4 +195,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   return jsonResponse(200, { success: true, marked_at: now });
-});
+}
+
+Deno.serve(handler);

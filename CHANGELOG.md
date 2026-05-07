@@ -6,6 +6,101 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-05-07 — Workflow completion (Waves A–G)
+
+This release completes the full 13-step reservation workflow described in
+`docs/DEPOSIT_REQUEST_FLOW.md`. All core buyer and operator flows are now
+end-to-end functional with chargeback-defense data capture.
+
+### Added — Wave F (PDF generation)
+
+- **Finalized agreement PDF** — New `generate-agreement-pdf` edge function fills
+  the `deposit_agreement_template.pdf` AcroForm (95 fields) via `pdf-lib`, flattens
+  it, and uploads to the private `agreements` Supabase Storage bucket.
+- **`generateDepositPdf` shared module** — Reusable Deno module called synchronously
+  from `finalize-agreement` (no HTTP hop) and also exposed as a standalone admin
+  endpoint for retries.
+- **`assertAllFieldsPresent`** — Guard function that throws loudly if any expected
+  AcroForm field is missing from the template (protects against template drift).
+- **Tokenized buyer PDF download** — New route `/agreements/:agreementId/:buyerToken/download`
+  backed by `agreement-download-url` edge function. Each visit mints a fresh
+  1-hour signed storage URL; the URL never lives in email inboxes.
+- **Admin PDF download button** — `AgreementDetailPanel` now shows a "Download
+  Agreement PDF" button that mints a fresh signed URL on each click.
+- **`verifyAdmin` shared helper** — Extracted from `finalize-agreement` into
+  `supabase/functions/_shared/auth/verifyAdmin.ts`; reused by the new PDF function.
+- **AcroForm spec docs** — `docs/spec/pdf-acroform-fields.md` and
+  `docs/spec/pdf-field-disambiguation.md` document all 95+47 field names, types,
+  buyer-initials derivation, checkbox group lookups, and DA↔PA mirror fill pattern.
+
+### Added — Wave G (Tests, docs, puppy status)
+
+- **`puppies.status = 'Reserved'` transition** — `generateDepositPdf` now sets the
+  linked puppy to `Reserved` when an agreement reaches `complete` (idempotent:
+  only transitions from `Available`, ignores `Reserved`/`Sold`).
+- **Test suite additions** — 8 new `AgreementDownload` component tests; 9 new
+  integration tests for `fetchAgreement`, `confirmDepositPayment` (mismatch logic),
+  `getAgreementPdfUrl`, and `markPaymentSent`; 8 Deno unit tests for
+  `generate-agreement-pdf` handler; 11 Deno unit tests for `mark-payment-sent`
+  handler (token validation, idempotency, H1/H2 precondition gates, race condition).
+- **Smoke checklist** — `docs/ops/reservation-flow-smoke-test.md` covers all 13
+  workflow steps with pass/fail criteria.
+- **Docs rewrite** — `docs/DEPOSIT_REQUEST_FLOW.md` rewritten as the canonical
+  13-step reference with state machines, edge-function table, key-file index,
+  and verification checklist.
+
+### Changed — Wave A (Drift cleanup)
+
+- **Deposit model** — Replaced fractional deposit tiers (1/4 or 1/3 of purchase
+  price) with flat `$300` default (`DEFAULT_DEPOSIT_AMOUNT`). Per-puppy and
+  per-litter overrides supported via `resolveDepositAmount({ puppyOverride, litterOverride })`.
+- **Dropped `deposit_tier` column** — `deposit_agreements.deposit_tier` removed via
+  migration (0 rows affected at time of migration).
+- **Dropped rogue RLS policies** — `public_insert_deposit_agreements` (plural, permissive)
+  and `public_read_recent_deposit_agreements` (60-second public SELECT window) dropped
+  from `deposit_agreements`. Neither was in any migration; both were security holes.
+- **Removed `buyer_signed` enum value** — `agreement_status` constraint tightened to
+  `IN ('sent','admin_approved','complete','cancelled')`. The unused `buyer_signed`
+  value has been removed from the DB constraint and all TypeScript types.
+- **Status enums documented** — `docs/status-enums.md` is now the canonical
+  source of truth for all status column values.
+- **Branding** — README line 1 updated to `# Dream Puppies — puppyheavenllc.com`.
+  "Dream Connect Hub" removed from all user-facing copy.
+
+### Changed — Wave D (Buyer payment dashboard)
+
+- **`buyer_access_token`** — New UUID column on `deposit_agreements` (30-day
+  expiry). After form submission, buyer is redirected to
+  `/payment/<agreementId>/<buyer_access_token>`. Token-gated SELECT via
+  `public_read_via_buyer_token` RLS policy.
+- **`mark-payment-sent`** — Buyer-invoked edge function. Race-safe UPDATE (only
+  writes if `buyer_marked_payment_sent_at IS NULL`). Gates on H1+H2 attestation
+  preconditions (returns 422 with `missing_precondition` field if incomplete).
+  Idempotent — repeat calls return `{ already_marked: true }`.
+- **`verifyBuyerToken`** — Shared auth helper used by `mark-payment-sent`,
+  `agreement-download-url`, and all Wave H functions.
+
+### Changed — Waves B, C, E
+
+- **Wave B** — `/deposit` is now token-gated behind `?requestId=…`. Direct
+  access without a valid request ID shows a "Operator-only entry" message.
+- **Wave C** — Operator Review Form (`OperatorReviewForm.tsx`) replaces the
+  inline Accept flow. Captures `purchase_price`, `deposit_amount` override,
+  optional pickup date and notes before the deposit link is sent.
+- **Wave E** — New schema fields on `deposit_agreements`: `buyer_city`,
+  `buyer_state`, `buyer_zip`; how-heard promotion; pickup preferences
+  (`pickup_time_preference`, `pickup_day_preference`, `pickup_alt_*`); six
+  Wave-H6 acknowledgment timestamp columns.
+
+### Known issues
+
+- `20260506000013_agreements_storage_bucket.sql` must be applied to production
+  before PDF uploads will work. Run `supabase db push` or apply via SQL editor.
+- Wave H (chargeback defense / pickup handover / dispute evidence) is pending.
+  See `wave-status.md` for sub-task status.
+
+---
+
 ## 2026-04-15
 
 ### Added

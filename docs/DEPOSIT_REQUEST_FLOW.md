@@ -1,164 +1,368 @@
-# Deposit Request Flow
+# Deposit Request Flow — Canonical Reference (Post-Wave G)
 
-This document describes the **request → approval → agreement** workflow added on 2026-04-15. It bridges the gap between a customer expressing interest and the existing legal deposit agreement form.
+> **Last updated:** May 2026 (Waves A–G complete).
+>
+> This document is the definitive description of the 13-step reservation
+> workflow as implemented. Earlier versions described only the request bridge;
+> this rewrite covers the full lifecycle through pickup-day handover.
+>
+> See also:
+> - `docs/status-enums.md` — allowed values for every status column
+> - `docs/spec/dream-connect-hub.md` — architectural spec with supersession notes
+> - `docs/ops/reservation-flow-smoke-test.md` — browser-based verification checklist
 
-## Why this exists
+---
 
-Before this feature, a customer browsing `/upcoming-litters` could only submit a vague inquiry via `contact_messages`. The admin then had to manually email a `/deposit?litter=X` link. The flow was undocumented, manual, and error-prone.
+## Overview
 
-This feature formalizes that bridge with three semantic layers:
-- **Request** ≠ inquiry — a formal expression of intent to deposit
-- **Agreement** ≠ payment — a legal document; payment happens off-site
-- **Converted** = the customer submitted the agreement form, NOT that money was received (payment confirmation continues to live in `deposit_agreements.deposit_status`)
-
-## Customer-facing flow
-
-1. **Browse** → `/upcoming-litters` — customer taps a litter card or puppy slot tile
-2. **Modal opens** → "Request a Deposit Reservation"
-   - Required: name, email, phone, city, state, litter (puppy slot optional)
-   - Phone is now required (used for SMS delivery)
-   - Info banner explains the 24-48hr review timeline
-   - Disclaimer: "Submitting a request does not guarantee availability or placement"
-   - Expedite phone CTA: business phone from `BUSINESS.phone`
-3. **Submit** → row inserted into `deposit_requests` (`status: pending`, `origin: public_form`)
-4. **Wait** → admin reviews and either accepts + sends link, or declines
-5. **Receive deposit link** via email and/or SMS → click link → land on `/deposit?litter=...&request=...`
-6. **Complete agreement** → form pre-validates the request link, on submit:
-   - Inserts new row in `deposit_agreements` with `deposit_request_id` set
-   - Updates `deposit_requests` row to `status: converted`, `deposit_agreement_id: <new id>`, `converted_at: now()`
-
-## Admin-facing flow
-
-### From a public request
-1. **Email notification** — admin gets emailed via `notify-deposit-request` edge function
-2. **Open** `/admin/deposit-requests` → expand the request card
-3. **Review** customer info, litter, phone validity (SMS-ready badge)
-4. **Accept** (status → `accepted`) or **Decline** with reason (status → `declined`)
-5. **Send Deposit Link** — pick channels (Email ☑ / SMS ☑), optional custom message → click Send
-   - Status → `deposit_link_sent`
-   - Per-channel timestamps recorded
-   - On partial failure (e.g., email succeeds, SMS fails), status still updates and channels actually sent are recorded
-
-### Admin-initiated request
-1. Click **"+ New Request"** on `/admin/deposit-requests`
-2. Fill customer info + litter + puppy slot
-3. Tick **"Send link immediately"** → choose channels → click **Create & Send Link**
-   - Single action: creates request (`origin: admin_initiated`, `status: accepted`) AND sends the link
-
-### Resend
-A request in `deposit_link_sent` status shows a **Resend Link** button. Same function, same validation. The deposit link and timestamps are overwritten; the canonical link (request id + litter id) doesn't change.
-
-## State machine
+The workflow spans 13 observable steps across four parties: the **buyer**, the
+**operator** (admin), the **system** (edge functions + DB), and the **payment
+app** (Zelle/Venmo/CashApp/Square out-of-band).
 
 ```
-pending → accepted        (admin approves)
-pending → declined        (admin declines)
-accepted → deposit_link_sent  (admin sends link)
-accepted → declined       (admin changes mind before sending)
-deposit_link_sent → deposit_link_sent  (resend allowed)
-deposit_link_sent → converted  (customer submits agreement form)
-declined → terminal
-converted → terminal
+Step 1   Buyer submits intake request (request-deposit form)
+Step 2   Admin is notified; buyer gets an acknowledgment email
+Step 3   Admin reviews request, fills in Operator Review Form
+Step 4   Admin sends deposit link; buyer gets email with token-gated URL
+Step 5   Buyer fills deposit agreement form (token-gated /deposit?requestId=…)
+Step 6   Buyer auto-redirected to Payment Dashboard (/payment/<id>/<token>)
+Step 7   Buyer completes H1 payment attestation + handle screenshot upload
+Step 8   Buyer pays out-of-band, uploads confirmation screenshot + tx ref
+Step 9   Buyer clicks "I have sent payment" → admin notification
+Step 10  Admin confirms payment received (operator-verified sender handle)
+Step 11  Admin applies signature → Finalize Agreement → PDF generated
+Step 12  Buyer receives email with tokenized PDF download link
+Step 13  Pickup day: operator runs handover flow (Wave H4)
 ```
 
-Enforced by a `BEFORE UPDATE` trigger (`enforce_deposit_request_transition`) that allows same-status updates (admin notes, SMS callbacks, etc.) but rejects invalid status transitions.
+---
 
-## Database
+## Step-by-step detail
 
-### `deposit_requests` table
-Migration: `supabase/migrations/20260414000000_deposit_requests.sql`
+### Step 1 — Buyer submits intake request
 
-Key columns:
-- `customer_name`, `customer_email`, `customer_phone`, `customer_phone_e164` (auto-normalized to E.164 via trigger)
-- `upcoming_litter_id`, `upcoming_litter_label` (snapshot), `upcoming_puppy_placeholder_id`, `upcoming_puppy_placeholder_summary`
-- `request_status` (enum), `origin` (enum)
-- `deposit_link_url`, `deposit_link_sent_at`, `deposit_link_sent_via` (text array)
-- `email_sent_at`, `sms_sent_at`, `sms_delivery_status`
-- `deposit_agreement_id` (FK), `converted_at`
-- `admin_notes`, `admin_reviewed_at`, `decline_reason`
+**Entry point:** `/request-deposit`
+**Component:** `src/pages/RequestDeposit.tsx` + `src/components/DepositRequestForm.tsx`
+**DB write:** `deposit_requests` INSERT (`request_status = 'pending'`, `origin = 'public_form'`)
+**RLS:** Public INSERT locked to `request_status='pending'`, all admin fields NULL
 
-### `deposit_agreements` linkage
-Same migration adds `deposit_agreements.deposit_request_id uuid` (FK to deposit_requests). Two unique partial indexes enforce 1-to-1 linkage:
-- `idx_deposit_agreements_unique_request` ON deposit_agreements(deposit_request_id) WHERE deposit_request_id IS NOT NULL
-- `idx_deposit_requests_unique_agreement` ON deposit_requests(deposit_agreement_id) WHERE deposit_agreement_id IS NOT NULL
+The form collects: name, email, phone (required; E.164-normalized by DB trigger),
+city, state, which litter/puppy, how they heard about us, notes.
 
-### RLS
-- **Public INSERT** on `deposit_requests` is locked down: only allowed if `request_status='pending'`, `origin='public_form'`, and all admin/system fields are NULL (including `customer_phone_e164` which is trigger-owned)
-- **Admin ALL** uses the standard pattern `EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin')`
+---
 
-A separate migration on the same day, `20260415000000_deposit_agreements_public_insert.sql` (applied as `deposit_agreements_public_insert`), fixed a pre-existing bug where `deposit_agreements` had no public INSERT policy. The `/deposit` form had been broken for public users since launch; this is now resolved with constraints that prevent setting admin/finalization fields. A narrow time-window SELECT policy (rows created in the last 1 minute) lets the buyer's success screen read the agreement number after submitting.
+### Step 2 — Admin notified; buyer receives acknowledgment
 
-## Edge functions
+**Edge function:** `notify-deposit-request` (DB webhook on INSERT, `verify_jwt: false`)
+- Admin email: HTML summary with deep link to `/admin/deposit-requests`
+- Buyer email: acknowledgment with 24–48hr timeline messaging
 
-### `notify-deposit-request` (`verify_jwt: false`)
-Triggered by Database Webhook on `deposit_requests` INSERT. Sends an HTML email via Resend to the `NOTIFY_EMAIL` admin recipients with request details and a link to `/admin/deposit-requests`.
+---
 
-### `send-deposit-link` (`verify_jwt: false`)
-Admin-invoked. Sends the deposit agreement link via email (Resend) and/or SMS (Twilio).
+### Step 3 — Admin reviews and fills Operator Review Form
 
-**Auth:** Verifies admin role inside the function (gateway-level JWT verification was disabled because it was returning 401 before the function code could run). The client-side service explicitly grabs `supabase.auth.getSession().access_token` and passes it as the `Authorization: Bearer ...` header. The function then calls `admin.auth.getUser(jwt)` and checks the profiles table.
+**Page:** `/admin/deposit-requests`
+**Component:** `src/components/admin/DepositRequestDetailPanel.tsx`
+           + `src/components/admin/OperatorReviewForm.tsx` (Wave C)
 
-**Validation:**
-- Request must exist and be in `accepted` or `deposit_link_sent` status (resend allowed)
-- At least one channel selected
-- For SMS: `customer_phone_e164` must be set
+The Operator Review Form fields:
+- `puppy_id` — select or create the puppy being reserved
+- `purchase_price` — required; persisted to `puppies.base_price`
+- `deposit_amount` — defaults to `$300` (`DEFAULT_DEPOSIT_AMOUNT`); editable per-puppy override
+- `confirmed_pickup_date` — optional override
+- `notes_to_buyer` — optional
 
-**Partial failure:** If email succeeds but SMS fails (or vice versa), status is still updated to `deposit_link_sent` and `deposit_link_sent_via` records only the channels that actually succeeded. If both fail, returns 502 and does not update status.
+On submit: `deposit_requests.request_status` → `accepted`.
+"Send Deposit Link" button then fires `send-deposit-link`.
 
-**CORS:** Handles `OPTIONS` preflight with `204` and proper CORS headers (initial deployment was failing because preflight returned 405).
+---
 
-## Required Supabase secrets
+### Step 4 — Admin sends deposit link
 
-In **Project Settings → Edge Functions → Secrets**:
-- `RESEND_API_KEY` — already set, used by all email functions
-- `NOTIFY_EMAIL` — comma-separated admin email recipients
-- `RESEND_FROM` — optional, defaults to `Dream Puppies <onboarding@resend.dev>`
-- `TWILIO_ACCOUNT_SID` — from Twilio console (starts with `AC...`)
-- `TWILIO_AUTH_TOKEN` — from Twilio console
-- `TWILIO_PHONE_NUMBER` — Twilio number in E.164 format (`+13215550123`)
-- `SITE_URL` — base URL for deposit links. Set to production domain for prod; flip to `http://localhost:8080` for local testing.
+**Edge function:** `send-deposit-link`
+**URL format:** `https://puppyheavenllc.com/deposit?requestId={uuid}`
+**DB write:** `deposit_requests.request_status` → `deposit_link_sent`
 
-## Twilio trial caveat
+The request UUID provides 122 bits of entropy and is valid until the buyer
+submits the form (no expiration on the link itself — the agreement created by
+submission gets its own `buyer_access_token` with a 30-day expiry).
 
-Twilio trial accounts can only send SMS to **verified Caller IDs**. To receive a test text:
-- Twilio Console → Phone Numbers → Manage → **Verified Caller IDs** → Add the recipient phone
+---
 
-To send to any US number, upgrade the Twilio account (~$20 credit). SMS to US is $0.0079 per message.
+### Step 5 — Buyer fills deposit agreement form
+
+**Entry point:** `/deposit?requestId={uuid}`
+**Component:** `src/pages/DepositAgreement.tsx` + `src/components/deposit/DepositForm.tsx`
+**Gate:** `validateDepositRequest(requestId)` — invalid/unknown requestId blocks access
+
+Form fields include:
+- Personal info: name, email, phone, address (city/state/zip)
+- Pickup date, time preference, day preference, alt date, notes
+- Payment method selection (Zelle / Venmo / Cash App / Square)
+- How-heard questionnaire (6 checkboxes)
+- Five Wave-E/H6 acknowledgment checkboxes (each separately timestamped):
+  - Payment authorization
+  - Identity attestation
+  - Pre-dispute contact requirement
+  - Pickup acceptance clause
+  - Florida venue clause
+- 18+ age attestation
+- E-sign, statutory rights, arbitration, genetic disclaimer, welfare responsibility acks
+- Buyer signature (typed text + timestamp)
+
+**DB write:**
+- `deposit_agreements` INSERT (`agreement_status = 'sent'`, `buyer_signed_at = now()`)
+- DB trigger `link_deposit_agreement_to_request` → `deposit_requests.request_status` → `converted`
+
+---
+
+### Step 6 — Buyer auto-redirected to Payment Dashboard
+
+**Route:** `/payment/:agreementId/:buyerToken`
+**Page:** `src/pages/PaymentDashboard.tsx`
+
+After successful form submission, `DepositForm` redirects to this URL. The page
+uses a scoped Supabase client with `x-buyer-token` global header. RLS policy
+`public_read_via_buyer_token` gates the SELECT.
+
+Token validity: 30 days from agreement creation.
+
+---
+
+### Step 7 — Buyer completes H1 payment attestation
+
+**Within:** `PaymentDashboard.tsx`
+**Edge function:** `submit-payment-attestation`
+**DB table:** `payment_attestations`
+
+Buyer:
+1. Reads payment instructions (method, operator handle, payment memo)
+2. Enters their own payment handle (Zelle email / $Cashtag / @username)
+3. Uploads a screenshot of their payment-app profile showing their handle + name
+4. Re-confirms phone number
+5. Reads and signs the full attestation text: "I confirm I am [Name] sending
+   payment from my own [method] account [handle] to Dream Puppies…"
+6. Clicks Sign → IP, user-agent, and geolocation (if granted) captured
+   server-side
+
+**DB write:** `payment_attestations.attestation_status` → `signed`
+
+---
+
+### Step 8 — Buyer pays out-of-band, uploads confirmation
+
+**Within:** `PaymentDashboard.tsx` (step 3 form, unlocked after H1)
+**Storage bucket:** `payment-evidence` (private)
+
+Buyer:
+1. Pays via Zelle/Venmo/etc. to the operator handle shown on the dashboard
+2. Returns to dashboard, uploads confirmation screenshot (showing amount,
+   recipient, date/time, transaction ID)
+3. Enters the transaction reference ID
+4. Confirms the payment memo string used matches the displayed memo
+
+**DB write:** `payment_attestations` columns `confirmation_screenshot_path`,
+`transaction_reference_id`, `payment_memo_used`, `confirmation_captured_at`
+
+---
+
+### Step 9 — Buyer clicks "I have sent payment"
+
+**Edge function:** `mark-payment-sent`
+**Gate:** All H1+H2 preconditions must be met (422 otherwise):
+- `attestation_status = 'signed'`
+- `buyer_payment_handle_screenshot_path` set
+- `confirmation_screenshot_path` set
+- `transaction_reference_id` set
+
+**DB write:** `deposit_agreements.buyer_marked_payment_sent_at = now()`
+(race-safe: only writes if currently NULL)
+**Email:** Admin receives "Buyer says payment sent for #DP-…"
+**Idempotent:** Repeat clicks return `{ already_marked: true }` — no duplicate email
+
+---
+
+### Step 10 — Admin confirms payment received
+
+**Page:** `/admin/agreements`
+**Component:** `src/components/admin/AgreementDetailPanel.tsx`
+**Service:** `src/lib/admin/agreements-service.ts` → `confirmDepositPayment(id, senderHandle)`
+
+The admin types the sender handle as it appeared in their payment app. The
+function compares it (case-insensitive, trimmed) against
+`payment_attestations.buyer_payment_handle`:
+- **Match:** no flag; proceeds normally
+- **Mismatch:** sets `operator_handle_mismatch_flagged = true`; shows a banner
+  ("Verify before finalizing"); does NOT block the confirmation — the flag is
+  chargeback evidence (Wave H8)
+
+**DB write:** `deposit_agreements`:
+- `deposit_status` → `admin_confirmed`
+- `payment_confirmed_at = now()`
+- `operator_verified_sender_handle`
+- `operator_verified_sender_handle_at`
+- `operator_handle_mismatch_flagged`
+
+**Email:** Buyer receives standalone deposit receipt (O12 template) via
+`send-deposit-receipt` edge function.
+
+---
+
+### Step 11 — Admin signs + Finalizes Agreement → PDF generated
+
+**Action 1: Admin signature**
+`src/components/admin/AgreementDetailPanel.tsx` → `saveAdminSignature(id, svg, sellerName)`
+**DB write:** `admin_signature_svg`, `admin_signature_name`, `admin_signed_at`
+
+**Action 2: Finalize**
+`finalizeAgreement(id)` → calls `finalize-agreement` edge function
+
+**Edge function: `finalize-agreement`**
+1. Verifies admin JWT + role
+2. Sets `agreement_status = 'admin_approved'`
+3. Calls `generateDepositPdf(supabase, agreementId)` synchronously (Wave F):
+   - Loads `deposit_agreement_template.pdf` AcroForm template
+   - Validates all 95 field names via `assertAllFieldsPresent(form)`
+   - Fills all fields via `fillDepositAgreement(form, row, puppy)`
+   - Flattens form (non-editable)
+   - Uploads to `agreements/{agreementId}/{agreementNumber}.pdf`
+   - Sets `deposit_agreements.signed_pdf_storage_path`
+   - Sets `agreement_status = 'complete'`
+   - Sets `puppies.status = 'Reserved'` (from `Available` — idempotent)
+4. Sends buyer email with tokenized PDF download URL
+
+**Storage bucket:** `agreements` (private; admin direct-access; buyer via signed URL)
+
+---
+
+### Step 12 — Buyer receives email with PDF download link
+
+**Email template:** `agreementFinalizedBuyer`
+**Download route:** `/agreements/:agreementId/:buyerToken/download`
+**Page:** `src/pages/AgreementDownload.tsx`
+**Edge function:** `agreement-download-url` (public, no JWT)
+
+Each page visit mints a fresh 1-hour signed storage URL via
+`supabase.storage.from('agreements').createSignedUrl(path, 3600)`. The signed
+URL never lives in inboxes — only the buyer-token link does.
+
+Token validity: 30 days (same `buyer_access_token` as Payment Dashboard).
+
+---
+
+### Step 13 — Pickup day: operator runs handover flow (Wave H4)
+
+**Page:** `/admin/pickup/:agreementId`
+**Component:** `src/pages/admin/PickupHandover.tsx`
+
+Operator:
+1. Opens handover page on tablet
+2. Verifies buyer ID: type (DL/passport/state ID), last 4 digits, state/country,
+   expiration confirmation — **never the full ID number**
+3. Takes two required photos: buyer-with-puppy, buyer-holding-ID-next-to-face
+4. Captures buyer signature via signature pad
+5. Checks health acknowledgment + vet certificate handover
+6. Enters staff initials
+7. Submits → `finalize-pickup-handover` edge function
+
+**Edge function: `finalize-pickup-handover`**
+- Sets `handover_status = 'in_person_verified'`
+- Generates pickup handover PDF
+- Sends "welcome home" buyer email
+- Sets `puppies.status = 'Sold'`
+
+---
+
+## State machines (quick reference)
+
+See `docs/status-enums.md` for the full canonical list.
+
+### `deposit_requests.request_status`
+```
+pending → accepted → deposit_link_sent → converted (terminal)
+pending → declined (terminal)
+accepted → declined (terminal)
+```
+
+### `deposit_agreements.agreement_status`
+```
+sent → admin_approved → complete (terminal)
+sent → cancelled (terminal)
+admin_approved → cancelled (terminal)
+```
+
+### `deposit_agreements.deposit_status`
+```
+pending → admin_confirmed
+pending → rejected (terminal)
+admin_confirmed → refunded (terminal)
+```
+
+### `puppies.status`
+```
+Available → Reserved  (agreement reaches complete; via generateDepositPdf G3)
+Reserved  → Available (agreement cancelled)
+Reserved  → Sold      (pickup handover finalized; via finalize-pickup-handover)
+```
+
+---
+
+## Edge functions (reservation workflow)
+
+| Function | Trigger | Auth |
+|---|---|---|
+| `notify-deposit-request` | DB webhook on `deposit_requests` INSERT | `verify_jwt: false` |
+| `send-deposit-link` | Admin action | Bearer JWT + admin role |
+| `submit-payment-attestation` | Buyer action | buyer token (verifyBuyerToken) |
+| `mark-payment-sent` | Buyer action | buyer token (verifyBuyerToken) |
+| `send-deposit-receipt` | Called from confirmDepositPayment | Bearer JWT + admin role |
+| `finalize-agreement` | Admin action | Bearer JWT + admin role |
+| `generate-agreement-pdf` | Admin action (standalone) | Bearer JWT + admin role |
+| `agreement-download-url` | Buyer action | buyer token (verifyBuyerToken) |
+| `finalize-pickup-handover` | Operator action | Bearer JWT + admin role |
+| `generate-dispute-evidence-packet` | Admin action | Bearer JWT + admin role |
+
+---
 
 ## Key files
 
-| Layer | File | Purpose |
-|---|---|---|
-| Migration | `supabase/migrations/20260414000000_deposit_requests.sql` | Table + RLS + triggers + indexes |
-| Migration | `supabase/migrations/20260415000000_deposit_agreements_public_insert.sql` | Fix public INSERT on deposit_agreements |
-| Edge fn | `supabase/functions/notify-deposit-request/index.ts` | Admin notification on new request |
-| Edge fn | `supabase/functions/send-deposit-link/index.ts` | Email + SMS delivery to customer |
-| Public form | `src/components/DepositRequestForm.tsx` | Replaces inquiry modal on litter cards |
-| Service | `src/lib/deposit-requests.ts` | Public insert |
-| Public wiring | `src/components/upcoming/UpcomingLittersSection.tsx` | Uses new form |
-| Public form | `src/pages/DepositAgreement.tsx` | Reads + validates `?request=` param |
-| Service | `src/lib/deposit-service.ts` | `submitDepositAgreement` writes conversion + `validateDepositRequest` helper |
-| Admin page | `src/pages/admin/DepositRequests.tsx` | List with status badges |
-| Admin component | `src/components/admin/DepositRequestDetailPanel.tsx` | Per-request actions |
-| Admin component | `src/components/admin/AdminInitiateDepositDialog.tsx` | Admin-initiated request dialog |
-| Admin service | `src/lib/admin/deposit-requests-service.ts` | All admin CRUD + edge fn invocation |
-| Types | `src/types/deposit-request.ts` | TypeScript definitions |
-| Routing | `src/App.tsx` | `/admin/deposit-requests` route |
-| Nav | `src/components/admin/AdminLayout.tsx` | "Deposit Requests" nav link |
-| Dashboard | `src/pages/admin/Dashboard.tsx` | Pending requests stat card |
+| Layer | File |
+|---|---|
+| Deposit form | `src/pages/DepositAgreement.tsx` |
+| Deposit form component | `src/components/deposit/DepositForm.tsx` |
+| Payment dashboard | `src/pages/PaymentDashboard.tsx` |
+| PDF download page | `src/pages/AgreementDownload.tsx` |
+| Admin agreements list | `src/pages/admin/AgreementsPage.tsx` |
+| Admin agreement detail | `src/components/admin/AgreementDetailPanel.tsx` |
+| Admin operator review form | `src/components/admin/OperatorReviewForm.tsx` |
+| Pickup handover | `src/pages/admin/PickupHandover.tsx` |
+| Deposit service | `src/lib/deposit-service.ts` |
+| Payment dashboard service | `src/lib/payment-dashboard-service.ts` |
+| Payment attestation service | `src/lib/payment-attestation-service.ts` |
+| Agreements admin service | `src/lib/admin/agreements-service.ts` |
+| PDF field map | `supabase/functions/_shared/pdf/depositAgreementFieldMap.ts` |
+| PDF generator | `supabase/functions/_shared/pdf/generateDepositPdf.ts` |
+| Buyer token auth | `supabase/functions/_shared/auth/verifyBuyerToken.ts` |
+| Admin auth | `supabase/functions/_shared/auth/verifyAdmin.ts` |
+| Status enums | `docs/status-enums.md` |
+| AcroForm field spec | `docs/spec/pdf-acroform-fields.md` |
+| Field disambiguation | `docs/spec/pdf-field-disambiguation.md` |
+
+---
 
 ## Verification checklist
 
-1. **Public flow:** Submit deposit request from `/upcoming-litters` → row appears in DB with `status: pending` → admin notification email arrives
-2. **Admin accept + send:** Open `/admin/deposit-requests` → expand pending request → Accept → Send Deposit Link with email + SMS → email arrives at customer + SMS arrives (if Twilio recipient verified)
-3. **Customer completes:** Click link in email → `/deposit?litter=...&request=...` loads → fill form → submit → request flips to `converted` and links to the new agreement
-4. **Admin-initiated:** Click "+ New Request" → fill form → "Send link immediately" → customer receives link
-5. **Resend:** From a `deposit_link_sent` request, click Resend Link → succeeds, timestamps update
-6. **Decline:** From a `pending` request, click Decline with reason → status → declined; reason persisted
-7. **RLS hardening:** Try inserting via SQL client without admin context: should only succeed when `request_status='pending'` and `origin='public_form'` and admin/system fields are NULL
+For a full browser-based end-to-end run, see `docs/ops/reservation-flow-smoke-test.md`.
 
-## Known limitations
-
-- **Twilio trial:** SMS only delivers to verified numbers until upgrade
-- **No expiration:** Deposit links don't auto-expire. The plan deferred this — add a job later if request aging becomes a real ops need
-- **Single timestamp for accept/decline:** `admin_reviewed_at` covers both. If you ever need finer audit history, add `accepted_at` and `declined_at` columns or an event log table
+1. Submit `/request-deposit` → row in `deposit_requests` with `status: pending`; admin email arrives
+2. Admin fills Operator Review Form → puppy row updated with price + deposit amount; request → `accepted`
+3. Admin clicks "Send Deposit Link" → buyer email with `?requestId=…`; request → `deposit_link_sent`
+4. Buyer clicks link → `/deposit?requestId=…` loads form pre-populated
+5. Buyer fills and submits form → row in `deposit_agreements`; request → `converted`; buyer auto-redirected to `/payment/<id>/<token>`
+6. Buyer completes H1 attestation + handle screenshot → `payment_attestations.attestation_status = 'signed'`
+7. Buyer uploads confirmation screenshot + tx ref → `payment_attestations` updated
+8. Buyer clicks "I have sent payment" → `buyer_marked_payment_sent_at` set; admin email arrives
+9. Admin confirms payment with sender handle → `deposit_status = 'admin_confirmed'`; mismatch banner if applicable; receipt email to buyer
+10. Admin signs + finalizes → PDF in `agreements` bucket; `agreement_status = 'complete'`; `puppies.status = 'Reserved'`
+11. Buyer receives email → clicks download link → fresh 1-hour signed URL minted per click
+12. Pickup day: operator completes handover form → photos in `pickup-evidence` bucket; `puppies.status = 'Sold'`; welcome email sent

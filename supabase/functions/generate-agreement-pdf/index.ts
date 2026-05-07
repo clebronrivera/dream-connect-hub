@@ -24,7 +24,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PUBLIC_SITE_URL =
   Deno.env.get("PUBLIC_SITE_URL") ?? "https://puppyheavenllc.com";
 
-Deno.serve(async (req: Request): Promise<Response> => {
+/**
+ * Extracted handler — accepts an optional pre-built Supabase client and an
+ * optional generatePdf override so tests can inject mocks.
+ */
+export async function handler(
+  req: Request,
+  supabaseOverride?: ReturnType<typeof createClient>,
+  generatePdfOverride?: typeof generateDepositPdf
+): Promise<Response> {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -32,7 +40,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = supabaseOverride ?? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const generatePdf = generatePdfOverride ?? generateDepositPdf;
 
   // Auth
   const auth = await verifyAdmin(req, supabase);
@@ -61,8 +70,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  // Generate
-  const result = await generateDepositPdf(supabase, body.agreement_id);
+  // Generate (uses injected override in tests, real implementation in production)
+  const result = await generatePdf(supabase, body.agreement_id);
 
   if (!result.ok) {
     return new Response(JSON.stringify(result.body), {
@@ -83,4 +92,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
-});
+}
+
+Deno.serve(handler);

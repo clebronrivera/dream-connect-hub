@@ -231,6 +231,24 @@ export async function generateDepositPdf(
     };
   }
 
+  // ── 11. G3 — Transition puppy Available → Reserved (idempotent) ───────────
+  // Only fires when puppy_id is set AND the puppy is still Available.
+  // Won't overwrite a puppy already Reserved or Sold (safe for re-runs).
+  if (agreement.puppy_id) {
+    const { error: puppyErr } = await supabase
+      .from("puppies")
+      .update({ status: "Reserved" })
+      .eq("id", agreement.puppy_id)
+      .eq("status", "Available"); // idempotent — no-op if already Reserved/Sold
+    if (puppyErr) {
+      // Non-fatal: log and continue. The agreement PDF is already saved.
+      console.error(
+        "generateDepositPdf: failed to set puppy status Reserved:",
+        puppyErr.message
+      );
+    }
+  }
+
   return {
     ok: true,
     pdf_path: storagePath,
