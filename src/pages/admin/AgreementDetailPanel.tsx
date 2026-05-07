@@ -30,6 +30,7 @@ import {
   generateDisputeEvidencePacket,
   listDisputePackets,
   getDisputePacketUrl,
+  getAgreementPdfUrl,
   type DisputePacket,
 } from '@/lib/admin/agreements-service';
 import type { DepositAgreement } from '@/types/deposit';
@@ -41,9 +42,64 @@ import {
   MessageSquarePlus,
   ClipboardCheck,
   FileArchive,
+  FileDown,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+
+// ── AgreementPdfCard (Wave F7) ────────────────────────────────────────────
+// Shows when agreement_status = 'complete' and signed_pdf_storage_path is set.
+// Each click mints a fresh 1-hour signed URL — never cached client-side.
+
+interface AgreementPdfCardProps {
+  storagePath: string;
+  agreementNumber: string;
+}
+
+function AgreementPdfCard({ storagePath, agreementNumber }: AgreementPdfCardProps) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    setLoading(true);
+    try {
+      const url = await getAgreementPdfUrl(storagePath);
+      window.open(url, '_blank');
+    } catch {
+      toast.error('Failed to generate download link. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <FileDown className="h-4 w-4" />
+          Signed Agreement PDF
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {agreementNumber}.pdf
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDownload}
+            disabled={loading}
+          >
+            {loading ? 'Getting link…' : '↓ Download'}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Link expires 1 hour after each click.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── DisputeEvidenceCard + PacketRow ──────────────────────────────────────
 // Named components defined outside AgreementDetailPanel to satisfy the
@@ -551,6 +607,14 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Signed agreement PDF download (Wave F7) */}
+      {agreement.signed_pdf_storage_path && (
+        <AgreementPdfCard
+          storagePath={agreement.signed_pdf_storage_path}
+          agreementNumber={agreement.agreement_number ?? agreement.id}
+        />
       )}
 
       {/* Dispute evidence packets (Wave H H8) */}

@@ -295,6 +295,20 @@ export async function listDisputePackets(
     }));
 }
 
+/** Wave F7 — Mint a fresh 1-hour signed URL for the finalized agreement PDF.
+ * Call on every Download click — never cache the URL client-side.
+ * storagePath = agreement.signed_pdf_storage_path */
+export async function getAgreementPdfUrl(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('agreements')
+    .createSignedUrl(storagePath, 3600);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message ?? 'Failed to create signed URL for agreement PDF');
+  }
+  return data.signedUrl;
+}
+
 /** Mint a fresh 1-hour signed URL for a specific packet.
  * Call on every Download click — never cache the URL client-side. */
 export async function getDisputePacketUrl(zipPath: string): Promise<string> {

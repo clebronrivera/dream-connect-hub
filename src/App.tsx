@@ -49,6 +49,7 @@ const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const TrainingPlanPage = lazy(() => import("./pages/TrainingPlanPage"));
 const DepositRequests = lazy(() => import("./pages/admin/DepositRequests"));
 const RequestDeposit = lazy(() => import("./pages/RequestDeposit"));
+const AgreementDownload = lazy(() => import("./pages/AgreementDownload"));
 const HeroV3Mockup = lazy(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazy(() => import("./pages/dev/UpcomingLittersV2Mockup"));
 
@@ -92,6 +93,7 @@ export function AppRoutes() {
         <Route path="/breeds" element={<Breeds />} />
         <Route path="/deposit" element={<DepositAgreement />} />
         <Route path="/payment/:agreementId/:buyerToken" element={<PaymentDashboard />} />
+        <Route path="/agreements/:agreementId/:buyerToken/download" element={<AgreementDownload />} />
         <Route path="/request-deposit" element={<RequestDeposit />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />
