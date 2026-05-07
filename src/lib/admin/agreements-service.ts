@@ -266,12 +266,55 @@ export async function sendTestimonialInvite(agreementId: string): Promise<void> 
   if (error) throw error;
 }
 
-/** Generate a dispute-evidence ZIP for the given agreement.
- * Admin-only (requires active session JWT). Returns a 1-hour signed URL
- * pointing to the ZIP in the dispute-evidence bucket. */
+// ── Dispute evidence packets (H8) ─────────────────────────────────────────
+
+export interface DisputePacket {
+  /** Filename only: evidence-2026-05-06T19-30-00.zip */
+  name: string;
+  /** Full storage path: {agreementId}/{name} — pass to getDisputePacketUrl */
+  zip_path: string;
+  created_at: string | null;
+}
+
+/** List all evidence packets for an agreement, newest first.
+ * Uses the admin's session JWT via Supabase Storage RLS. */
+export async function listDisputePackets(
+  agreementId: string
+): Promise<DisputePacket[]> {
+  const { data, error } = await supabase.storage
+    .from('dispute-evidence')
+    .list(agreementId, { sortBy: { column: 'created_at', order: 'desc' } });
+
+  if (error) throw error;
+  return (data ?? [])
+    .filter((f) => f.name.endsWith('.zip'))
+    .map((f) => ({
+      name:       f.name,
+      zip_path:   `${agreementId}/${f.name}`,
+      created_at: f.created_at ?? null,
+    }));
+}
+
+/** Mint a fresh 1-hour signed URL for a specific packet.
+ * Call on every Download click — never cache the URL client-side. */
+export async function getDisputePacketUrl(zipPath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('dispute-evidence')
+    .createSignedUrl(zipPath, 3600);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message ?? 'Failed to create signed URL');
+  }
+  return data.signedUrl;
+}
+
+/** Invoke the edge function to build a new dispute-evidence ZIP.
+ * Returns the storage path and generation timestamp.
+ * Use listDisputePackets to refresh the UI list, then
+ * getDisputePacketUrl to open the download. */
 export async function generateDisputeEvidencePacket(
   agreementId: string
-): Promise<{ signed_url: string; zip_path: string; generated_at: string }> {
+): Promise<{ zip_path: string; generated_at: string }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error('No active session');
@@ -285,8 +328,10 @@ export async function generateDisputeEvidencePacket(
   );
 
   if (error) throw error;
-  if (!data?.signed_url) throw new Error('No download URL returned from evidence packet generator.');
-  return data as { signed_url: string; zip_path: string; generated_at: string };
+  if (!data?.zip_path) {
+    throw new Error('No zip_path returned from evidence packet generator.');
+  }
+  return data as { zip_path: string; generated_at: string };
 }
 
 /** Fetch opted-in newsletter subscribers from puppy_inquiries */

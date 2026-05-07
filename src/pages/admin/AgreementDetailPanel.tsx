@@ -28,9 +28,151 @@ import {
   sendPuppyGuide,
   sendTestimonialInvite,
   generateDisputeEvidencePacket,
+  listDisputePackets,
+  getDisputePacketUrl,
+  type DisputePacket,
 } from '@/lib/admin/agreements-service';
 import type { DepositAgreement } from '@/types/deposit';
-import { CheckCircle2, XCircle, AlertTriangle, BookOpen, MessageSquarePlus, ClipboardCheck, FileArchive } from 'lucide-react';
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  BookOpen,
+  MessageSquarePlus,
+  ClipboardCheck,
+  FileArchive,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
+
+// ── DisputeEvidenceCard + PacketRow ──────────────────────────────────────
+// Named components defined outside AgreementDetailPanel to satisfy the
+// React Compiler "Cannot create components during render" rule.
+
+interface DisputeEvidenceCardProps {
+  agreementId: string;
+}
+
+function DisputeEvidenceCard({ agreementId }: DisputeEvidenceCardProps) {
+  const queryClient = useQueryClient();
+  const [showPast, setShowPast] = useState(false);
+
+  const packetsQ = useQuery({
+    queryKey: ['dispute-packets', agreementId],
+    queryFn:  () => listDisputePackets(agreementId),
+  });
+
+  const generateMut = useMutation({
+    mutationFn: () => generateDisputeEvidencePacket(agreementId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispute-packets', agreementId] });
+      toast.success('Evidence packet generated — click Download to get the file.');
+    },
+    onError: (err: Error) =>
+      toast.error('Failed to generate packet: ' + err.message),
+  });
+
+  const packets = packetsQ.data ?? [];
+  const [mostRecent, ...past] = packets;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            <FileArchive className="h-4 w-4" />
+            Dispute Evidence Packets
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generateMut.mutate()}
+            disabled={generateMut.isPending || packetsQ.isLoading}
+          >
+            {generateMut.isPending
+              ? 'Building…'
+              : mostRecent
+              ? 'Generate Fresh'
+              : 'Generate Packet'}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {packetsQ.isLoading ? (
+          <p className="text-xs text-muted-foreground italic">Loading…</p>
+        ) : !mostRecent ? (
+          <p className="text-xs text-muted-foreground italic">
+            No packets generated yet.
+          </p>
+        ) : (
+          <>
+            <PacketRow packet={mostRecent} label="Most recent" />
+            {past.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
+                  onClick={() => setShowPast((v) => !v)}
+                >
+                  {showPast
+                    ? <ChevronDown className="h-3 w-3" />
+                    : <ChevronRight className="h-3 w-3" />}
+                  Past packets ({past.length})
+                </button>
+                {showPast && (
+                  <ul className="mt-1.5 space-y-1.5 pl-4 border-l">
+                    {past.map((p) => (
+                      <PacketRow key={p.zip_path} packet={p} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface PacketRowProps {
+  packet: DisputePacket;
+  label?: string;
+}
+
+function PacketRow({ packet, label }: PacketRowProps) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    setLoading(true);
+    try {
+      const url = await getDisputePacketUrl(packet.zip_path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      toast.error('Failed to get download URL — try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ts = packet.created_at
+    ? format(new Date(packet.created_at), 'MMM d, yyyy h:mm a')
+    : packet.name;
+
+  return (
+    <div className="flex items-center justify-between gap-2 text-sm">
+      <span className="text-xs text-muted-foreground">
+        {label && <span className="font-medium">{label} — </span>}
+        {ts}
+      </span>
+      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={handleDownload} disabled={loading}>
+        {loading ? 'Getting link…' : '↓ Download'}
+      </Button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 
 interface AgreementDetailPanelProps {
   agreement: DepositAgreement;
@@ -117,16 +259,6 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
     mutationFn: () => sendTestimonialInvite(agreement.id),
     onSuccess: () => toast.success('Testimonial invitation sent'),
     onError: (err: Error) => toast.error('Failed to send invitation: ' + err.message),
-  });
-
-  const evidencePacketMut = useMutation({
-    mutationFn: () => generateDisputeEvidencePacket(agreement.id),
-    onSuccess: ({ signed_url }) => {
-      // Open ZIP download in a new tab; the signed URL expires in 1 hour.
-      window.open(signed_url, '_blank', 'noopener,noreferrer');
-      toast.success('Evidence packet ready — download opened in new tab. Link expires in 1 hour.');
-    },
-    onError: (err: Error) => toast.error('Failed to generate evidence packet: ' + err.message),
   });
 
   const isBuyerSigned = !!agreement.buyer_signed_at;
@@ -417,30 +549,12 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
                 {testimonialMut.isPending ? 'Sending…' : 'Send Invite'}
               </Button>
             </div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2 min-w-0">
-                <FileArchive className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">Generate Dispute Evidence Packet</p>
-                  <p className="text-xs text-muted-foreground">
-                    Downloads a ZIP with all audit data, screenshots, communications, and
-                    handover records. Upload manually to Square disputes portal if needed.
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => evidencePacketMut.mutate()}
-                disabled={evidencePacketMut.isPending}
-                className="shrink-0"
-              >
-                {evidencePacketMut.isPending ? 'Building…' : 'Generate Packet'}
-              </Button>
-            </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Dispute evidence packets (Wave H H8) */}
+      <DisputeEvidenceCard agreementId={agreement.id} />
 
       {/* Communications timeline + manual log (Wave H H5) */}
       <AgreementCommunicationsCard agreementId={agreement.id} />
