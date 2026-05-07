@@ -41,6 +41,8 @@ supabase/.temp/
 *.xls
 *.pptx
 *.pdf
+# Allow blank AcroForm templates used by the generate-agreement-pdf edge function
+!supabase/functions/_shared/pdf/templates/*.pdf
 .~lock.*
 
 # Claude Code / AI tools

@@ -1,5 +1,8 @@
 # ── Block business / office documents from being committed ──
-BLOCKED=$(git diff --cached --name-only --diff-filter=ACR | grep -iE '\.(docx|xlsx|xls|pptx|pdf)$|^\.~lock\.' || true)
+BLOCKED=$(git diff --cached --name-only --diff-filter=ACR \
+  | grep -iE '\.(docx|xlsx|xls|pptx|pdf)$|^\.~lock\.' \
+  | grep -v '^supabase/functions/_shared/pdf/templates/' \
+  || true)
 
 if [ -n "$BLOCKED" ]; then
   echo ""

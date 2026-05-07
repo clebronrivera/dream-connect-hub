@@ -1,226 +1,259 @@
 # PDF AcroForm field disambiguation — Wave F
 
-**Produced by:** Wave F0 inspection (2026-05-06)  
+**Produced by:** Wave F0 inspection (2026-05-06); revised 2026-05-07 against real AcroForm PDFs  
 **Companion to:** `docs/spec/pdf-acroform-fields.md`  
-**Status:** Design decisions locked for F1–F4. Do not change without updating both documents and the `depositAgreementFieldMap.ts` module.
-
-This document resolves every naming ambiguity, widget-type decision, and "what maps to what" question that `pdf-acroform-fields.md` leaves implicit.
+**Status:** Design decisions locked for F1–F4.
 
 ---
 
-## 1. Puppy DOB vs Buyer DOB
+## 1. Field naming convention
 
-### Decision
+The physical PDFs use **camelCase** names (not the snake_case names that Wave F0 originally designed). The `depositAgreementFieldMap.ts` module maps from DB column names (snake_case) to PDF field names (camelCase). Do not rename the PDF fields — they are in the physical files.
 
-| Field name | PDF template | DB source | Rationale |
-|---|---|---|---|
-| `puppy_date_of_birth` | ✅ Include | `deposit_agreements.puppy_dob` | Required for health certificate chain-of-custody |
-| *(no buyer DOB field)* | ❌ Omit entirely | Not collected | Per Wave E decision — buyer DOB is never stored in `deposit_agreements`. If the physical PDF layout has a "Date of birth" label for the buyer, leave that field blank or remove it from the template before F1 copies it. Do **not** create a `buyer_date_of_birth` AcroForm field. |
-
-### Format
-`puppy_date_of_birth` → `MMM d, yyyy` (e.g. `Feb 3, 2026`). Nullable — if `puppy_dob` is NULL in the DB, write an empty string, not "N/A" or "Unknown".
-
----
-
-## 2. Signature mirror rule
-
-### Problem
-The Deposit Agreement is 7 pages. The signature block may appear more than once (e.g. at the end of the terms section AND at the end of the document). PDF AcroForm fields are global — two fields with the same name are normally linked (one fill populates both). However, `pdf-lib` fills fields by name and does not guarantee link behavior across all PDF readers.
-
-### Decision
-
-**Use distinct names for every signature appearance.** Do not rely on linked-name behavior.
-
-| Appearance | AcroForm field name | DB source | Stored separately? |
-|---|---|---|---|
-| Primary (first occurrence) | `buyer_signature_text` | `deposit_agreements.buyer_signature_text` | Yes — canonical column |
-| Mirror (second occurrence, if any) | `buyer_signature_text_2` | Same as `buyer_signature_text` | **No** — `generate-agreement-pdf` fills it from the same value; no second DB column |
-| If a third appearance exists | `buyer_signature_text_3` | Same source | No |
-
-The same rule applies to `buyer_signature_date` if it appears more than once: `buyer_signature_date_2`, etc.
-
-**Implementation note:** `depositAgreementFieldMap.ts` exports the primary field name. The edge function fills the mirror names by convention (`primaryName + '_2'`) after filling all canonical fields. The `assertAllFieldsPresent` check only validates that all primary names exist in the template; mirror names are optional and silently skipped if absent.
-
----
-
-## 3. Payment method — text field, not radio group
-
-### Problem
-The deposit agreement has a "Payment Method" field. PDF radio groups are common for this but introduce complexity: they require one `PDFRadioGroup` widget per choice, choice values must match exactly, and adding a new payment method requires a PDF edit.
-
-### Decision
-
-`payment_method` is a **plain text field** in the AcroForm template. `generate-agreement-pdf` writes the human-readable label string.
-
-| `deposit_payment_method` value (DB) | Text written to PDF |
+| Convention | Example |
 |---|---|
-| `zelle` | `Zelle` |
-| `venmo` | `Venmo` |
-| `cashapp` | `Cash App` |
-| `apple_pay` | `Apple Pay` |
-| `square` | `Square` |
-| `cash` | `Cash` |
-
-The mapping lives in `depositAgreementFieldMap.ts` as a `PAYMENT_METHOD_LABELS` constant (matching `PAYMENT_METHODS` from `src/lib/constants/deposit.ts` but with display strings). The edge function looks up the label before filling; if the value is not in the map it falls back to the raw DB string so a future method doesn't silently blank the field.
+| PDF AcroForm `T` value | `buyerName`, `ack1`, `pa_sig_cityStateZip` |
+| DB column | `buyer_name`, `ack_full_agreement_at` |
+| TS constant key | snake_case (mirrors DB side) |
 
 ---
 
-## 4. Authorized seller — text field, not radio group
+## 2. Field types — mixed, not all text
 
-### Problem
-Two authorized sellers exist (`carlos_lebron_rivera`, `yolanda_lebron_rivera`). The agreement block has both a name field and an initials field.
+The original F0 spec assumed all fields were Text. The actual PDFs use:
 
-### Decision
-
-Both are **plain text fields**:
-
-| AcroForm field name | Content | Example |
+| Field category | Widget type | Fill method (pdf-lib) |
 |---|---|---|
-| `authorized_seller_name` | Full display name from `AUTHORIZED_SELLERS` | `Carlos Lebron Rivera` |
-| `authorized_seller_initials` | Initials from `AUTHORIZED_SELLERS` | `CLR` |
+| Buyer info, prices, dates, signatures, names | Text | `form.getTextField(name).setText(value)` |
+| How-heard, questionnaire, payment method, authorized seller, acknowledgments, time/day prefs | **Checkbox** | `form.getCheckBox(name).check()` or `.uncheck()` |
 
-`AUTHORIZED_SELLERS` (from `src/lib/constants/business.ts`) is the single source of truth. The edge function performs the lookup by the `deposit_agreements.authorized_seller` id string. If the id is not found in `AUTHORIZED_SELLERS`, the edge function throws (fail loudly — a missing seller is a data integrity error, not a "blank and continue" case).
-
-**For the Purchase Agreement,** the corresponding fields use the `authorized_representative_*` names:
-
-| AcroForm field name | Content |
-|---|---|
-| `authorized_representative_name` | Same lookup as `authorized_seller_name` |
-| `authorized_representative_title` | Static string: `"Authorized Representative, Dream Enterprises LLC"` |
+The field map must handle both. `assertAllFieldsPresent` must call `form.getTextField` for text fields and `form.getCheckBox` for checkbox fields — mixing types throws.
 
 ---
 
-## 5. Acknowledgment fields — timestamps, not live checkboxes
+## 3. Acknowledgment fields — checkboxes + initials, not timestamps
 
-### Problem
-The buyer already checked each acknowledgment in the web form (with a server-recorded timestamp per checkbox). Rendering them as live PDF checkboxes creates ambiguity about whether the PDF checkbox state is authoritative.
+### How it works
 
-### Decision
+The buyer ticks acknowledgments in the web form (recording `ack_*_at` timestamps). The PDF is generated after. The PDF checkbox is filled based on whether the corresponding DB timestamp is set, and the initials text field is filled with the buyer's derived initials.
 
-Every `ack_*` field in both PDFs is a **read-only text field** showing the formatted timestamp when the buyer ticked that box online. The PDF is a printed record; it does not accept new checkbox input.
-
-| Displayed value pattern | Example |
-|---|---|
-| `Acknowledged: May 5, 2026 at 10:32 PM` | Full datetime string |
-
-If the `ack_*_at` column is NULL in the DB (field was not present in the form version the buyer signed), write `—` (em dash) to indicate "not applicable for this agreement version."
-
-**Format function** (used in `depositAgreementFieldMap.ts`):
 ```ts
-function fmtAck(ts: string | null): string {
-  if (!ts) return "—";
-  const d = new Date(ts);
-  return `Acknowledged: ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+// For each ack row in the deposit agreement:
+const isAcked = !!row.ack_full_agreement_at;  // boolean
+if (isAcked) form.getCheckBox("ack1").check();
+form.getTextField("initials1").setText(deriveBuyerInitials(row.buyer_name));
+```
+
+### Buyer initials derivation
+
+```ts
+function deriveBuyerInitials(fullName: string): string {
+  return fullName
+    .trim()
+    .split(/\s+/)
+    .map(w => w[0]?.toUpperCase() ?? "")
+    .join("");
 }
+// "Carlos Lebron Rivera" → "CLR"
+// "Maria Gonzalez" → "MG"
+```
+
+### Deposit Agreement ack mapping (ack1–7)
+
+| PDF pair | Ack text (abbreviated) | DB column | Fallback if column absent |
+|---|---|---|---|
+| `ack1` / `initials1` | Full agreement read/understood | `ack_full_agreement_at` | — |
+| `ack2` / `initials2` | $300 deposit is NON-REFUNDABLE | `ack_payment_authorization_at` | `buyer_signed_at` |
+| `ack3` / `initials3` | Pickup policy coordination | `ack_pickup_acceptance_at` | `buyer_signed_at` |
+| `ack4` / `initials4` | Applicable sales tax acknowledged | *(no dedicated column)* | `buyer_signed_at` |
+| `ack5` / `initials5` | Reservation not confirmed until payment verified + countersigned | *(no dedicated column)* | `buyer_signed_at` |
+| `ack6` / `initials6` | 18+ age + all info accurate | `ack_age_attestation_at` | `buyer_signed_at` |
+| `ack7` / `initials7` | Electronic signature legally binding | `ack_esign_valid_at` | `buyer_signed_at` |
+
+### Purchase Agreement ack mapping (pa_ack1–7)
+
+The purchase agreement's 7 acknowledgments map cleanly to the 7 canonical DB columns:
+
+| PDF pair | DB column |
+|---|---|
+| `pa_ack1` / `pa_initials1` | `ack_full_agreement_at` |
+| `pa_ack2` / `pa_initials2` | `ack_statutory_rights_at` |
+| `pa_ack3` / `pa_initials3` | `ack_esign_valid_at` |
+| `pa_ack4` / `pa_initials4` | `ack_genetic_disclaimer_at` |
+| `pa_ack5` / `pa_initials5` | `ack_arbitration_at` |
+| `pa_ack6` / `pa_initials6` | `ack_age_attestation_at` |
+| `pa_ack7` / `pa_initials7` | `ack_welfare_responsibility_at` |
+
+`pa_arbitrationConfirm` — the typed phrase field — is populated at purchase agreement generation time (future wave). Column TBD.
+
+---
+
+## 4. Payment method — checkboxes, not text
+
+The deposit agreement uses one checkbox per payment method. Exactly one is checked.
+
+```ts
+const METHOD_CHECKBOX: Record<string, string> = {
+  cashapp:   "payment_CashApp",
+  venmo:     "payment_Venmo",
+  apple_pay: "payment_ApplePay",
+  zelle:     "payment_Zelle",
+  cash:      "payment_Cash",
+  square:    "payment_Square",
+};
+
+for (const [key, fieldName] of Object.entries(METHOD_CHECKBOX)) {
+  if (row.deposit_payment_method === key) {
+    form.getCheckBox(fieldName).check();
+  }
+}
+
+// memoRequired — always checked (memo instruction is printed for all methods;
+// Square generates an invoice separately but the field stays checked)
+form.getCheckBox("memoRequired").check();
 ```
 
 ---
 
-## 6. Balance due — computed, never stored
+## 5. Authorized seller — checkboxes, not text
 
-`balance_due` is filled by the edge function as:
+Two checkboxes; exactly one checked.
 
 ```ts
-const balanceDue = purchasePrice - depositAmount;
-form.getTextField("balance_due").setText(
-  `$${balanceDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const SELLER_CHECKBOX: Record<string, string> = {
+  carlos_lebron_rivera:  "authorizedSeller_CLR",
+  yolanda_lebron_rivera: "authorizedSeller_YLR",
+};
+
+const sellerField = SELLER_CHECKBOX[row.authorized_seller];
+if (!sellerField) throw new Error(`Unknown authorized_seller id: ${row.authorized_seller}`);
+form.getCheckBox(sellerField).check();
+```
+
+The signature fields (`sellerSignature`, `pa_sellerSignature`) are **text** fields and receive the full display name:
+```ts
+form.getTextField("sellerSignature").setText(
+  AUTHORIZED_SELLERS[row.authorized_seller].displayName
 );
 ```
 
-`purchase_price` and `deposit_amount` are read from `deposit_agreements` (already stored as numbers). `balance_due` is **never** written back to the DB — this is intentional to avoid the DB going out of sync if either source column is ever corrected.
-
 ---
 
-## 7. Combined address field (Purchase Agreement only)
+## 6. Pickup time and day — checkboxes
 
-The Purchase Agreement has `buyer_city_state_zip` as a combined text field. The Deposit Agreement has split `buyer_city`, `buyer_state`, `buyer_zip` fields.
-
-### Decision
-Match whatever the physical PDF layout uses. The canonical spec says:
-
-- **Deposit Agreement template:** three split fields (`buyer_city`, `buyer_state`, `buyer_zip`)  
-- **Purchase Agreement template:** one combined field (`buyer_city_state_zip`)
-
-`depositAgreementFieldMap.ts` handles the combined form:
+One checkbox per time-of-day and one per day-type; one in each group is checked.
 
 ```ts
-// Purchase Agreement only
-"buyer_city_state_zip": `${row.buyer_city}, ${row.buyer_state} ${row.buyer_zip}`.trim(),
+const TIME_CHECKBOX: Record<string, string> = {
+  morning:   "primaryTime_Morning",
+  afternoon: "primaryTime_Afternoon",
+  evening:   "primaryTime_Evening",
+};
+const DAY_CHECKBOX: Record<string, string> = {
+  weekday: "primaryDay_Weekday",
+  weekend: "primaryDay_Weekend",
+  either:  "primaryDay_Either",
+};
+// Same pattern for altTime_* and altDay_* using pickup_alt_time / pickup_alt_day
 ```
 
-If the physical Purchase Agreement PDF turns out to use split fields instead, the constant entry changes to three entries. The `assertAllFieldsPresent` guard will surface the mismatch at test time.
+If the preference column is NULL, leave all corresponding checkboxes unchecked.
 
 ---
 
-## 8. Parked fields — must NOT appear in AcroForm templates
+## 7. Purchase Agreement — mirror fields (pa_sig_*)
 
-The following must be absent from both PDF templates. If Adobe Acrobat / the form creator adds them by mistake, `assertAllFieldsPresent` will not catch them (it only checks for missing fields, not extra ones). Add a second guard `assertNoForbiddenFields` in `depositAgreementFieldMap.ts` if audit risk is high.
+Pages 4–5 of the purchase agreement repeat puppy + buyer data in the signature block. These 13 `pa_sig_*` fields are filled from the same computed values as the primary fields — not from separate DB queries.
+
+```ts
+// After primary fill loop, fill mirrors from the same values:
+form.getTextField("pa_sig_puppyName").setText(filledValues.pa_puppyName);
+form.getTextField("pa_sig_breedColor").setText(filledValues.pa_breedColor);
+// ... etc. for all 13 pa_sig_* fields
+```
+
+---
+
+## 8. Puppy DOB field naming — `dateOfBirth` vs buyer DOB
+
+| Field name | Template | Refers to | Buyer DOB? |
+|---|---|---|---|
+| `dateOfBirth` | Deposit Agreement | **Puppy** date of birth | ❌ Never |
+| `pa_dateOfBirth` | Purchase Agreement | **Puppy** date of birth | ❌ Never |
+
+Buyer date of birth is **never collected** and has no PDF field in either template.
+
+---
+
+## 9. `dam` and `sire` — lookup via litter join
+
+The deposit agreement has `dam` and `sire` text fields (seller-completed section).  
+These come from `upcoming_litters.dam_name` / `upcoming_litters.sire_name` via the puppy's `litter_id`.
+
+```ts
+// In generate-agreement-pdf, fetch with join:
+const { data } = await supabase
+  .from("deposit_agreements")
+  .select(`
+    *,
+    puppy:puppies!inner(
+      sex,
+      litter:upcoming_litters(dam_name, sire_name)
+    )
+  `)
+  .eq("id", agreementId)
+  .single();
+
+form.getTextField("dam").setText(data.puppy?.litter?.dam_name ?? "");
+form.getTextField("sire").setText(data.puppy?.litter?.sire_name ?? "");
+```
+
+If the puppy has no `litter_id`, both fields are empty strings.
+
+---
+
+## 10. Fields with no DB column — leave empty string
+
+These fields exist in the PDF but have no corresponding DB column. Write `""` (never throw).
+
+| Field | PDF | Reason |
+|---|---|---|
+| `specialMarkings` | DA | No `special_markings` column |
+| `pa_approxWeight` | PA | No `approx_weight` column |
+| `pa_cviCertNo` | PA | CVI cert not stored in DB; operator enters manually |
+
+---
+
+## 11. Date formatting — canonical patterns
+
+| Context | Format | Example |
+|---|---|---|
+| `agreementDate`, `dateSigned`, `dateCountersigned`, `primaryDate`, `alternativeDate`, `pa_agreementDate`, `pa_buyerDateSigned`, `pa_sellerDateSigned` | `MM/DD/YYYY` | `05/07/2026` |
+| `dateOfBirth`, `pa_dateOfBirth`, `pa_sig_dob` | `MMM d, yyyy` | `Feb 3, 2026` |
+
+All formatting runs inside the edge function using `Intl.DateTimeFormat`. Do not format on the client side.
+
+Nullable dates: write `""` (empty string), never `"N/A"` or `"Unknown"`.
+
+---
+
+## 12. `assertAllFieldsPresent` — behavior
+
+The function in `depositAgreementFieldMap.ts`:
+
+1. Iterates every text field name in the text section of the constant map → calls `form.getTextField(name)` to verify it exists.
+2. Iterates every checkbox field name → calls `form.getCheckBox(name)` to verify.
+3. Throws `Error("PDF template missing AcroForm fields: [...]. Update the template or the field map.")` for any missing field.
+4. Does **not** throw for extra fields in the template (pa_sig_* mirrors, optional extras).
+5. Called immediately after `PDFDocument.load()`, before any fill calls.
+
+---
+
+## 13. Parked fields — must NOT appear in AcroForm templates
 
 | Field name | Reason absent |
 |---|---|
-| `ack_florida_venue` | Parked — attorney review required before production deploy |
-| `buyer_date_of_birth` | Not collected at deposit time (Wave E decision) |
-| `driver_license_number` | Never collected anywhere in the system |
-| `buyer_access_token` | Bearer-token semantics — must never appear in any PDF or ZIP |
-| `employee_number` / `staff_id` | Not in scope; operator initials captured in pickup handover only (H4) |
-| `q_hours_alone`, `q_puppy_goal`, `q_training_experience` | Questionnaire data stored in DB; not rendered in the agreement PDF |
-| `how_heard`, `how_heard_referral_name`, `how_heard_other_text` | Stored in DB; not rendered in the agreement PDF |
-| `pickup_time_preference`, `pickup_day_preference`, `pickup_notes` | Stored in DB; not rendered |
-
----
-
-## 9. Date formatting — canonical pattern
-
-All date-only fields use `MMM d, yyyy` (no leading zero on day):
-
-| Value | Formatted |
-|---|---|
-| `2026-02-03` | `Feb 3, 2026` |
-| `2026-12-25` | `Dec 25, 2026` |
-
-Timestamp fields (ack records, signed_at) use the `fmtAck` pattern from §5 above.
-
-All formatting runs in the edge function using the `Intl` API. Do not format in the client before sending to the edge function — the raw DB values travel to the function and formatting happens there.
-
----
-
-## 10. `assertAllFieldsPresent` — behavior specification
-
-The function in `depositAgreementFieldMap.ts` must:
-
-1. Call `form.getFields()` on the loaded template.
-2. Build a `Set<string>` of template field names.
-3. Check every value in `DEPOSIT_AGREEMENT_FIELD_MAP` (the canonical names).
-4. Throw `Error("PDF template missing AcroForm fields: [list]. Update the template or the field map.")` if any are missing.
-5. **Not** throw if extra fields exist in the template (mirror fields `_2`, `_3`, etc. are optional extras).
-6. Be called immediately after `PDFDocument.load()` and before any `setText` calls. A throw here surfaces at deploy-smoke time, not silently at buyer-facing PDF generation.
-
-Mirror fields (`buyer_signature_text_2`, etc.) are filled opportunistically:
-
-```ts
-// After canonical fill loop:
-for (const [key, value] of Object.entries(filledValues)) {
-  let n = 2;
-  while (true) {
-    const mirrorName = `${key}_${n}`;
-    try {
-      form.getTextField(mirrorName).setText(value);
-      n++;
-    } catch {
-      break; // field doesn't exist — stop
-    }
-  }
-}
-```
-
----
-
-## 11. Field type summary
-
-Every field in both PDFs is a **Text** field. There are no:
-- Radio groups
-- Checkboxes
-- Signature widgets (digital signature — the typed name is a text field)
-- Combo boxes / dropdowns
-
-This simplifies `pdf-lib` usage: only `form.getTextField(name).setText(value)` and `form.flatten()` are needed. No `PDFRadioGroup`, `PDFCheckBox`, or `PDFDropdown` handling required.
+| `ack_florida_venue` | Attorney review required |
+| `buyer_date_of_birth` | Not collected |
+| `driver_license_number` | Never collected |
+| `buyer_access_token` | Bearer-token — never in any PDF or ZIP |
