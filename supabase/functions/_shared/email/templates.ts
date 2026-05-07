@@ -239,6 +239,8 @@ export function agreementFinalizedBuyer(args: {
   depositAmount: number;
   balanceDue: number;
   pickupDate: string;
+  /** Wave F5 — signed PDF download link. Optional; omitted if PDF generation failed. */
+  downloadUrl?: string;
 }): EmailTemplate {
   const body =
     heading("Your agreement is finalized") +
@@ -252,6 +254,12 @@ export function agreementFinalizedBuyer(args: {
         row("Balance due", money(args.balanceDue)) +
         row("Pickup date", args.pickupDate)
     ) +
+    (args.downloadUrl
+      ? button("Download Your Agreement PDF", args.downloadUrl) +
+        paragraph(
+          `This download link is active for 30 days. Each click opens a fresh 1-hour download window.`
+        )
+      : "") +
     paragraph(
       `We'll be in touch as your pickup date approaches with final payment instructions and pickup details.`
     );
