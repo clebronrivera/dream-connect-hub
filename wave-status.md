@@ -30,8 +30,8 @@ and **Smoke-tested** columns as each step lands in production.
 | D | Buyer Payment Dashboard + `buyer_access_token` | ✅ | ✅ | | Code + migrations merged |
 | E | Schema completeness — new ack columns, pickup prefs, city/state/zip | ✅ | ✅ | | Code + migrations merged |
 | F | Finalized PDF generation — pdf-lib edge function, AcroForm fill, storage bucket, tokenized download | ✅ | ✅ | | Code + migrations merged |
-| G | Tests, docs, `puppies.status='Reserved'` transition, smoke checklist | ✅ | N/A | | In progress (this wave) |
-| H | Chargeback defense / identity capture / pickup handover / dispute evidence | ⏳ | ⏳ | | Pending — Wave G must complete first |
+| G | Tests, docs, `puppies.status='Reserved'` transition, smoke checklist | ✅ | N/A | | Complete |
+| H | Chargeback defense / identity capture / pickup handover / dispute evidence | ✅ | ✅ | | Code + migrations complete |
 
 ### Wave G sub-tasks
 
@@ -42,26 +42,32 @@ and **Smoke-tested** columns as each step lands in production.
 | G2 — Docs: rewrite `DEPOSIT_REQUEST_FLOW.md`, update `CHANGELOG.md`, `MANAGING_PUPPIES.md`, `wave-status.md` | ✅ Done |
 | G4 — `docs/ops/reservation-flow-smoke-test.md` smoke checklist | ✅ Done |
 
-### Wave H sub-tasks (next up)
+### Wave H sub-tasks
 
-| Task | Description |
-|------|-------------|
-| H1 | Payment-time identity capture — `payment_attestations` table, attestation form on PaymentDashboard |
-| H2 | Post-payment confirmation capture — confirmation screenshot + tx ref |
-| H3 | Operator payment verification — sender handle comparison + mismatch flag |
-| H4 | Pickup-day handover module — `pickup_handovers` table, `PickupHandover.tsx` page |
-| H5 | Communication archive — `agreement_communications` table, auto-log all emails |
-| H6 | Contract clauses — already encoded in Wave E; no new code |
-| H7 | Merchant descriptor hygiene — Square dashboard + documentation |
-| H8 | Dispute evidence packet generator — `generate-dispute-evidence-packet` edge function |
+| Task | Status | Notes |
+|------|--------|-------|
+| H1 | ✅ Done | `payment_attestations` table (`20260506000006_payment_attestations.sql`); H1Form in `PaymentDashboard.tsx`; `submit-payment-attestation` edge function (302 lines); IP/UA/geolocation capture |
+| H2 | ✅ Done | H2Form in `PaymentDashboard.tsx`; `confirmation_screenshot_path`, `transaction_reference_id`, `payment_memo_used` columns; `mark-payment-sent` gates on all H1+H2 preconditions (422 with missing field name if not met) |
+| H3 | ✅ Done | `operator_verified_sender_handle` + `operator_handle_mismatch_flagged` columns (`20260506000007_h3_operator_handle_mismatch.sql`); mismatch banner in `AgreementDetailPanel.tsx`; non-blocking flag for chargeback evidence |
+| H4 | ✅ Done | `pickup_handovers` table (`20260506000008_pickup_handovers.sql`); `PickupHandover.tsx` (567 lines); `finalize-pickup-handover` edge function (241 lines); `Reserved → Sold` puppy transition; `pickup-evidence` bucket (`20260506000010`) |
+| H5 | ✅ Done | `agreement_communications` table (`20260506000009_agreement_communications.sql`); `_shared/email/send.ts` auto-logs every outbound email; `AgreementCommunicationsCard.tsx` in admin detail panel; manual log UI |
+| H6 | ✅ Done | Contract clauses encoded in Wave E; no new code in Wave H |
+| H7 | ✅ Done | `docs/ops/payment-handle-hygiene.md` — Square merchant descriptor + Zelle/Venmo/CashApp handle hygiene checklist; operator action items documented |
+| H8 | ✅ Done | `generate-dispute-evidence-packet` edge function (491 lines); ZIP with all PDFs + screenshots + communications JSON + audit trail; `dispute-evidence` storage bucket; "Generate evidence packet" button wired in `AgreementDetailPanel.tsx` |
 
 ---
 
-## Pending operator actions (before Wave H ships)
+## Pending operator actions (production deploy)
 
-1. Apply migration `20260506000013_agreements_storage_bucket.sql` to production
-   (`supabase db push` or via Supabase dashboard SQL editor) before PDF uploads
-   will work.
-2. Confirm `PUBLIC_SITE_URL` Edge Function secret is set to
-   `https://puppyheavenllc.com`.
-3. Confirm `RESEND_API_KEY`, `NOTIFY_EMAIL`, `RESEND_FROM` secrets are current.
+1. Apply all pending migrations to production via `supabase db push` or the Supabase dashboard SQL editor.
+   Key migrations not yet deployed (verify with `supabase migrations list`):
+   - `20260506000006_payment_attestations.sql` (H1)
+   - `20260506000007_h3_operator_handle_mismatch.sql` (H3)
+   - `20260506000008_pickup_handovers.sql` (H4)
+   - `20260506000009_agreement_communications.sql` (H5)
+   - `20260506000010_pickup_evidence_bucket.sql` (H4 storage)
+   - `20260506000013_agreements_storage_bucket.sql` (F storage — PDF uploads)
+2. Deploy all edge functions: `supabase functions deploy --no-verify-jwt` (public functions: `submit-payment-attestation`, `mark-payment-sent`, `agreement-download-url`) and `supabase functions deploy` (JWT-gated: `finalize-agreement`, `finalize-pickup-handover`, `generate-agreement-pdf`, `generate-dispute-evidence-packet`, `send-deposit-link`, `send-deposit-receipt`).
+3. Confirm `PUBLIC_SITE_URL` Edge Function secret is set to `https://puppyheavenllc.com`.
+4. Confirm `RESEND_API_KEY`, `NOTIFY_EMAIL`, `RESEND_FROM` secrets are current.
+5. Run the full smoke test per `docs/ops/reservation-flow-smoke-test.md` on staging before promoting to production.
