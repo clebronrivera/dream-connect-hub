@@ -12,6 +12,16 @@
   NODE_VERSION = "20"
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_TURNSTILE_SITE_KEY"
 
+# Missing /assets/* must 404 cleanly. Without this rule, the SPA fallback below
+# would return index.html (HTML, 200) for missing JS chunks, and the browser
+# would fail with "Importing a module script failed" instead of a clear 404.
+# Static files in publish dir are served before redirects, so existing assets
+# are unaffected.
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 404
+
 # SPA fallback: serve index.html for all routes so client-side React Router works
 # (backup for public/_redirects; both ensure deep links and refreshes work)
 [[redirects]]

@@ -1,2 +1,6 @@
+# Missing /assets/* must 404 cleanly so the browser surfaces a real load error
+# instead of trying to parse the SPA HTML fallback as JavaScript.
+/assets/*  /assets/:splat  404
+
 # SPA fallback: serve index.html for all routes so client-side router works
 /*    /index.html   200
