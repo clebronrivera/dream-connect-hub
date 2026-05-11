@@ -62,6 +62,7 @@ const BreederLitter = lazy(() => import("./pages/breeder/BreederLitter"));
 const BreederLitterSetup = lazy(() => import("./pages/breeder/BreederLitterSetup"));
 const BreederPuppiesWizard = lazy(() => import("./pages/breeder/BreederPuppiesWizard"));
 const BreederPuppyCapture = lazy(() => import("./pages/breeder/BreederPuppyCapture"));
+const BreederLitterDates = lazy(() => import("./pages/breeder/BreederLitterDates"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -124,6 +125,7 @@ export function AppRoutes() {
             <Route path="litters/:litterId" element={<BreederLitter />} />
             <Route path="litters/:litterId/setup" element={<BreederLitterSetup />} />
             <Route path="litters/:litterId/wizard" element={<BreederPuppiesWizard />} />
+            <Route path="litters/:litterId/dates" element={<BreederLitterDates />} />
             <Route path="puppies/:puppyId/capture" element={<BreederPuppyCapture />} />
           </Route>
         </Route>

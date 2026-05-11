@@ -67,6 +67,8 @@ export async function handler(
     }
     case "confirmLitterBorn":
       return await confirmLitterBorn(supabase, body.payload, json);
+    case "updateLitterDates":
+      return await updateLitterDates(supabase, body.payload, json);
     case "listLitterPuppies":
       return await listLitterPuppies(supabase, body.payload, json);
     case "createPuppy":
@@ -160,6 +162,53 @@ async function confirmLitterBorn(
       totalCount: total,
     },
   });
+}
+
+interface UpdateLitterDatesPayload {
+  litterId?: string;
+  dateOfBirth?: string;
+  readyDate?: string;
+}
+
+async function updateLitterDates(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as UpdateLitterDatesPayload;
+  if (!isUuid(p.litterId))
+    return json(400, { ok: false, error: "litterId must be a UUID" });
+
+  const patch: Record<string, unknown> = {};
+  if (p.dateOfBirth !== undefined) {
+    if (!isIsoDate(p.dateOfBirth))
+      return json(400, { ok: false, error: "dateOfBirth must be YYYY-MM-DD" });
+    patch.date_of_birth = p.dateOfBirth;
+  }
+  if (p.readyDate !== undefined) {
+    if (!isIsoDate(p.readyDate))
+      return json(400, { ok: false, error: "readyDate must be YYYY-MM-DD" });
+    patch.ready_date = p.readyDate;
+  }
+  if (Object.keys(patch).length === 0)
+    return json(400, { ok: false, error: "Provide dateOfBirth and/or readyDate" });
+
+  // The propagate_litter_ready_date trigger handles fanning a ready_date
+  // change out to all linked puppies that haven't been manually overridden.
+  patch.updated_at = new Date().toISOString();
+  const { error } = await supabase.from("litters").update(patch).eq("id", p.litterId);
+  if (error)
+    return json(500, { ok: false, error: "Failed to update litter dates", details: error.message });
+
+  // Mirror date_of_birth back to upcoming_litters so home cards stay accurate.
+  if (patch.date_of_birth !== undefined) {
+    await supabase
+      .from("upcoming_litters")
+      .update({ date_of_birth: patch.date_of_birth })
+      .eq("id", p.litterId);
+  }
+
+  return json(200, { ok: true, data: { litterId: p.litterId } });
 }
 
 interface ListLitterPuppiesPayload {
