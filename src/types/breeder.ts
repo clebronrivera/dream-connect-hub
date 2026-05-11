@@ -28,6 +28,7 @@ export interface BreederLitterSummary {
   litter_id: string | null;
   litter_date_of_birth: string | null;
   ready_date: string | null;
+  litter_base_price: number | null;
   total_puppies: number;
   puppies_missing_photos: number;
   last_puppy_update: string | null;

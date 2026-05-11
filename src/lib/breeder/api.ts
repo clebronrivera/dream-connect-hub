@@ -107,6 +107,7 @@ export interface ConfirmLitterBornPayload {
   readyDate: string;   // YYYY-MM-DD
   maleCount: number;
   femaleCount: number;
+  basePrice?: number | null;
 }
 
 export interface ConfirmLitterBornResult {
@@ -125,7 +126,12 @@ export function confirmLitterBorn(
 
 export function updateLitterDates(
   token: string,
-  payload: { litterId: string; dateOfBirth?: string; readyDate?: string },
+  payload: {
+    litterId: string;
+    dateOfBirth?: string;
+    readyDate?: string;
+    basePrice?: number | null;
+  },
 ): Promise<BreederWriteResult<{ litterId: string }>> {
   return callBreederWrite(token, "updateLitterDates", payload);
 }
@@ -139,6 +145,7 @@ export interface BreederPuppyRow {
   primary_photo: string | null;
   description: string | null;
   ready_date: string | null;
+  base_price: number | null;
   status: string | null;
   is_publicly_visible?: boolean;
   created_at?: string;
@@ -169,6 +176,7 @@ export function updatePuppy(
     primary_photo: string;
     description: string;
     ready_date: string;
+    base_price: number | null;
     status: string;
     is_publicly_visible: boolean;
   }>,

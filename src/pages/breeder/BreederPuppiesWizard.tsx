@@ -178,6 +178,14 @@ export default function BreederPuppiesWizard() {
         <h1 className="text-2xl font-bold">{litterRow.breed || "Litter"}</h1>
         <p className="text-sm text-muted-foreground">
           {completedCount} of {totalExpected || "—"} puppies captured
+          {litterRow.litter_base_price != null && (
+            <>
+              {" · "}
+              <span className="font-medium text-foreground">
+                ${Number(litterRow.litter_base_price).toLocaleString()} ea.
+              </span>
+            </>
+          )}
         </p>
         <div className="mt-2 flex gap-1">
           {slots.map((s, i) => (
@@ -263,6 +271,14 @@ export default function BreederPuppiesWizard() {
                       {captured
                         ? `${photoCount} ${photoCount === 1 ? "photo" : "photos"}`
                         : "No photos yet"}
+                      {p.base_price != null && (
+                        <>
+                          {" · "}
+                          <span className="font-medium text-foreground">
+                            ${Number(p.base_price).toLocaleString()}
+                          </span>
+                        </>
+                      )}
                     </p>
                   </div>
                   <Button
