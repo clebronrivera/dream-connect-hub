@@ -26,6 +26,7 @@ import {
   Star,
   ClipboardCheck,
   Newspaper,
+  KeyRound,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -43,6 +44,7 @@ export function AdminLayout() {
     { name: 'Deposit Requests', href: '/admin/deposit-requests', icon: ClipboardCheck },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
     { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
+    { name: 'Breeder Passcode', href: '/admin/settings/breeder-passcode', icon: KeyRound },
     { name: 'Dreamy Reviews', href: '/admin/testimonials', icon: Star },
     { name: 'Newsletter', href: '/admin/newsletter', icon: Newspaper },
     { name: 'FAQ', href: '/admin/faq', icon: HelpCircle },
