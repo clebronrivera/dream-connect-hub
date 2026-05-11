@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoCaptureSlot } from "@/components/breeder/PhotoCaptureSlot";
+import { VideoCaptureSlot } from "@/components/breeder/VideoCaptureSlot";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
   listLitterPuppies,
@@ -48,8 +49,8 @@ const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] 
 const PUPPY_QK = (id: string) => ["breeder", "puppy", id] as const;
 const HOME_QK = ["breeder", "home"] as const;
 
-type Step = "name" | "face" | "back" | "top" | "paw" | "price" | "notes" | "done";
-const STEPS: Step[] = ["name", "face", "back", "top", "paw", "price", "notes", "done"];
+type Step = "name" | "face" | "back" | "top" | "paw" | "video" | "price" | "notes" | "done";
+const STEPS: Step[] = ["name", "face", "back", "top", "paw", "video", "price", "notes", "done"];
 const PHOTO_STEPS: Step[] = ["face", "back", "top", "paw"];
 
 const STEP_LABELS: Record<Step, string> = {
@@ -58,6 +59,7 @@ const STEP_LABELS: Record<Step, string> = {
   back: "Back / profile",
   top: "Top-down",
   paw: "Paw print",
+  video: "Short video",
   price: "Price",
   notes: "Notes",
   done: "Done",
@@ -176,6 +178,7 @@ function CaptureForm({
   }, [puppy.photos, puppy.primary_photo]);
 
   const [photos, setPhotos] = useState<PhotosState>(initialPhotos);
+  const [videoUrl, setVideoUrl] = useState<string | null>(puppy.video_path);
 
   const patchMut = useMutation({
     mutationFn: async (fields: Parameters<typeof updatePuppy>[2]) => {
@@ -229,6 +232,12 @@ function CaptureForm({
       default:
         return;
     }
+  }
+
+  function onVideoUploaded(result: { path: string; publicUrl: string } | null) {
+    const next = result?.publicUrl ?? null;
+    setVideoUrl(next);
+    patchMut.mutate({ video_path: next });
   }
 
   function onPhotoUploaded(slot: keyof PhotosState, publicUrl: string) {
@@ -319,6 +328,15 @@ function CaptureForm({
             onUploaded={({ publicUrl }) =>
               onPhotoUploaded(step as keyof PhotosState, publicUrl)
             }
+          />
+        )}
+
+        {step === "video" && (
+          <VideoCaptureSlot
+            label="Short video"
+            subjectId={puppyId}
+            value={videoUrl}
+            onUploaded={onVideoUploaded}
           />
         )}
 
