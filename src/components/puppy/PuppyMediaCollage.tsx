@@ -65,12 +65,23 @@ export function PuppyMediaCollage({ photos, videoUrl, alt }: PuppyMediaCollagePr
               }
             >
               {item.kind === "photo" ? (
-                <img
-                  src={item.url}
-                  alt={`${alt} photo ${i + 1}`}
-                  className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                  loading={i === 0 ? "eager" : "lazy"}
-                />
+                <>
+                  {/* Blurred copy of the photo fills any letterboxing left
+                      by object-contain. Same image, large scale + heavy
+                      blur — keeps the tile visually full while the main
+                      image is shown in its entirety. */}
+                  <div
+                    className="absolute inset-0 scale-110 bg-cover bg-center blur-xl opacity-60"
+                    style={{ backgroundImage: `url(${item.url})` }}
+                    aria-hidden
+                  />
+                  <img
+                    src={item.url}
+                    alt={`${alt} photo ${i + 1}`}
+                    className="relative h-full w-full object-contain transition group-hover:scale-[1.02]"
+                    loading={i === 0 ? "eager" : "lazy"}
+                  />
+                </>
               ) : (
                 <VideoThumb url={item.url} />
               )}
@@ -124,13 +135,14 @@ export function PuppyMediaCollage({ photos, videoUrl, alt }: PuppyMediaCollagePr
 function VideoThumb({ url }: { url: string }) {
   // Use the video element itself as a poster — most browsers will render
   // the first frame on metadata load. preload="metadata" keeps this cheap.
+  // object-contain matches the photo tiles so the framing is consistent.
   return (
     <video
       src={url}
       preload="metadata"
       muted
       playsInline
-      className="h-full w-full object-cover"
+      className="h-full w-full bg-black object-contain"
     />
   );
 }
