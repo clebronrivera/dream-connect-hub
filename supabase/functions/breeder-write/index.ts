@@ -75,6 +75,12 @@ export async function handler(
       return await createPuppy(supabase, body.payload, json);
     case "updatePuppy":
       return await updatePuppy(supabase, body.payload, json);
+    case "listParents":
+      return await listParents(supabase, json);
+    case "createParent":
+      return await createParent(supabase, body.payload, json);
+    case "updateParent":
+      return await updateParent(supabase, body.payload, json);
     default:
       return json(400, { ok: false, error: `Unknown op: ${body.op ?? "(none)"}` });
   }
@@ -342,6 +348,116 @@ async function updatePuppy(
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });
+  return json(200, { ok: true, data });
+}
+
+// ---------- Parent dogs ----------
+
+async function listParents(supabase: SupabaseClient, json: JsonResponder): Promise<Response> {
+  const { data, error } = await supabase
+    .from("breeding_dogs")
+    .select("id, name, role, breed, composition, color, photo_path, photos, created_at, updated_at")
+    .order("role", { ascending: true })
+    .order("name", { ascending: true });
+  if (error)
+    return json(500, { ok: false, error: "Failed to list parents", details: error.message });
+  return json(200, { ok: true, data: data ?? [] });
+}
+
+interface ParentInputPayload {
+  name?: string;
+  role?: "Sire" | "Dam";
+  breed?: string;
+  composition?: string;
+  color?: string;
+  photos?: string[];
+  photo_path?: string | null;
+}
+
+function validateParentFields(p: ParentInputPayload): string | null {
+  if (!p.name || typeof p.name !== "string" || p.name.trim().length === 0) return "name is required";
+  if (p.role !== "Sire" && p.role !== "Dam") return "role must be 'Sire' or 'Dam'";
+  if (!p.breed || typeof p.breed !== "string" || p.breed.trim().length === 0) return "breed is required";
+  if (!p.composition || typeof p.composition !== "string" || p.composition.trim().length === 0)
+    return "composition is required";
+  if (!p.color || typeof p.color !== "string" || p.color.trim().length === 0) return "color is required";
+  if (p.photos && !Array.isArray(p.photos)) return "photos must be an array";
+  return null;
+}
+
+async function createParent(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as ParentInputPayload;
+  const err = validateParentFields(p);
+  if (err) return json(400, { ok: false, error: err });
+
+  const insertable: Record<string, unknown> = {
+    name: p.name!.trim(),
+    role: p.role,
+    breed: p.breed!.trim(),
+    composition: p.composition!.trim(),
+    color: p.color!.trim(),
+    photos: p.photos ?? [],
+  };
+  if (p.photo_path) insertable.photo_path = p.photo_path;
+  else if (p.photos && p.photos.length > 0) insertable.photo_path = p.photos[0];
+
+  const { data, error } = await supabase
+    .from("breeding_dogs")
+    .insert(insertable)
+    .select("id, name, role, breed, composition, color, photo_path, photos")
+    .single();
+  if (error || !data)
+    return json(500, { ok: false, error: "Failed to create parent", details: error?.message });
+  return json(200, { ok: true, data });
+}
+
+const UPDATE_PARENT_ALLOWED = new Set([
+  "name",
+  "role",
+  "breed",
+  "composition",
+  "color",
+  "photos",
+  "photo_path",
+]);
+
+interface UpdateParentPayload {
+  dogId?: string;
+  fields?: Record<string, unknown>;
+}
+
+async function updateParent(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as UpdateParentPayload;
+  if (!isUuid(p.dogId)) return json(400, { ok: false, error: "dogId must be a UUID" });
+  if (!p.fields || typeof p.fields !== "object")
+    return json(400, { ok: false, error: "fields object is required" });
+
+  const patch: Record<string, unknown> = {};
+  for (const key of Object.keys(p.fields)) {
+    if (!UPDATE_PARENT_ALLOWED.has(key))
+      return json(400, { ok: false, error: `Disallowed field: ${key}` });
+    patch[key] = (p.fields as Record<string, unknown>)[key];
+  }
+  if (Object.keys(patch).length === 0)
+    return json(400, { ok: false, error: "fields must contain at least one allowed key" });
+  patch.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("breeding_dogs")
+    .update(patch)
+    .eq("id", p.dogId)
+    .select("id, name, role, breed, composition, color, photo_path, photos")
+    .single();
+  if (error || !data)
+    return json(500, { ok: false, error: "Failed to update parent", details: error?.message });
   return json(200, { ok: true, data });
 }
 
