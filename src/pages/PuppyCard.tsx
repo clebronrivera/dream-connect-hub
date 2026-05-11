@@ -6,11 +6,22 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Share2 } from 'lucide-react';
+import { CalendarHeart, Heart, Share2 } from 'lucide-react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 import { getPuppyImage, getDisplayPrice, getSizeCategory } from '@/lib/puppy-display-utils';
 import type { Puppy } from '@/lib/supabase';
 import { PuppyPlaceholderSvg, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
+
+function formatReadyDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 interface Props {
   puppy: Puppy;
@@ -117,6 +128,16 @@ export function PuppyCard({
             return w != null && ` • ${w} weeks`;
           })()}
         </CardDescription>
+        {(() => {
+          const ready = formatReadyDate(puppy.ready_date);
+          if (!ready) return null;
+          return (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-200/90">
+              <CalendarHeart className="h-3.5 w-3.5" aria-hidden />
+              Ready by {ready}
+            </p>
+          );
+        })()}
         {puppy.description && (
           <p className="mt-2 line-clamp-2 text-sm text-white/65">{puppy.description}</p>
         )}
