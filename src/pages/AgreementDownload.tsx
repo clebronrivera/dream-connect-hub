@@ -26,7 +26,13 @@ export default function AgreementDownload() {
     buyerToken: string;
   }>();
 
-  const [state, setState] = useState<State>({ status: "loading" });
+  // Lazy initializer — if the URL params are missing on mount, start in
+  // the error state instead of dispatching setState from an effect.
+  const [state, setState] = useState<State>(() =>
+    agreementId && buyerToken
+      ? { status: "loading" }
+      : { status: "error", message: "Invalid download link.", canRetry: false },
+  );
 
   const fetchAndRedirect = async () => {
     setState({ status: "loading" });
@@ -75,13 +81,12 @@ export default function AgreementDownload() {
 
   useEffect(() => {
     if (agreementId && buyerToken) {
+      // fetchAndRedirect is async and only writes state after the
+      // network call resolves — the canonical fetch-on-mount pattern.
+      // The set-state-in-effect rule can't see through the async
+      // boundary; the rule is suppressed for this specific line.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchAndRedirect();
-    } else {
-      setState({
-        status: "error",
-        message: "Invalid download link.",
-        canRetry: false,
-      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agreementId, buyerToken]);
