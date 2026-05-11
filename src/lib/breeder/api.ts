@@ -162,48 +162,55 @@ export function listLitterPuppies(
 }
 
 export interface BreederPuppyWithLitter extends BreederPuppyRow {
-  upcoming_litter_id: string;
+  upcoming_litter_id: string | null;
+  litter_id: string | null;
   dam_name: string | null;
   sire_name: string | null;
 }
 
+interface ListAllPuppiesRow extends BreederPuppyRow {
+  upcoming_litter_id: string | null;
+  litter_id: string | null;
+  upcoming_litters: {
+    breed: string | null;
+    dam: { name: string | null } | null;
+    sire: { name: string | null } | null;
+  } | null;
+}
+
 /**
- * Client-side fan-out for "every puppy across all litters". We avoid a
- * dedicated edge function op so the new puppies hub works against the
- * already-deployed breeder-write. For the breeder's typical 1-4 active
- * litters the extra round-trips are negligible.
+ * Roster across every litter — including older "previous" upcoming_litters
+ * that may have rotated off the breeder Home view. Calls the
+ * listAllPuppies op on breeder-write (v12+); the edge function joins the
+ * dam/sire names so the puppies hub can show parent context per row.
  */
 export async function listAllBreederPuppies(
   token: string,
-  litters: { upcoming_litter_id: string; dam_name: string | null; sire_name: string | null }[],
 ): Promise<BreederWriteResult<BreederPuppyWithLitter[]>> {
-  const settled = await Promise.all(
-    litters.map(async (l) => {
-      const res = await listLitterPuppies(token, l.upcoming_litter_id);
-      if (!res.ok) return { litter: l, error: res.error, puppies: [] as BreederPuppyRow[] };
-      return { litter: l, error: null, puppies: res.data };
-    }),
-  );
-  const firstError = settled.find((s) => s.error);
-  if (firstError) {
-    return { ok: false, error: firstError.error! };
-  }
-  const merged: BreederPuppyWithLitter[] = [];
-  for (const s of settled) {
-    for (const p of s.puppies) {
-      merged.push({
-        ...p,
-        upcoming_litter_id: s.litter.upcoming_litter_id,
-        dam_name: s.litter.dam_name,
-        sire_name: s.litter.sire_name,
-      });
-    }
-  }
-  // Sort newest first so the most recently captured puppies surface first.
-  merged.sort((a, b) =>
-    (b.created_at ?? "").localeCompare(a.created_at ?? ""),
-  );
-  return { ok: true, data: merged };
+  const res = await callBreederWrite<ListAllPuppiesRow[]>(token, "listAllPuppies");
+  if (!res.ok) return res;
+  const flattened: BreederPuppyWithLitter[] = res.data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    gender: row.gender,
+    breed: row.breed,
+    photos: row.photos,
+    primary_photo: row.primary_photo,
+    video_path: row.video_path,
+    description: row.description,
+    ready_date: row.ready_date,
+    base_price: row.base_price,
+    status: row.status,
+    is_publicly_visible: row.is_publicly_visible,
+    vaccinated_at: row.vaccinated_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    upcoming_litter_id: row.upcoming_litter_id,
+    litter_id: row.litter_id,
+    dam_name: row.upcoming_litters?.dam?.name ?? null,
+    sire_name: row.upcoming_litters?.sire?.name ?? null,
+  }));
+  return { ok: true, data: flattened };
 }
 
 export function createPuppy(

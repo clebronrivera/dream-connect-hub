@@ -71,6 +71,8 @@ export async function handler(
       return await updateLitterDates(supabase, body.payload, json);
     case "listLitterPuppies":
       return await listLitterPuppies(supabase, body.payload, json);
+    case "listAllPuppies":
+      return await listAllPuppies(supabase, json);
     case "createPuppy":
       return await createPuppy(supabase, body.payload, json);
     case "updatePuppy":
@@ -289,6 +291,37 @@ async function listLitterPuppies(
     .order("created_at", { ascending: true });
   if (error)
     return json(500, { ok: false, error: "Failed to list puppies", details: error.message });
+  return json(200, { ok: true, data: data ?? [] });
+}
+
+async function listAllPuppies(
+  supabase: SupabaseClient,
+  json: JsonResponder,
+): Promise<Response> {
+  // Roster across every litter — drives the /breeder Puppies tab so the
+  // breeder can edit any puppy even when its parent litter is no longer
+  // surfaced on the Home view (e.g. older "previous" upcoming_litters).
+  // Service-role bypass means RLS doesn't need to know about the breeder
+  // client.
+  const { data, error } = await supabase
+    .from("puppies")
+    .select(
+      `id, name, gender, breed, photos, primary_photo, video_path,
+       description, ready_date, base_price, status, is_publicly_visible,
+       vaccinated_at, created_at, updated_at, upcoming_litter_id, litter_id,
+       upcoming_litters:upcoming_litter_id (
+         breed,
+         dam:dam_id ( name ),
+         sire:sire_id ( name )
+       )`,
+    )
+    .order("created_at", { ascending: false });
+  if (error)
+    return json(500, {
+      ok: false,
+      error: "Failed to list all puppies",
+      details: error.message,
+    });
   return json(200, { ok: true, data: data ?? [] });
 }
 

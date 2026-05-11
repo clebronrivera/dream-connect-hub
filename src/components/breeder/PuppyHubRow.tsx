@@ -21,22 +21,22 @@ export function PuppyHubRow({ puppy }: { puppy: BreederPuppyWithLitter }) {
     .join(" × ");
   const totalPhotos =
     (puppy.primary_photo ? 1 : 0) + (puppy.photos?.length ?? 0);
+  // Puppies that aren't tied to an active upcoming_litter still open in the
+  // capture flow; the ?from= param just controls where the wizard's back
+  // button lands. Fall back to /breeder when missing.
+  const captureHref = puppy.upcoming_litter_id
+    ? `/breeder/puppies/${puppy.id}/capture?from=${puppy.upcoming_litter_id}`
+    : `/breeder/puppies/${puppy.id}/capture`;
 
   return (
     <li
       role="button"
       tabIndex={0}
-      onClick={() =>
-        navigate(
-          `/breeder/puppies/${puppy.id}/capture?from=${puppy.upcoming_litter_id}`,
-        )
-      }
+      onClick={() => navigate(captureHref)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          navigate(
-            `/breeder/puppies/${puppy.id}/capture?from=${puppy.upcoming_litter_id}`,
-          );
+          navigate(captureHref);
         }
       }}
       className="flex cursor-pointer items-center gap-3 p-3 transition hover:bg-muted/40"

@@ -1,15 +1,15 @@
 // Panel rendered inside the /breeder Puppies tab.
 //
-// Fans out across the active litters returned by loadBreederHome to fetch
-// every puppy in one go, then renders them as a single scrollable list with
-// thumbnails (PuppyHubRow). Tapping a row opens that puppy's capture flow
-// so the breeder can edit photos, status, price, or notes.
+// Calls the breeder-write listAllPuppies op which returns every puppy in
+// the system (joined with each puppy's parent upcoming_litter so the row
+// can show dam × sire context). Tapping a row opens that puppy's capture
+// flow so the breeder can edit photos, status, price, or notes — the same
+// flow used from the wizard.
 //
-// "Add a new puppy" opens a small dialog that lists post-birth litters; the
-// breeder picks one and a gender, and we route to the wizard's create-and-
-// capture path. We don't surface a "create without a litter" option — the
-// puppies schema requires a litter parent, and the wizard already handles
-// surprise additions to an existing litter.
+// "Add a new puppy" opens a small dialog that lists post-birth litters;
+// the breeder picks one and a gender, and we route to the wizard's
+// create-and-capture path. We don't surface a "create without a litter"
+// option — the puppies schema requires a litter parent.
 
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -58,21 +58,11 @@ export function BreederPuppiesPanel({ home }: Props) {
   );
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [
-      ...ALL_PUPPIES_QK,
-      home.map((l) => l.upcoming_litter_id).join(","),
-    ] as const,
+    queryKey: ALL_PUPPIES_QK,
     enabled: !!session,
     queryFn: async () => {
       if (!session) throw new Error("No breeder session");
-      const res = await listAllBreederPuppies(
-        session.token,
-        home.map((l) => ({
-          upcoming_litter_id: l.upcoming_litter_id,
-          dam_name: l.dam_name,
-          sire_name: l.sire_name,
-        })),
-      );
+      const res = await listAllBreederPuppies(session.token);
       if (!res.ok) throw new Error(res.error);
       return res.data;
     },
