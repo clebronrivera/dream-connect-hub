@@ -58,6 +58,8 @@ const UpcomingLittersV2Mockup = lazy(() => import("./pages/dev/UpcomingLittersV2
 const BreederPasscodeSettings = lazy(() => import("./pages/admin/settings/BreederPasscodeSettings"));
 const BreederLogin = lazy(() => import("./pages/breeder/BreederLogin"));
 const BreederHome = lazy(() => import("./pages/breeder/BreederHome"));
+const BreederLitter = lazy(() => import("./pages/breeder/BreederLitter"));
+const BreederLitterSetup = lazy(() => import("./pages/breeder/BreederLitterSetup"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -117,6 +119,8 @@ export function AppRoutes() {
         <Route path="/breeder" element={<BreederRoute />}>
           <Route element={<BreederLayout />}>
             <Route index element={<BreederHome />} />
+            <Route path="litters/:litterId" element={<BreederLitter />} />
+            <Route path="litters/:litterId/setup" element={<BreederLitterSetup />} />
           </Route>
         </Route>
 

@@ -65,9 +65,95 @@ export async function handler(
       if (error) return json(500, { ok: false, error: "Failed to load home", details: error.message });
       return json(200, { ok: true, data: data ?? [] });
     }
+    case "confirmLitterBorn":
+      return await confirmLitterBorn(supabase, body.payload, json);
     default:
       return json(400, { ok: false, error: `Unknown op: ${body.op ?? "(none)"}` });
   }
+}
+
+type JsonResponder = (status: number, body: unknown) => Response;
+
+interface ConfirmLitterBornPayload {
+  upcomingLitterId?: string;
+  breed?: string;
+  dateOfBirth?: string;      // YYYY-MM-DD
+  readyDate?: string;        // YYYY-MM-DD
+  maleCount?: number;
+  femaleCount?: number;
+}
+
+function isUuid(s: unknown): s is string {
+  return typeof s === "string" && /^[0-9a-f-]{36}$/i.test(s);
+}
+
+function isIsoDate(s: unknown): s is string {
+  return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+async function confirmLitterBorn(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as ConfirmLitterBornPayload;
+
+  if (!isUuid(p.upcomingLitterId))
+    return json(400, { ok: false, error: "upcomingLitterId must be a UUID" });
+  if (!p.breed || typeof p.breed !== "string" || p.breed.trim().length === 0)
+    return json(400, { ok: false, error: "breed is required" });
+  if (!isIsoDate(p.dateOfBirth))
+    return json(400, { ok: false, error: "dateOfBirth must be YYYY-MM-DD" });
+  if (!isIsoDate(p.readyDate))
+    return json(400, { ok: false, error: "readyDate must be YYYY-MM-DD" });
+  const male = Number(p.maleCount ?? 0);
+  const female = Number(p.femaleCount ?? 0);
+  if (!Number.isInteger(male) || male < 0 || male > 20)
+    return json(400, { ok: false, error: "maleCount must be 0-20" });
+  if (!Number.isInteger(female) || female < 0 || female > 20)
+    return json(400, { ok: false, error: "femaleCount must be 0-20" });
+  if (male + female === 0)
+    return json(400, { ok: false, error: "Litter must have at least one puppy" });
+
+  const total = male + female;
+
+  // 1) Insert (or update) the litters row sharing the upcoming_litters UUID.
+  //    Upsert lets the operator re-run setup harmlessly.
+  const { error: littersErr } = await supabase
+    .from("litters")
+    .upsert({
+      id: p.upcomingLitterId,
+      breed: p.breed.trim(),
+      date_of_birth: p.dateOfBirth,
+      ready_date: p.readyDate,
+      updated_at: new Date().toISOString(),
+    });
+  if (littersErr)
+    return json(500, { ok: false, error: "Failed to write litters row", details: littersErr.message });
+
+  // 2) Flip the upcoming_litters lifecycle + capture counts.
+  const { error: upcomingErr } = await supabase
+    .from("upcoming_litters")
+    .update({
+      lifecycle_status: "post_birth",
+      date_of_birth: p.dateOfBirth,
+      male_puppy_count: male,
+      female_puppy_count: female,
+      total_puppy_count: total,
+    })
+    .eq("id", p.upcomingLitterId);
+  if (upcomingErr)
+    return json(500, { ok: false, error: "Failed to update upcoming_litters", details: upcomingErr.message });
+
+  return json(200, {
+    ok: true,
+    data: {
+      litterId: p.upcomingLitterId,
+      maleCount: male,
+      femaleCount: female,
+      totalCount: total,
+    },
+  });
 }
 
 // Wrap to keep connInfo out of the test-only adminOverride positional param.
