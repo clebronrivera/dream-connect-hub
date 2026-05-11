@@ -143,6 +143,7 @@ export interface BreederPuppyRow {
   breed: string;
   photos: string[] | null;
   primary_photo: string | null;
+  video_path: string | null;
   description: string | null;
   ready_date: string | null;
   base_price: number | null;
@@ -174,6 +175,7 @@ export function updatePuppy(
     gender: "Male" | "Female";
     photos: string[];
     primary_photo: string;
+    video_path: string | null;
     description: string;
     ready_date: string;
     base_price: number | null;
@@ -182,6 +184,53 @@ export function updatePuppy(
   }>,
 ): Promise<BreederWriteResult<BreederPuppyRow>> {
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
+}
+
+export interface UploadVideoResult {
+  path: string;
+  publicUrl: string;
+}
+
+export async function uploadBreederVideo(args: {
+  token: string;
+  file: File;
+  subjectId: string;
+}): Promise<
+  | { ok: true; data: UploadVideoResult }
+  | { ok: false; error: string; status?: number }
+> {
+  const form = new FormData();
+  form.append("file", args.file);
+  form.append("subjectId", args.subjectId);
+
+  const url = `${appEnv.supabaseUrl}/functions/v1/breeder-upload-video`;
+  const anonKey = appEnv.supabaseAnonKey ?? "";
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { apikey: anonKey, "x-breeder-token": args.token },
+      body: form,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+  }
+
+  let body: { ok: boolean; path?: string; publicUrl?: string; error?: string };
+  try {
+    body = await res.json();
+  } catch {
+    return { ok: false, error: `Upload failed (HTTP ${res.status})`, status: res.status };
+  }
+  if (!res.ok || !body.ok || !body.path || !body.publicUrl) {
+    return {
+      ok: false,
+      error: body.error ?? `Upload failed (HTTP ${res.status})`,
+      status: res.status,
+    };
+  }
+  return { ok: true, data: { path: body.path, publicUrl: body.publicUrl } };
 }
 
 export interface BreederParentRow {

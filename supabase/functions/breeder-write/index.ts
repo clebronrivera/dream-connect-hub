@@ -283,7 +283,7 @@ async function listLitterPuppies(
   const { data, error } = await supabase
     .from("puppies")
     .select(
-      "id, name, gender, breed, photos, primary_photo, description, ready_date, base_price, status, created_at, updated_at",
+      "id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, created_at, updated_at",
     )
     .eq("upcoming_litter_id", p.upcomingLitterId)
     .order("created_at", { ascending: true });
@@ -358,6 +358,7 @@ const UPDATE_PUPPY_ALLOWED = new Set([
   "gender",
   "photos",
   "primary_photo",
+  "video_path",
   "description",
   "ready_date",
   "base_price",
@@ -404,7 +405,7 @@ async function updatePuppy(
     .from("puppies")
     .update(patch)
     .eq("id", p.puppyId)
-    .select("id, name, gender, breed, photos, primary_photo, description, ready_date, base_price, status, is_publicly_visible")
+    .select("id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });
