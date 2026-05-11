@@ -441,6 +441,22 @@ async function updatePuppy(
   if (Object.keys(patch).length === 0)
     return json(400, { ok: false, error: "fields must contain at least one allowed key" });
 
+  // If gender is being changed, capture the prior value + litter so we can
+  // shift the litter's male/female counters after the update. syncLitterCounts
+  // never shrinks (admin-set targets are preserved on insert), so a flip needs
+  // explicit 1-for-1 swap handling.
+  let priorGender: string | null = null;
+  let priorUpcomingLitterId: string | null = null;
+  if ("gender" in patch) {
+    const { data: prior } = await supabase
+      .from("puppies")
+      .select("gender, upcoming_litter_id")
+      .eq("id", p.puppyId)
+      .maybeSingle();
+    priorGender = prior?.gender ?? null;
+    priorUpcomingLitterId = prior?.upcoming_litter_id ?? null;
+  }
+
   patch.updated_at = new Date().toISOString();
 
   const { data, error } = await supabase
@@ -451,7 +467,50 @@ async function updatePuppy(
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });
+
+  if (
+    priorGender &&
+    priorUpcomingLitterId &&
+    typeof patch.gender === "string" &&
+    patch.gender !== priorGender
+  ) {
+    await shiftLitterCountForGenderChange(
+      supabase,
+      priorUpcomingLitterId,
+      priorGender as "Male" | "Female",
+      patch.gender as "Male" | "Female",
+    );
+  }
+
   return json(200, { ok: true, data });
+}
+
+async function shiftLitterCountForGenderChange(
+  supabase: SupabaseClient,
+  upcomingLitterId: string,
+  fromGender: "Male" | "Female",
+  toGender: "Male" | "Female",
+): Promise<void> {
+  if (fromGender === toGender) return;
+  const { data: cur } = await supabase
+    .from("upcoming_litters")
+    .select("male_puppy_count, female_puppy_count")
+    .eq("id", upcomingLitterId)
+    .maybeSingle();
+  if (!cur) return;
+  const males = cur.male_puppy_count ?? 0;
+  const females = cur.female_puppy_count ?? 0;
+  const nextMale =
+    fromGender === "Male" ? Math.max(0, males - 1) : males + 1;
+  const nextFemale =
+    fromGender === "Female" ? Math.max(0, females - 1) : females + 1;
+  await supabase
+    .from("upcoming_litters")
+    .update({
+      male_puppy_count: nextMale,
+      female_puppy_count: nextFemale,
+    })
+    .eq("id", upcomingLitterId);
 }
 
 // ---------- Parent dogs ----------

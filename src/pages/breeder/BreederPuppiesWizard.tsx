@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
+  ArrowLeftRight,
   ArrowRight,
   CheckCircle2,
   Heart,
@@ -21,6 +22,17 @@ import {
   Plus,
   Syringe,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -300,6 +312,9 @@ export default function BreederPuppiesWizard() {
                   if (litterId) {
                     queryClient.invalidateQueries({ queryKey: PUPPIES_QK(litterId) });
                   }
+                  // Also bust the home cache so the litter summary card
+                  // (Boys/Girls/Total) reflects gender swaps immediately.
+                  queryClient.invalidateQueries({ queryKey: HOME_QK });
                 }}
               />
             ))}
@@ -386,6 +401,29 @@ function PuppyListRow({
     updateMut.mutate(vaccinatedAt ? vaccinatedAt : null);
   };
 
+  const genderMut = useMutation({
+    mutationFn: async (newGender: "Male" | "Female") => {
+      if (!session) throw new Error("No breeder session");
+      const res = await updatePuppy(session.token, puppy.id, {
+        gender: newGender,
+      });
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(
+        `${data.name} is now a ${data.gender === "Male" ? "boy" : "girl"}`,
+      );
+      onUpdated();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const newGender: "Male" | "Female" =
+    puppy.gender === "Male" ? "Female" : "Male";
+  const currentLabel = puppy.gender === "Male" ? "Boy" : "Girl";
+  const newLabel = newGender === "Male" ? "Boy" : "Girl";
+
   const totalPhotos =
     (puppy.primary_photo ? 1 : 0) + (puppy.photos?.length ?? 0);
   const hasPhoto = totalPhotos > 0;
@@ -396,9 +434,42 @@ function PuppyListRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate font-medium">{puppy.name}</span>
-            <Badge variant="outline" className="text-[10px]">
-              {puppy.gender === "Male" ? "Boy" : "Girl"}
-            </Badge>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  disabled={genderMut.isPending}
+                  className="inline-flex items-center gap-1 rounded-full border border-input bg-background px-2 py-0.5 text-[10px] font-medium transition hover:bg-muted disabled:opacity-50"
+                  aria-label={`Change ${puppy.name}'s gender (currently ${currentLabel})`}
+                >
+                  {currentLabel}
+                  <ArrowLeftRight
+                    className="h-2.5 w-2.5 opacity-60"
+                    aria-hidden
+                  />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Switch {puppy.name} to a {newLabel.toLowerCase()}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Reassigns {puppy.name} from <strong>{currentLabel}</strong>{" "}
+                    to <strong>{newLabel}</strong>. The litter's male and
+                    female counts will shift by one to match.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => genderMut.mutate(newGender)}
+                  >
+                    Switch to {newLabel}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             {puppy.status && puppy.status !== "Available" && (
               <Badge variant="secondary" className="text-[10px]">
                 {puppy.status}
