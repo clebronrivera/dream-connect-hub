@@ -152,8 +152,9 @@ export default function BreederPasscodeSettings() {
         <h1 className="text-2xl font-bold">Breeder passcode</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Set the 4-digit pin Yolanda uses at <code>/breeder/login</code> on her
-          phone. Pins are bcrypt-hashed before storage. Rotating the pin does
-          not revoke existing sessions — they expire naturally at 30 days.
+          phone. Pins are PBKDF2-hashed server-side before storage. Rotating
+          the pin does not revoke existing sessions — they expire naturally
+          at 30 days.
         </p>
       </header>
 

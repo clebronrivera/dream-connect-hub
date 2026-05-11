@@ -11,6 +11,8 @@ import { BreederAuthProvider } from "@/contexts/BreederAuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { BreederRoute } from "@/components/breeder/BreederRoute";
+import { BreederLayout } from "@/components/breeder/BreederLayout";
 import { GoogleTranslateRuntime } from "@/components/i18n/GoogleTranslateRuntime";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -54,6 +56,8 @@ const AgreementDownload = lazy(() => import("./pages/AgreementDownload"));
 const HeroV3Mockup = lazy(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazy(() => import("./pages/dev/UpcomingLittersV2Mockup"));
 const BreederPasscodeSettings = lazy(() => import("./pages/admin/settings/BreederPasscodeSettings"));
+const BreederLogin = lazy(() => import("./pages/breeder/BreederLogin"));
+const BreederHome = lazy(() => import("./pages/breeder/BreederHome"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -107,6 +111,14 @@ export function AppRoutes() {
         {/* Dev / design mockups (URL-only; not linked from public nav) */}
         <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
         <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+
+        {/* Breeder tool (Yolanda) — token-gated via localStorage */}
+        <Route path="/breeder/login" element={<BreederLogin />} />
+        <Route path="/breeder" element={<BreederRoute />}>
+          <Route element={<BreederLayout />}>
+            <Route index element={<BreederHome />} />
+          </Route>
+        </Route>
 
         {/* Admin login */}
         <Route path="/admin/login" element={<Login />} />
