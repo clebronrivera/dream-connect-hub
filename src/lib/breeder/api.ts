@@ -176,6 +176,54 @@ export function updatePuppy(
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
 }
 
+export interface BreederParentRow {
+  id: string;
+  name: string;
+  role: "Sire" | "Dam";
+  breed: string;
+  composition: string;
+  color: string;
+  photo_path: string | null;
+  photos: string[];
+}
+
+export function listBreederParents(
+  token: string,
+): Promise<BreederWriteResult<BreederParentRow[]>> {
+  return callBreederWrite<BreederParentRow[]>(token, "listParents");
+}
+
+export function createBreederParent(
+  token: string,
+  payload: {
+    name: string;
+    role: "Sire" | "Dam";
+    breed: string;
+    composition: string;
+    color: string;
+    photos?: string[];
+    photo_path?: string | null;
+  },
+): Promise<BreederWriteResult<BreederParentRow>> {
+  return callBreederWrite<BreederParentRow>(token, "createParent", payload);
+}
+
+export function updateBreederParent(
+  token: string,
+  dogId: string,
+  fields: Partial<{
+    name: string;
+    role: "Sire" | "Dam";
+    breed: string;
+    composition: string;
+    color: string;
+    photos: string[];
+    photo_path: string | null;
+  }>,
+): Promise<BreederWriteResult<BreederParentRow>> {
+  return callBreederWrite<BreederParentRow>(token, "updateParent", { dogId, fields });
+}
+
 export interface UploadPhotoResult {
   path: string;
   publicUrl: string;
