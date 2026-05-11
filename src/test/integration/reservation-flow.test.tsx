@@ -17,10 +17,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Shared Supabase mock primitives
 // ---------------------------------------------------------------------------
 
-const mockSelect = vi.fn();
-const mockUpdate = vi.fn();
-const mockInsert = vi.fn();
-const mockEq    = vi.fn();
+// The chainable .select/.update/.insert/.eq calls run through buildChain()
+// rather than these top-level mocks; the unused-underscore prefix keeps
+// them around as documentation without tripping the lint rule.
+const _mockSelect = vi.fn();
+const _mockUpdate = vi.fn();
+const _mockInsert = vi.fn();
+const _mockEq    = vi.fn();
 const mockSingle = vi.fn();
 const mockMaybeSingle = vi.fn();
 const mockCreateSignedUrl = vi.fn();
