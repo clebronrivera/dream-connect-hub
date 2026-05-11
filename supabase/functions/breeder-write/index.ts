@@ -283,7 +283,7 @@ async function listLitterPuppies(
   const { data, error } = await supabase
     .from("puppies")
     .select(
-      "id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, created_at, updated_at",
+      "id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, created_at, updated_at",
     )
     .eq("upcoming_litter_id", p.upcomingLitterId)
     .order("created_at", { ascending: true });
@@ -350,7 +350,48 @@ async function createPuppy(
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to create puppy", details: error?.message });
+
+  // Sync upcoming_litters counts with reality after this insert. If the
+  // operator just added a surprise puppy beyond the count entered at
+  // setup, bump the appropriate counter so the wizard's progress UI
+  // matches what's actually in the DB.
+  await syncLitterCounts(supabase, p.upcomingLitterId);
+
   return json(200, { ok: true, data });
+}
+
+async function syncLitterCounts(
+  supabase: SupabaseClient,
+  upcomingLitterId: string,
+): Promise<void> {
+  const { data: rows, error } = await supabase
+    .from("puppies")
+    .select("gender")
+    .eq("upcoming_litter_id", upcomingLitterId);
+  if (error || !rows) return;
+  const males = rows.filter((r) => r.gender === "Male").length;
+  const females = rows.filter((r) => r.gender === "Female").length;
+
+  const { data: current } = await supabase
+    .from("upcoming_litters")
+    .select("male_puppy_count, female_puppy_count, total_puppy_count")
+    .eq("id", upcomingLitterId)
+    .maybeSingle();
+
+  // Only ever increase the counts — never shrink, since admin may have
+  // intentionally set a target the breeder hasn't filled yet.
+  const nextMale = Math.max(males, current?.male_puppy_count ?? 0);
+  const nextFemale = Math.max(females, current?.female_puppy_count ?? 0);
+  const nextTotal = Math.max(males + females, current?.total_puppy_count ?? 0);
+
+  await supabase
+    .from("upcoming_litters")
+    .update({
+      male_puppy_count: nextMale,
+      female_puppy_count: nextFemale,
+      total_puppy_count: nextTotal,
+    })
+    .eq("id", upcomingLitterId);
 }
 
 const UPDATE_PUPPY_ALLOWED = new Set([
@@ -364,6 +405,7 @@ const UPDATE_PUPPY_ALLOWED = new Set([
   "base_price",
   "status",
   "is_publicly_visible",
+  "vaccinated_at",
 ]);
 
 interface UpdatePuppyPayload {
@@ -405,7 +447,7 @@ async function updatePuppy(
     .from("puppies")
     .update(patch)
     .eq("id", p.puppyId)
-    .select("id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible")
+    .select("id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });

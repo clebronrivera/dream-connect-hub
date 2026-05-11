@@ -149,6 +149,7 @@ export interface BreederPuppyRow {
   base_price: number | null;
   status: string | null;
   is_publicly_visible?: boolean;
+  vaccinated_at: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -181,6 +182,7 @@ export function updatePuppy(
     base_price: number | null;
     status: string;
     is_publicly_visible: boolean;
+    vaccinated_at: string | null;
   }>,
 ): Promise<BreederWriteResult<BreederPuppyRow>> {
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
