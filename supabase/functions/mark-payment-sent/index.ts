@@ -197,4 +197,7 @@ export async function handler(
   return jsonResponse(200, { success: true, marked_at: now });
 }
 
-Deno.serve(handler);
+// Wrap in arrow to discard the connInfo arg Deno.serve passes positionally;
+// otherwise handler's optional `adminOverride` would capture it and `.from(...)`
+// would throw `TypeError: supabase.from is not a function` in production.
+Deno.serve((req) => handler(req));

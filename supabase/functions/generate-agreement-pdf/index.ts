@@ -94,4 +94,8 @@ export async function handler(
   );
 }
 
-Deno.serve(handler);
+// Wrap in arrow to discard the connInfo arg Deno.serve passes positionally;
+// otherwise handler's optional `supabaseOverride` would capture it and
+// `.from(...)` would throw `TypeError: supabase.from is not a function` in
+// production.
+Deno.serve((req) => handler(req));
