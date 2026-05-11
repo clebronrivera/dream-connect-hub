@@ -5,9 +5,9 @@
 //   - Born, needs photos — post_birth + at least one puppy missing photos
 //   - Up to date         — post_birth + every puppy has at least one photo
 
-import { ArrowRight, CalendarClock, Camera, CheckCircle2, Heart } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight, CalendarClock, Camera, CheckCircle2, Heart, PawPrint } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
 import type { BreederLitterSummary } from "@/types/breeder";
 
 interface LitterCardState {
@@ -70,6 +70,10 @@ export function LitterCard({ row, now, onClick }: LitterCardProps) {
   const dob = formatDate(row.litter_date_of_birth ?? row.upcoming_date_of_birth);
   const ready = formatDate(row.ready_date);
   const parents = [row.dam_name, row.sire_name].filter(Boolean).join(" × ") || "Parents TBD";
+  // Prefer the dam's portrait — buyers + breeders both think of a litter
+  // primarily by the mother. Fall back to the state-tone icon when no
+  // portrait is on file yet.
+  const damPhotoUrl = resolvePuppyPhotosPublicUrl(row.dam_photo_path);
 
   return (
     <Card
@@ -86,23 +90,44 @@ export function LitterCard({ row, now, onClick }: LitterCardProps) {
         onClick ? "" : "cursor-default"
       }`}
     >
-      <div
-        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border ${TONE_STYLES[state.tone]}`}
-        aria-hidden
-      >
-        <state.Icon className="h-6 w-6" />
+      <div className="relative h-16 w-16 shrink-0">
+        {damPhotoUrl ? (
+          <img
+            src={damPhotoUrl}
+            alt={row.dam_name ? `Mom: ${row.dam_name}` : "Mom"}
+            className="h-16 w-16 rounded-full border object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-full border bg-muted text-muted-foreground"
+            aria-hidden
+          >
+            <PawPrint className="h-7 w-7" />
+          </div>
+        )}
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background ${TONE_STYLES[state.tone]}`}
+          aria-hidden
+        >
+          <state.Icon className="h-3.5 w-3.5" />
+        </span>
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h2 className="truncate text-lg font-semibold">{row.breed || "Litter"}</h2>
-          <Badge variant="secondary" className="shrink-0 text-xs">
-            <Heart className="mr-1 h-3 w-3" />
-            {parents}
-          </Badge>
-        </div>
-        <p className={`mt-1 text-sm ${
-          state.tone === "needs-photos" ? "font-medium text-rose-700" : "text-muted-foreground"
-        }`}>
+        <h2 className="flex items-center gap-1.5 truncate text-lg font-semibold">
+          <Heart className="h-4 w-4 shrink-0 text-primary/70" aria-hidden />
+          {parents}
+        </h2>
+        {row.breed && (
+          <p className="truncate text-xs text-muted-foreground">{row.breed}</p>
+        )}
+        <p
+          className={`mt-1 text-sm ${
+            state.tone === "needs-photos"
+              ? "font-medium text-rose-700"
+              : "text-muted-foreground"
+          }`}
+        >
           {state.label}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

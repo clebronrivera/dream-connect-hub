@@ -161,6 +161,51 @@ export function listLitterPuppies(
   return callBreederWrite<BreederPuppyRow[]>(token, "listLitterPuppies", { upcomingLitterId });
 }
 
+export interface BreederPuppyWithLitter extends BreederPuppyRow {
+  upcoming_litter_id: string;
+  dam_name: string | null;
+  sire_name: string | null;
+}
+
+/**
+ * Client-side fan-out for "every puppy across all litters". We avoid a
+ * dedicated edge function op so the new puppies hub works against the
+ * already-deployed breeder-write. For the breeder's typical 1-4 active
+ * litters the extra round-trips are negligible.
+ */
+export async function listAllBreederPuppies(
+  token: string,
+  litters: { upcoming_litter_id: string; dam_name: string | null; sire_name: string | null }[],
+): Promise<BreederWriteResult<BreederPuppyWithLitter[]>> {
+  const settled = await Promise.all(
+    litters.map(async (l) => {
+      const res = await listLitterPuppies(token, l.upcoming_litter_id);
+      if (!res.ok) return { litter: l, error: res.error, puppies: [] as BreederPuppyRow[] };
+      return { litter: l, error: null, puppies: res.data };
+    }),
+  );
+  const firstError = settled.find((s) => s.error);
+  if (firstError) {
+    return { ok: false, error: firstError.error! };
+  }
+  const merged: BreederPuppyWithLitter[] = [];
+  for (const s of settled) {
+    for (const p of s.puppies) {
+      merged.push({
+        ...p,
+        upcoming_litter_id: s.litter.upcoming_litter_id,
+        dam_name: s.litter.dam_name,
+        sire_name: s.litter.sire_name,
+      });
+    }
+  }
+  // Sort newest first so the most recently captured puppies surface first.
+  merged.sort((a, b) =>
+    (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+  );
+  return { ok: true, data: merged };
+}
+
 export function createPuppy(
   token: string,
   payload: { upcomingLitterId: string; name: string; gender: "Male" | "Female" },

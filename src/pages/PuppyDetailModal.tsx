@@ -7,16 +7,21 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarHeart, Dog, Heart, Share2 } from 'lucide-react';
+import { CalendarHeart, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 import {
-  getPuppyImage,
   getDisplayPrice,
   getSizeCategory,
   isPoodleOrDoodle,
   isSmallBreed,
 } from '@/lib/puppy-display-utils';
+import {
+  resolvePuppyPhotosPublicUrl,
+  resolvePuppyVideoUrl,
+} from '@/lib/puppy-photos';
+import { PuppyMediaCollage } from '@/components/puppy/PuppyMediaCollage';
 import type { Puppy } from '@/lib/supabase';
 
 interface Props {
@@ -38,6 +43,25 @@ export function PuppyDetailModal({
   onShareClick,
   onSendInterest,
 }: Props) {
+  // Build the deduped, resolved photo list once per open. Falls back to the
+  // primary photo when the photos array is empty so legacy puppies still
+  // show their hero image.
+  const resolvedPhotos = useMemo(() => {
+    if (!puppy) return [] as string[];
+    const all: (string | null | undefined)[] = [
+      puppy.primary_photo,
+      ...(puppy.photos ?? []),
+    ];
+    const resolved = all
+      .map((p) => resolvePuppyPhotosPublicUrl(p))
+      .filter((u): u is string => !!u);
+    return Array.from(new Set(resolved));
+  }, [puppy]);
+  const resolvedVideo = useMemo(
+    () => (puppy ? resolvePuppyVideoUrl(puppy.video_path) : null),
+    [puppy],
+  );
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -84,18 +108,12 @@ export function PuppyDetailModal({
               </div>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                {getPuppyImage(puppy) ? (
-                  <img
-                    src={getPuppyImage(puppy)!}
-                    alt={puppy.name || 'Puppy'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Dog className="h-24 w-24 text-muted-foreground/50" />
-                  </div>
-                )}
+              <div className="relative">
+                <PuppyMediaCollage
+                  photos={resolvedPhotos}
+                  videoUrl={resolvedVideo}
+                  alt={puppy.name || 'Puppy'}
+                />
                 <div className="absolute bottom-2 left-2 flex gap-2">
                   {getSizeCategory(puppy) && <Badge>{getSizeCategory(puppy)}</Badge>}
                   {isPoodleOrDoodle(puppy.breed || '') && (

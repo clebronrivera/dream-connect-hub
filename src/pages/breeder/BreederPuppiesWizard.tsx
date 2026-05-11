@@ -48,6 +48,7 @@ import {
 } from "@/lib/breeder/api";
 import { getSuggestedPuppyName } from "@/lib/puppy-name-generator";
 import { getLastPuppyForLitter } from "@/lib/breeder/captureState";
+import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
 
 const HOME_QK = ["breeder", "home"] as const;
 const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] as const;
@@ -427,10 +428,35 @@ function PuppyListRow({
   const totalPhotos =
     (puppy.primary_photo ? 1 : 0) + (puppy.photos?.length ?? 0);
   const hasPhoto = totalPhotos > 0;
+  // Show the same image the public site uses as the puppy's primary so the
+  // breeder can confirm the face photo without opening the capture flow.
+  const heroUrl = resolvePuppyPhotosPublicUrl(
+    puppy.primary_photo ?? puppy.photos?.[0] ?? null,
+  );
 
   return (
     <li className="flex flex-col gap-2 p-3">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onNavigate(puppy.id)}
+          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-muted"
+          aria-label={`Open ${puppy.name}`}
+        >
+          {heroUrl ? (
+            <img
+              src={heroUrl}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <PawPrint
+              className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/50"
+              aria-hidden
+            />
+          )}
+        </button>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate font-medium">{puppy.name}</span>
