@@ -100,6 +100,29 @@ export function loadBreederHome(
   return callBreederWrite<BreederLitterSummary[]>(token, "loadHome");
 }
 
+export interface ConfirmLitterBornPayload {
+  upcomingLitterId: string;
+  breed: string;
+  dateOfBirth: string; // YYYY-MM-DD
+  readyDate: string;   // YYYY-MM-DD
+  maleCount: number;
+  femaleCount: number;
+}
+
+export interface ConfirmLitterBornResult {
+  litterId: string;
+  maleCount: number;
+  femaleCount: number;
+  totalCount: number;
+}
+
+export function confirmLitterBorn(
+  token: string,
+  payload: ConfirmLitterBornPayload,
+): Promise<BreederWriteResult<ConfirmLitterBornResult>> {
+  return callBreederWrite<ConfirmLitterBornResult>(token, "confirmLitterBorn", payload);
+}
+
 export interface UploadPhotoResult {
   path: string;
   publicUrl: string;
