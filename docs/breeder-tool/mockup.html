@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Breeder Tool — Mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #f1f1ef; }
+  .phone {
+    width: 380px;
+    height: 780px;
+    border-radius: 38px;
+    background: #fff;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    overflow: hidden;
+    position: relative;
+    border: 8px solid #1a1a1a;
+  }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; padding: 24px 20px; }
+  .screen.active { display: flex; animation: slidein 0.15s ease-out; }
+  @keyframes slidein {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .big-btn {
+    width: 100%; padding: 16px 20px; border-radius: 14px;
+    background: #2563eb; color: #fff; font-weight: 600; font-size: 17px;
+    transition: transform 0.05s;
+  }
+  .big-btn:active { transform: scale(0.98); }
+  .secondary-btn {
+    width: 100%; padding: 14px 20px; border-radius: 14px;
+    background: #f3f4f6; color: #374151; font-weight: 500; font-size: 16px;
+  }
+  .ghost-btn { color: #6b7280; font-size: 15px; padding: 8px; }
+  .card {
+    background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 16px;
+    padding: 18px; margin-bottom: 12px;
+  }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.waiting { background: #fef3c7; color: #92400e; }
+  .badge.needs { background: #fee2e2; color: #991b1b; }
+  .badge.uptodate { background: #d1fae5; color: #065f46; }
+  .photo-slot {
+    width: 100%; aspect-ratio: 1; border: 2px dashed #d4d4d8;
+    border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    color: #a1a1aa; background: #fafaf9; font-size: 14px;
+  }
+  .photo-slot.filled { background: linear-gradient(135deg, #fde68a, #fbbf24); border-color: transparent; color: #78350f; }
+  .progress { height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; margin-bottom: 18px; }
+  .progress-bar { height: 100%; background: #2563eb; transition: width 0.2s; }
+  input, textarea {
+    width: 100%; padding: 14px; border: 1px solid #d4d4d8; border-radius: 12px;
+    font-size: 16px; background: #fff;
+  }
+  input:focus, textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .keypad button {
+    aspect-ratio: 1; border-radius: 50%; background: #f3f4f6;
+    font-size: 26px; font-weight: 500; color: #111827;
+  }
+  .keypad button:active { background: #e5e7eb; }
+  .pin-dots { display: flex; gap: 16px; justify-content: center; margin-bottom: 30px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; background: #e5e7eb; }
+  .pin-dot.filled { background: #2563eb; }
+  .stepper {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .stepper .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .label-sm { font-size: 13px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .nav-row { display: flex; gap: 10px; margin-top: auto; }
+  .litter-card {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border: 1px solid #e7e5e4; border-radius: 16px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .litter-thumb {
+    width: 56px; height: 56px; border-radius: 12px;
+    background: linear-gradient(135deg, #fbcfe8, #f9a8d4);
+    flex-shrink: 0;
+  }
+  .puppy-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 10px; border-radius: 999px; background: #eff6ff;
+    color: #1d4ed8; font-size: 13px; font-weight: 500; margin-right: 6px;
+  }
+  .toast {
+    position: absolute; bottom: 24px; left: 20px; right: 20px;
+    background: #064e3b; color: #fff; padding: 14px 18px; border-radius: 12px;
+    font-size: 14px; display: none;
+  }
+  .toast.show { display: block; animation: rise 0.2s; }
+  @keyframes rise {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .demo-label { font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; }
+  h1 { font-size: 24px; font-weight: 700; color: #111827; line-height: 1.25; }
+  h2 { font-size: 19px; font-weight: 600; color: #111827; }
+  .helper { font-size: 14px; color: #6b7280; margin-top: 6px; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-10 gap-4">
+
+<div class="max-w-md text-center mb-2">
+  <div class="text-2xl font-bold text-stone-800">Breeder Tool — clickable mockup</div>
+  <div class="text-sm text-stone-500 mt-1">Tap through. The same data writes to your existing <code>puppies</code> + <code>upcoming_litters</code> tables.</div>
+</div>
+
+<div class="flex flex-wrap items-center justify-center gap-3 mb-2">
+  <button onclick="goto('passcode')" class="px-3 py-1.5 rounded-md text-xs bg-white border border-stone-300 hover:bg-stone-100">Restart at passcode</button>
+  <button onclick="goto('home')" class="px-3 py-1.5 rounded-md text-xs bg-white border border-stone-300 hover:bg-stone-100">Skip to home</button>
+  <button onclick="goto('litter-born')" class="px-3 py-1.5 rounded-md text-xs bg-white border border-stone-300 hover:bg-stone-100">Skip to litter setup</button>
+  <button onclick="goto('manage-puppies')" class="px-3 py-1.5 rounded-md text-xs bg-white border border-stone-300 hover:bg-stone-100">Skip to manage puppies</button>
+</div>
+
+<div class="phone">
+
+  <!-- ===== PASSCODE ===== -->
+  <div id="screen-passcode" class="screen active">
+    <div class="demo-label">screen 1 of ~14</div>
+    <div class="mt-8 mb-2 text-center">
+      <div class="text-4xl mb-2">🐾</div>
+      <h1>Welcome, Yolanda</h1>
+      <p class="helper">Enter your 4-digit passcode</p>
+    </div>
+    <div class="pin-dots mt-8" id="pinDots">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+    <div class="keypad px-6">
+      <button onclick="enterPin('1')">1</button>
+      <button onclick="enterPin('2')">2</button>
+      <button onclick="enterPin('3')">3</button>
+      <button onclick="enterPin('4')">4</button>
+      <button onclick="enterPin('5')">5</button>
+      <button onclick="enterPin('6')">6</button>
+      <button onclick="enterPin('7')">7</button>
+      <button onclick="enterPin('8')">8</button>
+      <button onclick="enterPin('9')">9</button>
+      <div></div>
+      <button onclick="enterPin('0')">0</button>
+      <button onclick="backspacePin()" class="!bg-transparent">⌫</button>
+    </div>
+    <p class="helper text-center mt-4">Remembered on this phone for 30 days.</p>
+  </div>
+
+  <!-- ===== HOME ===== -->
+  <div id="screen-home" class="screen">
+    <div class="demo-label">screen 2</div>
+    <div class="flex items-center justify-between mb-4 mt-1">
+      <h1>Litters</h1>
+      <button class="ghost-btn">⚙️</button>
+    </div>
+
+    <div class="litter-card" onclick="goto('litter-not-born')">
+      <div class="litter-thumb" style="background: linear-gradient(135deg, #bae6fd, #7dd3fc);"></div>
+      <div class="flex-1">
+        <div class="font-semibold text-stone-900">Bella × Max</div>
+        <div class="text-sm text-stone-500">Goldendoodle</div>
+        <div class="badge waiting mt-1">Still waiting</div>
+      </div>
+      <div class="text-stone-400">›</div>
+    </div>
+
+    <div class="litter-card" onclick="goto('litter-born')">
+      <div class="litter-thumb"></div>
+      <div class="flex-1">
+        <div class="font-semibold text-stone-900">Chloe × Rocky</div>
+        <div class="text-sm text-stone-500">Cavapoo</div>
+        <div class="badge needs mt-1">Born — needs photos</div>
+      </div>
+      <div class="text-stone-400">›</div>
+    </div>
+
+    <div class="litter-card" onclick="goto('manage-puppies')">
+      <div class="litter-thumb" style="background: linear-gradient(135deg, #fed7aa, #fdba74);"></div>
+      <div class="flex-1">
+        <div class="font-semibold text-stone-900">Daisy × Bruno</div>
+        <div class="text-sm text-stone-500">Mini Goldendoodle · 4 puppies</div>
+        <div class="badge uptodate mt-1">Up to date · updated 2 days ago</div>
+      </div>
+      <div class="text-stone-400">›</div>
+    </div>
+
+    <div class="litter-card">
+      <div class="litter-thumb" style="background: linear-gradient(135deg, #ddd6fe, #c4b5fd);"></div>
+      <div class="flex-1">
+        <div class="font-semibold text-stone-900">Ginger × Teddy</div>
+        <div class="text-sm text-stone-500">Cavapoo</div>
+        <div class="badge waiting mt-1">Still waiting</div>
+      </div>
+      <div class="text-stone-400">›</div>
+    </div>
+
+    <button class="secondary-btn mt-2" onclick="goto('manage-parents')">
+      🐕 Manage Mom &amp; Dad dogs
+    </button>
+  </div>
+
+  <!-- ===== LITTER NOT BORN YET ===== -->
+  <div id="screen-litter-not-born" class="screen">
+    <div class="demo-label">screen 3</div>
+    <button class="ghost-btn self-start" onclick="goto('home')">← Back</button>
+    <div class="mt-4 mb-2">
+      <h1>Bella &amp; Max</h1>
+      <p class="helper">Goldendoodle · still waiting</p>
+    </div>
+    <div class="mt-6 mb-4 text-center text-5xl">🤰</div>
+    <h2 class="text-center">Are the puppies born?</h2>
+    <p class="helper text-center mt-2 mb-6">If yes, we'll set up the litter and add photos.</p>
+    <button class="big-btn" onclick="goto('litter-born')">Yes — they're born!</button>
+    <button class="secondary-btn mt-3" onclick="goto('home')">Not yet, check back later</button>
+  </div>
+
+  <!-- ===== LITTER BORN — BREED ===== -->
+  <div id="screen-litter-born" class="screen">
+    <div class="demo-label">screen 4 · litter setup 1 of 4</div>
+    <button class="ghost-btn self-start" onclick="goto('litter-not-born')">← Back</button>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 25%"></div></div>
+    <div class="stepper"><div class="num">1</div><div class="label-sm">Breed</div></div>
+    <h1 class="mt-2">What breed are these puppies?</h1>
+    <p class="helper mt-2 mb-5">We'll use this on the public site.</p>
+    <input type="text" placeholder="e.g. Cavapoo" value="Cavapoo" />
+    <div class="nav-row">
+      <button class="big-btn" onclick="goto('litter-ready')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== LITTER — READY BY DATE ===== -->
+  <div id="screen-litter-ready" class="screen">
+    <div class="demo-label">screen 5 · litter setup 2 of 4</div>
+    <button class="ghost-btn self-start" onclick="goto('litter-born')">← Back</button>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 50%"></div></div>
+    <div class="stepper"><div class="num">2</div><div class="label-sm">Ready-by date</div></div>
+    <h1 class="mt-2">When are they ready to go home?</h1>
+    <p class="helper mt-2 mb-5">8 weeks from birth — best guess is fine, you can edit later.</p>
+    <input type="date" value="2026-07-06" />
+    <p class="helper mt-4">→ shown on the public site as <b>"Ready Jul 6, 2026"</b></p>
+    <div class="nav-row">
+      <button class="big-btn" onclick="goto('litter-count')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== LITTER — COUNT ===== -->
+  <div id="screen-litter-count" class="screen">
+    <div class="demo-label">screen 6 · litter setup 3 of 4</div>
+    <button class="ghost-btn self-start" onclick="goto('litter-ready')">← Back</button>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 75%"></div></div>
+    <div class="stepper"><div class="num">3</div><div class="label-sm">How many?</div></div>
+    <h1 class="mt-2">How many puppies?</h1>
+    <p class="helper mt-2 mb-5">It's okay if you only count later.</p>
+
+    <div class="mb-3">
+      <div class="text-sm font-medium text-stone-700 mb-2">👦 Boys</div>
+      <div class="flex items-center gap-3">
+        <button class="secondary-btn !w-12">−</button>
+        <input type="number" value="3" class="text-center text-xl font-bold" />
+        <button class="secondary-btn !w-12">+</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="text-sm font-medium text-stone-700 mb-2">👧 Girls</div>
+      <div class="flex items-center gap-3">
+        <button class="secondary-btn !w-12">−</button>
+        <input type="number" value="2" class="text-center text-xl font-bold" />
+        <button class="secondary-btn !w-12">+</button>
+      </div>
+    </div>
+
+    <p class="helper mt-5">Total: <b>5 puppies</b></p>
+    <div class="nav-row">
+      <button class="big-btn" onclick="goto('preface')">Start photos →</button>
+    </div>
+  </div>
+
+  <!-- ===== PREFACE ===== -->
+  <div id="screen-preface" class="screen">
+    <div class="demo-label">screen 7 · ready to capture</div>
+    <button class="ghost-btn self-start" onclick="goto('litter-count')">← Back</button>
+    <div class="mt-6 mb-4 text-center text-5xl">📸</div>
+    <h1 class="text-center">5 puppies to capture</h1>
+    <p class="helper text-center mt-2 mb-6">We'll do all 3 boys first, then 2 girls. Each one is just a few taps.</p>
+    <div class="card">
+      <div class="text-sm font-semibold text-stone-700 mb-2">For each puppy:</div>
+      <div class="text-sm text-stone-600 space-y-1.5">
+        <div>1. Name (or auto-generate)</div>
+        <div>2. Photo: face</div>
+        <div>3. Photo: back</div>
+        <div>4. Photo: top-down</div>
+        <div>5. Photo: paw print close-up</div>
+        <div>6. Optional 10-second video</div>
+        <div>7. Notes</div>
+      </div>
+      <p class="helper mt-3">You can skip anything and add it later.</p>
+    </div>
+    <div class="nav-row">
+      <button class="big-btn" onclick="goto('puppy-name')">Start with Puppy 1 of 5 →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — NAME ===== -->
+  <div id="screen-puppy-name" class="screen">
+    <div class="demo-label">screen 8 · puppy 1 (male) · step 1 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('preface')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Puppy 1 of 5 — Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 14%"></div></div>
+    <h1 class="mt-2">Does this puppy have a name?</h1>
+    <input type="text" placeholder="e.g. Cooper" class="mt-5" />
+    <button class="secondary-btn mt-3">✨ Auto-generate a name for me</button>
+    <p class="helper mt-4">Auto-generated names use your existing puppy-name list. You can rename later.</p>
+    <div class="nav-row">
+      <button class="big-btn" onclick="goto('puppy-face')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — FACE ===== -->
+  <div id="screen-puppy-face" class="screen">
+    <div class="demo-label">screen 9 · puppy 1 · step 2 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('puppy-name')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Cooper · Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 28%"></div></div>
+    <h1 class="mt-2">Photo: face</h1>
+    <p class="helper mt-2 mb-4">A clear shot of the puppy looking at the camera.</p>
+    <div class="photo-slot" onclick="this.classList.add('filled'); this.innerHTML='✓ Photo added';">
+      📷 Tap to take photo
+    </div>
+    <div class="nav-row">
+      <button class="secondary-btn !flex-1" onclick="goto('puppy-back')">Skip</button>
+      <button class="big-btn !flex-[2]" onclick="goto('puppy-back')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — BACK ===== -->
+  <div id="screen-puppy-back" class="screen">
+    <div class="demo-label">screen 10 · puppy 1 · step 3 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('puppy-face')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Cooper · Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 42%"></div></div>
+    <h1 class="mt-2">Photo: back</h1>
+    <p class="helper mt-2 mb-4">Side or behind view, full body.</p>
+    <div class="photo-slot" onclick="this.classList.add('filled'); this.innerHTML='✓ Photo added';">
+      📷 Tap to take photo
+    </div>
+    <div class="nav-row">
+      <button class="secondary-btn !flex-1" onclick="goto('puppy-top')">Skip</button>
+      <button class="big-btn !flex-[2]" onclick="goto('puppy-top')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — TOP DOWN ===== -->
+  <div id="screen-puppy-top" class="screen">
+    <div class="demo-label">screen 11 · puppy 1 · step 4 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('puppy-back')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Cooper · Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 57%"></div></div>
+    <h1 class="mt-2">Photo: top-down</h1>
+    <p class="helper mt-2 mb-4">Looking straight down at the puppy.</p>
+    <div class="photo-slot" onclick="this.classList.add('filled'); this.innerHTML='✓ Photo added';">
+      📷 Tap to take photo
+    </div>
+    <div class="nav-row">
+      <button class="secondary-btn !flex-1" onclick="goto('puppy-print')">Skip</button>
+      <button class="big-btn !flex-[2]" onclick="goto('puppy-print')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — PAW PRINT ===== -->
+  <div id="screen-puppy-print" class="screen">
+    <div class="demo-label">screen 12 · puppy 1 · step 5 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('puppy-top')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Cooper · Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 71%"></div></div>
+    <h1 class="mt-2">Photo: paw print</h1>
+    <p class="helper mt-2 mb-4">Close-up of one paw pad.</p>
+    <div class="photo-slot" onclick="this.classList.add('filled'); this.innerHTML='✓ Photo added';">
+      📷 Tap to take photo
+    </div>
+    <div class="nav-row">
+      <button class="secondary-btn !flex-1" onclick="goto('puppy-video')">Skip</button>
+      <button class="big-btn !flex-[2]" onclick="goto('puppy-video')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — VIDEO ===== -->
+  <div id="screen-puppy-video" class="screen">
+    <div class="demo-label">screen 13 · puppy 1 · step 6 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('puppy-print')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Cooper · Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 85%"></div></div>
+    <h1 class="mt-2">10-second video (optional)</h1>
+    <p class="helper mt-2 mb-4">Personality goes a long way — wagging tails, wiggles, etc.</p>
+    <div class="photo-slot" onclick="this.classList.add('filled'); this.innerHTML='✓ Video added';">
+      🎥 Tap to record (max 10s)
+    </div>
+    <div class="nav-row">
+      <button class="secondary-btn !flex-1" onclick="goto('puppy-notes')">Skip</button>
+      <button class="big-btn !flex-[2]" onclick="goto('puppy-notes')">Next →</button>
+    </div>
+  </div>
+
+  <!-- ===== PUPPY — NOTES ===== -->
+  <div id="screen-puppy-notes" class="screen">
+    <div class="demo-label">screen 14 · puppy 1 · step 7 of 7</div>
+    <button class="ghost-btn self-start" onclick="goto('puppy-video')">← Back</button>
+    <div class="flex items-center justify-between mt-2">
+      <div class="text-sm text-stone-500">Cooper · Boy 1 of 3</div>
+      <span class="puppy-chip">♂ Male</span>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar" style="width: 100%"></div></div>
+    <h1 class="mt-2">Anything special about Cooper?</h1>
+    <p class="helper mt-2 mb-4">Personality, markings, energy level. Optional.</p>
+    <textarea rows="5" placeholder="e.g. Calmest of the bunch, white star on chest, loves to be held"></textarea>
+    <div class="nav-row">
+      <button class="big-btn" onclick="savePuppy()">Save &amp; next puppy →</button>
+    </div>
+  </div>
+
+  <!-- ===== ALL DONE ===== -->
+  <div id="screen-done" class="screen">
+    <div class="demo-label">all puppies captured</div>
+    <div class="mt-12 mb-4 text-center text-6xl">🎉</div>
+    <h1 class="text-center">All done!</h1>
+    <p class="helper text-center mt-2 mb-8">5 puppies saved. They're now live on the website.</p>
+    <button class="big-btn" onclick="goto('home')">Back to litters</button>
+    <button class="secondary-btn mt-3" onclick="goto('manage-puppies')">Manage these puppies</button>
+  </div>
+
+  <!-- ===== MANAGE PUPPIES (existing) ===== -->
+  <div id="screen-manage-puppies" class="screen">
+    <div class="demo-label">manage existing puppies</div>
+    <button class="ghost-btn self-start" onclick="goto('home')">← Back</button>
+    <div class="mt-2 mb-3">
+      <h1>Daisy × Bruno's puppies</h1>
+      <p class="helper">4 puppies · tap to edit</p>
+    </div>
+
+    <div class="card" onclick="goto('puppy-edit')">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-xl" style="background: linear-gradient(135deg, #fde68a, #f59e0b);"></div>
+        <div class="flex-1">
+          <div class="font-semibold">Cooper <span class="text-stone-400 font-normal">· ♂</span></div>
+          <div class="text-sm text-stone-500">4 photos · Available · $2,800</div>
+        </div>
+        <div class="text-stone-400">›</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-xl" style="background: linear-gradient(135deg, #d8b4fe, #a78bfa);"></div>
+        <div class="flex-1">
+          <div class="font-semibold">Luna <span class="text-stone-400 font-normal">· ♀</span></div>
+          <div class="text-sm text-stone-500">2 photos · Reserved</div>
+        </div>
+        <div class="text-stone-400">›</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-xl bg-stone-200 flex items-center justify-center text-stone-400">?</div>
+        <div class="flex-1">
+          <div class="font-semibold">Puppy #3 <span class="text-stone-400 font-normal">· ♂</span></div>
+          <div class="text-sm text-red-500">No photos · needs name</div>
+        </div>
+        <div class="text-stone-400">›</div>
+      </div>
+    </div>
+
+    <button class="secondary-btn mt-2" onclick="goto('preface')">+ Update all puppies (photo refresh)</button>
+  </div>
+
+  <!-- ===== EDIT SINGLE PUPPY ===== -->
+  <div id="screen-puppy-edit" class="screen">
+    <div class="demo-label">edit single puppy</div>
+    <button class="ghost-btn self-start" onclick="goto('manage-puppies')">← Back</button>
+    <h1 class="mt-2">Cooper</h1>
+    <p class="helper">Daisy × Bruno · ♂ Male · 6 weeks old</p>
+
+    <div class="grid grid-cols-4 gap-2 mt-5">
+      <div class="photo-slot filled !aspect-square !text-2xl">📷</div>
+      <div class="photo-slot filled !aspect-square !text-2xl">📷</div>
+      <div class="photo-slot filled !aspect-square !text-2xl">📷</div>
+      <div class="photo-slot !aspect-square !text-2xl">＋</div>
+    </div>
+    <p class="helper mt-2">Tap a photo to replace · tap + to add another angle</p>
+
+    <div class="mt-5 space-y-3">
+      <div>
+        <div class="label-sm mb-1">Name</div>
+        <input type="text" value="Cooper" />
+      </div>
+      <div>
+        <div class="label-sm mb-1">Price</div>
+        <input type="text" value="$2,800" />
+      </div>
+      <div>
+        <div class="label-sm mb-1">Status</div>
+        <select class="w-full p-3.5 border border-stone-300 rounded-xl text-base bg-white">
+          <option>Available</option>
+          <option>Reserved</option>
+          <option>Sold</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="big-btn mt-5" onclick="showToast('Saved'); setTimeout(()=>goto('manage-puppies'), 700);">Save</button>
+  </div>
+
+  <!-- ===== MANAGE PARENT DOGS ===== -->
+  <div id="screen-manage-parents" class="screen">
+    <div class="demo-label">manage mom &amp; dad dogs</div>
+    <button class="ghost-btn self-start" onclick="goto('home')">← Back</button>
+    <h1 class="mt-2">Mom &amp; Dad dogs</h1>
+    <p class="helper mt-1">The parents who appear on the public site.</p>
+
+    <div class="mt-5">
+      <div class="label-sm mb-2">🐕‍🦺 Moms (dams)</div>
+      <div class="card">
+        <div class="font-semibold">Bella · Goldendoodle</div>
+        <div class="text-sm text-stone-500">2 photos</div>
+      </div>
+      <div class="card">
+        <div class="font-semibold">Chloe · Cavapoo</div>
+        <div class="text-sm text-stone-500">1 photo</div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <div class="label-sm mb-2">🐕 Dads (sires)</div>
+      <div class="card">
+        <div class="font-semibold">Max · Goldendoodle</div>
+        <div class="text-sm text-stone-500">3 photos</div>
+      </div>
+    </div>
+
+    <button class="secondary-btn mt-2">+ Add a new parent dog</button>
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+</div>
+
+<div class="max-w-md text-center text-xs text-stone-500 mt-2">
+  This is a static prototype — the real version uploads photos to Supabase Storage and writes to the existing schema.
+</div>
+
+<script>
+  let pin = '';
+  function goto(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('screen-' + id);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('.photo-slot.filled').forEach(s => {
+      // reset photo slots between visits so the flow feels fresh
+      // but keep the edit-screen mock thumbnails (they're inside .grid)
+    });
+  }
+  function enterPin(d) {
+    if (pin.length >= 4) return;
+    pin += d;
+    updatePinDots();
+    if (pin.length === 4) setTimeout(() => { pin = ''; updatePinDots(); goto('home'); }, 200);
+  }
+  function backspacePin() {
+    pin = pin.slice(0, -1);
+    updatePinDots();
+  }
+  function updatePinDots() {
+    document.querySelectorAll('#pinDots .pin-dot').forEach((d, i) => {
+      d.classList.toggle('filled', i < pin.length);
+    });
+  }
+  function savePuppy() {
+    showToast('Cooper saved · loading Puppy 2');
+    setTimeout(() => goto('preface'), 900);
+  }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1400);
+  }
+</script>
+
+</body>
+</html>
