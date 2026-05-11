@@ -193,12 +193,48 @@ async function updateLitterDates(
   if (Object.keys(patch).length === 0)
     return json(400, { ok: false, error: "Provide dateOfBirth and/or readyDate" });
 
-  // The propagate_litter_ready_date trigger handles fanning a ready_date
-  // change out to all linked puppies that haven't been manually overridden.
+  // Look up the litter; if no row yet (common for legacy admin-created
+  // upcoming_litters that have never been touched by the breeder tool),
+  // we'll need to UPSERT with breed inherited from upcoming_litters,
+  // since breed is NOT NULL on litters.
   patch.updated_at = new Date().toISOString();
-  const { error } = await supabase.from("litters").update(patch).eq("id", p.litterId);
-  if (error)
-    return json(500, { ok: false, error: "Failed to update litter dates", details: error.message });
+
+  const { data: existing } = await supabase
+    .from("litters")
+    .select("breed")
+    .eq("id", p.litterId)
+    .maybeSingle();
+
+  if (existing) {
+    // Plain UPDATE — the propagate_litter_ready_date trigger handles
+    // fanning a ready_date change out to puppies that haven't been
+    // manually overridden.
+    const { error } = await supabase.from("litters").update(patch).eq("id", p.litterId);
+    if (error)
+      return json(500, { ok: false, error: "Failed to update litter dates", details: error.message });
+  } else {
+    // No litters row yet — create one. Inherit breed from upcoming_litters
+    // so we satisfy the NOT NULL constraint and the row remains discoverable
+    // via the breeder_litter_summary view's shared-UUID JOIN.
+    const { data: upcoming } = await supabase
+      .from("upcoming_litters")
+      .select("breed")
+      .eq("id", p.litterId)
+      .maybeSingle();
+    if (!upcoming?.breed)
+      return json(404, {
+        ok: false,
+        error: "No upcoming_litters row found for this id — confirm the litter is born first",
+      });
+    const insertable: Record<string, unknown> = {
+      id: p.litterId,
+      breed: upcoming.breed,
+      ...patch,
+    };
+    const { error: insErr } = await supabase.from("litters").insert(insertable);
+    if (insErr)
+      return json(500, { ok: false, error: "Failed to create litters row", details: insErr.message });
+  }
 
   // Mirror date_of_birth back to upcoming_litters so home cards stay accurate.
   if (patch.date_of_birth !== undefined) {
