@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppQueryClient } from "@/lib/query-client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { BreederAuthProvider } from "@/contexts/BreederAuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -52,6 +53,7 @@ const RequestDeposit = lazy(() => import("./pages/RequestDeposit"));
 const AgreementDownload = lazy(() => import("./pages/AgreementDownload"));
 const HeroV3Mockup = lazy(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazy(() => import("./pages/dev/UpcomingLittersV2Mockup"));
+const BreederPasscodeSettings = lazy(() => import("./pages/admin/settings/BreederPasscodeSettings"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -64,11 +66,13 @@ export function AppProviders({ children, queryClient }: AppProvidersProps) {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <LanguageProvider>
           <AuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              {children}
-            </TooltipProvider>
+            <BreederAuthProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                {children}
+              </TooltipProvider>
+            </BreederAuthProvider>
           </AuthProvider>
         </LanguageProvider>
       </ThemeProvider>
@@ -133,6 +137,7 @@ export function AppRoutes() {
             <Route path="pickup/:agreementId" element={<PickupHandover />} />
             <Route path="deposit-requests" element={<DepositRequests />} />
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />
+            <Route path="settings/breeder-passcode" element={<BreederPasscodeSettings />} />
             <Route path="faq" element={<FaqManager />} />
             <Route path="testimonials" element={<TestimonialsList />} />
             <Route path="newsletter" element={<Newsletter />} />

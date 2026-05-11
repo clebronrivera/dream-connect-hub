@@ -361,6 +361,22 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# Breeder-tool functions — public or breeder-token-gated.
+# Auth is handled inside each function (verifyBreederToken / pin compare),
+# not at the gateway. Other public functions in this project (e.g.
+# mark-payment-sent) follow the same pattern.
+[functions.breeder-login]
+verify_jwt = false
+
+[functions.breeder-upload-photo]
+verify_jwt = false
+
+[functions.breeder-upload-video]
+verify_jwt = false
+
+[functions.breeder-write]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
