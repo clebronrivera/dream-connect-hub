@@ -1,31 +1,34 @@
 // /breeder/puppies/:puppyId/capture
 //
 // Step machine for one puppy. Each step auto-saves the puppies row so
-// losing signal mid-capture leaves the data on the server.
+// losing signal mid-capture leaves the data on the server. Step state
+// and "last-puppy-for-litter" are persisted via lib/breeder/captureState
+// so navigating away and back lands the breeder right where she left off.
 //
 // Steps:
-//   1. name         — edit/confirm the auto-suggested name
-//   2. face         — face photo (primary)
-//   3. back         — back/profile photo
-//   4. top          — top-down photo
-//   5. paw          — paw photo (optional but encouraged)
-//   6. notes        — optional notes / description
-//   7. done         — confirm + return to wizard
+//   1. name    — edit/confirm the auto-suggested name
+//   2. face    — face photo (primary)
+//   3. back    — back/profile photo
+//   4. top     — top-down photo
+//   5. paw     — paw photo (optional but encouraged)
+//   6. video   — optional 10-second clip
+//   7. price   — per-puppy override (inherits litter price if blank)
+//   8. notes   — optional notes / description
+//   9. status  — status (Available/Pending/Sold/Reserved) + publish toggle
+//  10. done    — confirm + return to wizard
 //
-// Photo uploads round-trip through breeder-upload-photo via
-// PhotoCaptureSlot, which returns { path, publicUrl }. We push the
-// publicUrl onto puppies.photos and set primary_photo on the face shot.
-//
-// The first successful photo upload flips is_publicly_visible=true so
-// the public site picks the puppy up; a puppy with no photos stays
-// hidden so it doesn't show up as a placeholder.
+// Puppies are created with is_publicly_visible=false. The status step
+// is where the operator explicitly flips them visible at the end of
+// capture — no auto-publish on photo upload anymore.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
   Loader2,
   Sparkles,
 } from "lucide-react";
@@ -35,6 +38,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PhotoCaptureSlot } from "@/components/breeder/PhotoCaptureSlot";
 import { VideoCaptureSlot } from "@/components/breeder/VideoCaptureSlot";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
@@ -44,13 +55,18 @@ import {
   type BreederPuppyRow,
 } from "@/lib/breeder/api";
 import { getSuggestedPuppyName } from "@/lib/puppy-name-generator";
+import {
+  getStepForPuppy,
+  setStepForPuppy,
+  setLastPuppyForLitter,
+} from "@/lib/breeder/captureState";
 
 const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] as const;
 const PUPPY_QK = (id: string) => ["breeder", "puppy", id] as const;
 const HOME_QK = ["breeder", "home"] as const;
 
-type Step = "name" | "face" | "back" | "top" | "paw" | "video" | "price" | "notes" | "done";
-const STEPS: Step[] = ["name", "face", "back", "top", "paw", "video", "price", "notes", "done"];
+type Step = "name" | "face" | "back" | "top" | "paw" | "video" | "price" | "notes" | "status" | "done";
+const STEPS: Step[] = ["name", "face", "back", "top", "paw", "video", "price", "notes", "status", "done"];
 const PHOTO_STEPS: Step[] = ["face", "back", "top", "paw"];
 
 const STEP_LABELS: Record<Step, string> = {
@@ -62,8 +78,16 @@ const STEP_LABELS: Record<Step, string> = {
   video: "Short video",
   price: "Price",
   notes: "Notes",
+  status: "Status & publish",
   done: "Done",
 };
+
+type PuppyStatus = "Available" | "Pending" | "Sold" | "Reserved";
+const PUPPY_STATUSES: PuppyStatus[] = ["Available", "Pending", "Sold", "Reserved"];
+
+function isStep(s: string | null): s is Step {
+  return s !== null && (STEPS as string[]).includes(s);
+}
 
 interface PhotosState {
   face?: string;
@@ -157,13 +181,32 @@ function CaptureForm({
   const navigate = useNavigate();
   const { session } = useBreederAuth();
 
-  const [stepIdx, setStepIdx] = useState(0);
+  // Restore the last step the operator was on for this puppy (best-effort
+  // UX hint stored in localStorage). If there's nothing saved, start at 0.
+  const [stepIdx, setStepIdx] = useState<number>(() => {
+    const saved = getStepForPuppy(puppyId);
+    if (!isStep(saved)) return 0;
+    const idx = STEPS.indexOf(saved);
+    return idx >= 0 ? idx : 0;
+  });
   const [name, setName] = useState(puppy.name);
   const [notes, setNotes] = useState(puppy.description ?? "");
   // Empty string = inherit from litter (don't override). Otherwise a manual price.
   const [priceText, setPriceText] = useState<string>(
     puppy.base_price != null ? String(puppy.base_price) : "",
   );
+  const [status, setStatus] = useState<PuppyStatus>(
+    (puppy.status as PuppyStatus | null) ?? "Available",
+  );
+  const [isPubliclyVisible, setIsPubliclyVisible] = useState<boolean>(
+    puppy.is_publicly_visible ?? false,
+  );
+
+  // Persist step + last-puppy hint whenever they change.
+  useEffect(() => {
+    setStepForPuppy(puppyId, STEPS[stepIdx] ?? "name");
+    if (litterId) setLastPuppyForLitter(litterId, puppyId);
+  }, [stepIdx, puppyId, litterId]);
 
   // Derive photo state from the row. We pre-fill slot URLs in order the
   // first time, then track local capture results as the user replaces.
@@ -229,6 +272,15 @@ function CaptureForm({
         }
         return;
       }
+      case "status": {
+        const patch: Parameters<typeof updatePuppy>[2] = {};
+        if (status !== (puppy.status ?? "Available")) patch.status = status;
+        if (isPubliclyVisible !== (puppy.is_publicly_visible ?? false))
+          patch.is_publicly_visible = isPubliclyVisible;
+        if (Object.keys(patch).length === 0) return;
+        await patchMut.mutateAsync(patch);
+        return;
+      }
       default:
         return;
     }
@@ -246,11 +298,9 @@ function CaptureForm({
       const photosArr = buildPhotosArray(next);
       const patch: Parameters<typeof updatePuppy>[2] = { photos: photosArr };
       if (slot === "face") patch.primary_photo = publicUrl;
-      // First photo flips visibility on. Subsequent uploads don't touch it.
-      const wasEmpty =
-        !puppy.primary_photo &&
-        (!Array.isArray(puppy.photos) || puppy.photos.length === 0);
-      if (wasEmpty) patch.is_publicly_visible = true;
+      // Visibility no longer flips on first photo upload — the operator
+      // controls it explicitly on the "status" step at the end so a
+      // half-finished puppy doesn't land on the public site.
       patchMut.mutate(patch);
       return next;
     });
@@ -379,11 +429,72 @@ function CaptureForm({
           </>
         )}
 
+        {step === "status" && (
+          <>
+            <h2 className="text-lg font-semibold">Status &amp; publish</h2>
+            <p className="text-sm text-muted-foreground">
+              Set how {name || "this puppy"} should appear on the public site.
+              The puppy stays hidden until you flip the toggle on.
+            </p>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v as PuppyStatus)}
+              >
+                <SelectTrigger id="status" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PUPPY_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label
+              htmlFor="public-toggle"
+              className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-4 transition ${
+                isPubliclyVisible
+                  ? "border-emerald-300 bg-emerald-50"
+                  : "border-muted-foreground/20 bg-muted/40"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {isPubliclyVisible ? (
+                  <Eye className="h-5 w-5 text-emerald-700" aria-hidden />
+                ) : (
+                  <EyeOff className="h-5 w-5 text-muted-foreground" aria-hidden />
+                )}
+                <div>
+                  <div className="font-medium">
+                    {isPubliclyVisible ? "Showing on public site" : "Hidden from public site"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {isPubliclyVisible
+                      ? "Buyers can see this puppy on /puppies."
+                      : "Toggle on to publish once this puppy is ready for buyers."}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="public-toggle"
+                checked={isPubliclyVisible}
+                onCheckedChange={setIsPubliclyVisible}
+              />
+            </label>
+          </>
+        )}
+
         {step === "done" && (
           <div className="space-y-2 text-center">
             <h2 className="text-xl font-semibold">All set</h2>
             <p className="text-sm text-muted-foreground">
               {name} is saved. Head back to capture the next puppy.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Status: <strong>{status}</strong> ·{" "}
+              {isPubliclyVisible ? "visible on /puppies" : "hidden"}
             </p>
           </div>
         )}

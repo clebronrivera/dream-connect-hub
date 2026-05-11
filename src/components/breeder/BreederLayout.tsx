@@ -2,7 +2,7 @@
 // + a sign-out menu, then an Outlet for the page content.
 
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft, Home, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 
@@ -37,15 +37,28 @@ export function BreederLayout() {
             Dream Puppies · Breeder
           </h1>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleSignOut}
-          aria-label="Sign out"
-        >
-          <LogOut className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!isHome && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/breeder")}
+              aria-label="Home"
+            >
+              <Home className="h-5 w-5" />
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
       <main className="flex-1">
         <Outlet />

@@ -13,6 +13,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
+  ArrowRight,
   CheckCircle2,
   Heart,
   Loader2,
@@ -31,6 +32,7 @@ import {
   type BreederPuppyRow,
 } from "@/lib/breeder/api";
 import { getSuggestedPuppyName } from "@/lib/puppy-name-generator";
+import { getLastPuppyForLitter } from "@/lib/breeder/captureState";
 
 const HOME_QK = ["breeder", "home"] as const;
 const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] as const;
@@ -168,6 +170,14 @@ export default function BreederPuppiesWizard() {
 
   const allDone = totalExpected > 0 && completedCount === totalExpected;
 
+  // "Continue with [last puppy]" — always surface the most recently visited
+  // puppy for this litter, regardless of capture state. Lets the operator
+  // hit Home, come back later, and pick up exactly where they left off.
+  const lastPuppyId = litterId ? getLastPuppyForLitter(litterId) : null;
+  const resumeCandidate = lastPuppyId
+    ? puppies.find((p) => p.id === lastPuppyId)
+    : undefined;
+
   return (
     <div className="mx-auto max-w-screen-sm space-y-5 px-4 py-6">
       <header className="space-y-1">
@@ -199,6 +209,34 @@ export default function BreederPuppiesWizard() {
           ))}
         </div>
       </header>
+
+      {resumeCandidate && (
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() =>
+            navigate(`/breeder/puppies/${resumeCandidate.id}/capture?from=${litterId}`)
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate(`/breeder/puppies/${resumeCandidate.id}/capture?from=${litterId}`);
+            }
+          }}
+          className="flex cursor-pointer items-center gap-3 border-primary/40 bg-primary/5 p-4 transition hover:shadow"
+        >
+          <PawPrint className="h-5 w-5 text-primary" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold">
+              Continue with {resumeCandidate.name}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              You were last working on this puppy. Tap to pick up where you left off.
+            </p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-primary" aria-hidden />
+        </Card>
+      )}
 
       {allDone ? (
         <Card className="space-y-4 p-5 text-center">
@@ -255,6 +293,7 @@ export default function BreederPuppiesWizard() {
                 photosArr.length +
                 (p.primary_photo && !photosArr.includes(p.primary_photo) ? 1 : 0);
               const captured = photoCount > 0;
+              const isPublic = p.is_publicly_visible === true;
               return (
                 <li
                   key={p.id}
@@ -266,6 +305,16 @@ export default function BreederPuppiesWizard() {
                       <Badge variant="outline" className="text-xs">
                         {p.gender}
                       </Badge>
+                      {p.status && p.status !== "Available" && (
+                        <Badge variant="secondary" className="text-xs">
+                          {p.status}
+                        </Badge>
+                      )}
+                      {!isPublic && (
+                        <Badge variant="outline" className="border-amber-300 bg-amber-50 text-xs text-amber-900">
+                          Hidden
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {captured
@@ -295,6 +344,42 @@ export default function BreederPuppiesWizard() {
             })}
           </ul>
         )}
+      </section>
+
+      {/* Add-another-puppy: lets the operator grow the litter beyond
+          the initial count (e.g. surprise puppies, miscounted at setup). */}
+      <section className="space-y-2 pt-2">
+        <h3 className="text-sm font-semibold text-muted-foreground">
+          Add another puppy
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Use this if the count from setup was off. The new puppy starts hidden
+          from the public site until you publish on the status step.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="h-12"
+            disabled={createMut.isPending}
+            onClick={() =>
+              createMut.mutate({ gender: "Male", indexWithinGender: 0 })
+            }
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add a boy
+          </Button>
+          <Button
+            variant="outline"
+            className="h-12"
+            disabled={createMut.isPending}
+            onClick={() =>
+              createMut.mutate({ gender: "Female", indexWithinGender: 0 })
+            }
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add a girl
+          </Button>
+        </div>
       </section>
     </div>
   );
