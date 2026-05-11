@@ -95,6 +95,7 @@ interface ConfirmLitterBornPayload {
   readyDate?: string;        // YYYY-MM-DD
   maleCount?: number;
   femaleCount?: number;
+  basePrice?: number | null; // litter-wide default price; inherited by puppies
 }
 
 function isUuid(s: unknown): s is string {
@@ -103,6 +104,14 @@ function isUuid(s: unknown): s is string {
 
 function isIsoDate(s: unknown): s is string {
   return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function normalizePrice(value: unknown): number | null | "invalid" {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 100000) return "invalid";
+  // Round to 2dp to match NUMERIC storage.
+  return Math.round(n * 100) / 100;
 }
 
 async function confirmLitterBorn(
@@ -131,17 +140,22 @@ async function confirmLitterBorn(
 
   const total = male + female;
 
+  const price = normalizePrice(p.basePrice);
+  if (price === "invalid")
+    return json(400, { ok: false, error: "basePrice must be a non-negative number up to 100000" });
+
   // 1) Insert (or update) the litters row sharing the upcoming_litters UUID.
   //    Upsert lets the operator re-run setup harmlessly.
-  const { error: littersErr } = await supabase
-    .from("litters")
-    .upsert({
-      id: p.upcomingLitterId,
-      breed: p.breed.trim(),
-      date_of_birth: p.dateOfBirth,
-      ready_date: p.readyDate,
-      updated_at: new Date().toISOString(),
-    });
+  const littersRow: Record<string, unknown> = {
+    id: p.upcomingLitterId,
+    breed: p.breed.trim(),
+    date_of_birth: p.dateOfBirth,
+    ready_date: p.readyDate,
+    updated_at: new Date().toISOString(),
+  };
+  if (price !== null) littersRow.base_price = price;
+
+  const { error: littersErr } = await supabase.from("litters").upsert(littersRow);
   if (littersErr)
     return json(500, { ok: false, error: "Failed to write litters row", details: littersErr.message });
 
@@ -174,8 +188,12 @@ interface UpdateLitterDatesPayload {
   litterId?: string;
   dateOfBirth?: string;
   readyDate?: string;
+  basePrice?: number | null;
 }
 
+// (Note: this also carries the PR 8 upsert fix — when no litters row exists
+//  yet for an upcoming_litter, we INSERT one with breed inherited from
+//  upcoming_litters. On rebase after PR 8 merges, keep this version.)
 async function updateLitterDates(
   supabase: SupabaseClient,
   payload: unknown,
@@ -196,17 +214,49 @@ async function updateLitterDates(
       return json(400, { ok: false, error: "readyDate must be YYYY-MM-DD" });
     patch.ready_date = p.readyDate;
   }
+  if (p.basePrice !== undefined) {
+    const price = normalizePrice(p.basePrice);
+    if (price === "invalid")
+      return json(400, { ok: false, error: "basePrice must be a non-negative number up to 100000" });
+    patch.base_price = price;
+  }
   if (Object.keys(patch).length === 0)
-    return json(400, { ok: false, error: "Provide dateOfBirth and/or readyDate" });
+    return json(400, { ok: false, error: "Provide dateOfBirth, readyDate, or basePrice" });
 
-  // The propagate_litter_ready_date trigger handles fanning a ready_date
-  // change out to all linked puppies that haven't been manually overridden.
   patch.updated_at = new Date().toISOString();
-  const { error } = await supabase.from("litters").update(patch).eq("id", p.litterId);
-  if (error)
-    return json(500, { ok: false, error: "Failed to update litter dates", details: error.message });
 
-  // Mirror date_of_birth back to upcoming_litters so home cards stay accurate.
+  // PR 8 fix carried forward: upsert when no row exists yet.
+  const { data: existing } = await supabase
+    .from("litters")
+    .select("breed")
+    .eq("id", p.litterId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase.from("litters").update(patch).eq("id", p.litterId);
+    if (error)
+      return json(500, { ok: false, error: "Failed to update litter", details: error.message });
+  } else {
+    const { data: upcoming } = await supabase
+      .from("upcoming_litters")
+      .select("breed")
+      .eq("id", p.litterId)
+      .maybeSingle();
+    if (!upcoming?.breed)
+      return json(404, {
+        ok: false,
+        error: "No upcoming_litters row found for this id — confirm the litter is born first",
+      });
+    const insertable: Record<string, unknown> = {
+      id: p.litterId,
+      breed: upcoming.breed,
+      ...patch,
+    };
+    const { error: insErr } = await supabase.from("litters").insert(insertable);
+    if (insErr)
+      return json(500, { ok: false, error: "Failed to create litters row", details: insErr.message });
+  }
+
   if (patch.date_of_birth !== undefined) {
     await supabase
       .from("upcoming_litters")
@@ -233,7 +283,7 @@ async function listLitterPuppies(
   const { data, error } = await supabase
     .from("puppies")
     .select(
-      "id, name, gender, breed, photos, primary_photo, description, ready_date, status, created_at, updated_at",
+      "id, name, gender, breed, photos, primary_photo, description, ready_date, base_price, status, created_at, updated_at",
     )
     .eq("upcoming_litter_id", p.upcomingLitterId)
     .order("created_at", { ascending: true });
@@ -262,11 +312,11 @@ async function createPuppy(
   if (p.gender !== "Male" && p.gender !== "Female")
     return json(400, { ok: false, error: "gender must be 'Male' or 'Female'" });
 
-  // Pull the litter row to inherit breed + ready_date (the trigger keeps puppies
+  // Pull the litter row to inherit breed + ready_date + base_price (the triggers keep puppies
   // in sync if the litter's ready_date later changes).
   const { data: litter } = await supabase
     .from("litters")
-    .select("breed, ready_date")
+    .select("breed, ready_date, base_price")
     .eq("id", p.upcomingLitterId)
     .maybeSingle();
 
@@ -291,11 +341,12 @@ async function createPuppy(
     photos: [],
   };
   if (litter?.ready_date) insertable.ready_date = litter.ready_date;
+  if (litter?.base_price != null) insertable.base_price = litter.base_price;
 
   const { data, error } = await supabase
     .from("puppies")
     .insert(insertable)
-    .select("id, name, gender, breed, ready_date")
+    .select("id, name, gender, breed, ready_date, base_price")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to create puppy", details: error?.message });
@@ -309,6 +360,7 @@ const UPDATE_PUPPY_ALLOWED = new Set([
   "primary_photo",
   "description",
   "ready_date",
+  "base_price",
   "status",
   "is_publicly_visible",
 ]);
@@ -333,7 +385,15 @@ async function updatePuppy(
   for (const key of Object.keys(p.fields)) {
     if (!UPDATE_PUPPY_ALLOWED.has(key))
       return json(400, { ok: false, error: `Disallowed field: ${key}` });
-    patch[key] = (p.fields as Record<string, unknown>)[key];
+    const value = (p.fields as Record<string, unknown>)[key];
+    if (key === "base_price") {
+      const normalized = normalizePrice(value);
+      if (normalized === "invalid")
+        return json(400, { ok: false, error: "base_price must be a non-negative number up to 100000" });
+      patch.base_price = normalized;
+    } else {
+      patch[key] = value;
+    }
   }
   if (Object.keys(patch).length === 0)
     return json(400, { ok: false, error: "fields must contain at least one allowed key" });
@@ -344,7 +404,7 @@ async function updatePuppy(
     .from("puppies")
     .update(patch)
     .eq("id", p.puppyId)
-    .select("id, name, gender, breed, photos, primary_photo, description, ready_date, status, is_publicly_visible")
+    .select("id, name, gender, breed, photos, primary_photo, description, ready_date, base_price, status, is_publicly_visible")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });

@@ -23,8 +23,8 @@ import type { BreederLitterSummary } from "@/types/breeder";
 const HOME_QK = ["breeder", "home"] as const;
 const PUPPY_GO_HOME_AGE_DAYS = 56; // 8 weeks; matches /admin's convention
 
-type Step = "breed" | "dob" | "ready" | "counts" | "review";
-const STEPS: Step[] = ["breed", "dob", "ready", "counts", "review"];
+type Step = "breed" | "dob" | "ready" | "counts" | "price" | "review";
+const STEPS: Step[] = ["breed", "dob", "ready", "counts", "price", "review"];
 
 function isoToday(): string {
   return new Date().toISOString().slice(0, 10);
@@ -82,6 +82,11 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
   const [ready, setReady] = useState(addDays(isoToday(), PUPPY_GO_HOME_AGE_DAYS));
   const [male, setMale] = useState(0);
   const [female, setFemale] = useState(0);
+  // Price is per-litter; pre-fills from breeder_litter_summary.litter_base_price
+  // when the operator is re-running setup. Empty string = "leave unset for now".
+  const [priceText, setPriceText] = useState<string>(
+    row.litter_base_price != null ? String(row.litter_base_price) : "",
+  );
 
   function handleDobChange(next: string) {
     // If the operator hasn't manually moved the ready date, follow dob.
@@ -93,6 +98,11 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
   const submitMut = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error("Missing session");
+      const priceTrim = priceText.trim();
+      const basePrice = priceTrim === "" ? null : Number(priceTrim);
+      if (basePrice !== null && (!Number.isFinite(basePrice) || basePrice < 0)) {
+        throw new Error("Price must be a non-negative number");
+      }
       const res = await confirmLitterBorn(session.token, {
         upcomingLitterId: litterId,
         breed: breed.trim(),
@@ -100,6 +110,7 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
         readyDate: ready,
         maleCount: male,
         femaleCount: female,
+        basePrice,
       });
       if (!res.ok) throw new Error(res.error);
       return res.data;
@@ -125,6 +136,11 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
         return /^\d{4}-\d{2}-\d{2}$/.test(ready) && ready >= dob;
       case "counts":
         return total > 0;
+      case "price": {
+        if (priceText.trim() === "") return true; // optional — operator can set later
+        const n = Number(priceText);
+        return Number.isFinite(n) && n >= 0 && n <= 100000;
+      }
       case "review":
         return true;
     }
@@ -218,6 +234,36 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
           </>
         )}
 
+        {step === "price" && (
+          <>
+            <h2 className="text-lg font-semibold">Price per puppy</h2>
+            <p className="text-sm text-muted-foreground">
+              This is the litter-wide price every puppy starts at. You can leave
+              it blank and fill it in later, or override an individual puppy
+              during capture.
+            </p>
+            <div>
+              <Label htmlFor="price">Price (USD)</Label>
+              <div className="relative mt-1">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="price"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="50"
+                  value={priceText}
+                  onChange={(e) => setPriceText(e.target.value)}
+                  className="pl-7"
+                  placeholder="1500"
+                />
+              </div>
+            </div>
+          </>
+        )}
+
         {step === "review" && (
           <>
             <h2 className="text-lg font-semibold">Ready to save?</h2>
@@ -228,6 +274,10 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
               <ReviewRow label="Boys" value={String(male)} />
               <ReviewRow label="Girls" value={String(female)} />
               <ReviewRow label="Total" value={String(total)} />
+              <ReviewRow
+                label="Price per puppy"
+                value={priceText.trim() === "" ? "—" : `$${Number(priceText).toLocaleString()}`}
+              />
             </dl>
           </>
         )}

@@ -48,8 +48,8 @@ const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] 
 const PUPPY_QK = (id: string) => ["breeder", "puppy", id] as const;
 const HOME_QK = ["breeder", "home"] as const;
 
-type Step = "name" | "face" | "back" | "top" | "paw" | "notes" | "done";
-const STEPS: Step[] = ["name", "face", "back", "top", "paw", "notes", "done"];
+type Step = "name" | "face" | "back" | "top" | "paw" | "price" | "notes" | "done";
+const STEPS: Step[] = ["name", "face", "back", "top", "paw", "price", "notes", "done"];
 const PHOTO_STEPS: Step[] = ["face", "back", "top", "paw"];
 
 const STEP_LABELS: Record<Step, string> = {
@@ -58,6 +58,7 @@ const STEP_LABELS: Record<Step, string> = {
   back: "Back / profile",
   top: "Top-down",
   paw: "Paw print",
+  price: "Price",
   notes: "Notes",
   done: "Done",
 };
@@ -157,6 +158,10 @@ function CaptureForm({
   const [stepIdx, setStepIdx] = useState(0);
   const [name, setName] = useState(puppy.name);
   const [notes, setNotes] = useState(puppy.description ?? "");
+  // Empty string = inherit from litter (don't override). Otherwise a manual price.
+  const [priceText, setPriceText] = useState<string>(
+    puppy.base_price != null ? String(puppy.base_price) : "",
+  );
 
   // Derive photo state from the row. We pre-fill slot URLs in order the
   // first time, then track local capture results as the user replaces.
@@ -204,6 +209,21 @@ function CaptureForm({
       case "notes": {
         if (notes === (puppy.description ?? "")) return;
         await patchMut.mutateAsync({ description: notes });
+        return;
+      }
+      case "price": {
+        const trim = priceText.trim();
+        const initial = puppy.base_price != null ? String(puppy.base_price) : "";
+        if (trim === initial) return;
+        if (trim === "") {
+          await patchMut.mutateAsync({ base_price: null });
+        } else {
+          const n = Number(trim);
+          if (!Number.isFinite(n) || n < 0 || n > 100000) {
+            throw new Error("Price must be a non-negative number up to 100000");
+          }
+          await patchMut.mutateAsync({ base_price: n });
+        }
         return;
       }
       default:
@@ -300,6 +320,32 @@ function CaptureForm({
               onPhotoUploaded(step as keyof PhotosState, publicUrl)
             }
           />
+        )}
+
+        {step === "price" && (
+          <>
+            <Label htmlFor="price">Price (USD)</Label>
+            <p className="text-sm text-muted-foreground">
+              Leave blank to inherit the litter's price. Override here to set
+              a different price for {puppy.name || "this puppy"} specifically.
+            </p>
+            <div className="relative mt-1">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground">
+                $
+              </span>
+              <Input
+                id="price"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="50"
+                value={priceText}
+                onChange={(e) => setPriceText(e.target.value)}
+                className="pl-7"
+                placeholder="1500"
+              />
+            </div>
+          </>
         )}
 
         {step === "notes" && (
