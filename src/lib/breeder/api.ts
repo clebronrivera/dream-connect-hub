@@ -123,6 +123,52 @@ export function confirmLitterBorn(
   return callBreederWrite<ConfirmLitterBornResult>(token, "confirmLitterBorn", payload);
 }
 
+export interface BreederPuppyRow {
+  id: string;
+  name: string;
+  gender: "Male" | "Female";
+  breed: string;
+  photos: string[] | null;
+  primary_photo: string | null;
+  description: string | null;
+  ready_date: string | null;
+  status: string | null;
+  is_publicly_visible?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export function listLitterPuppies(
+  token: string,
+  upcomingLitterId: string,
+): Promise<BreederWriteResult<BreederPuppyRow[]>> {
+  return callBreederWrite<BreederPuppyRow[]>(token, "listLitterPuppies", { upcomingLitterId });
+}
+
+export function createPuppy(
+  token: string,
+  payload: { upcomingLitterId: string; name: string; gender: "Male" | "Female" },
+): Promise<BreederWriteResult<{ id: string; name: string; gender: string; breed: string; ready_date: string | null }>> {
+  return callBreederWrite(token, "createPuppy", payload);
+}
+
+export function updatePuppy(
+  token: string,
+  puppyId: string,
+  fields: Partial<{
+    name: string;
+    gender: "Male" | "Female";
+    photos: string[];
+    primary_photo: string;
+    description: string;
+    ready_date: string;
+    status: string;
+    is_publicly_visible: boolean;
+  }>,
+): Promise<BreederWriteResult<BreederPuppyRow>> {
+  return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
+}
+
 export interface UploadPhotoResult {
   path: string;
   publicUrl: string;
