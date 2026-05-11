@@ -10,14 +10,12 @@
 // until natural expiry; next login uses the new pin."
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyAdmin } from "../_shared/auth/verifyAdmin.ts";
+import { hashPin } from "../_shared/auth/pinHash.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const BCRYPT_COST = 10;
 
 interface RequestBody {
   pin?: string;
@@ -55,7 +53,7 @@ export async function handler(
     return json(400, { ok: false, error: "Pin must be 4 digits" });
   }
 
-  const hash = await bcrypt.hash(body.pin, BCRYPT_COST);
+  const hash = await hashPin(body.pin);
 
   const { error } = await supabase
     .from("breeder_config")
@@ -72,4 +70,6 @@ export async function handler(
   return json(200, { ok: true });
 }
 
-Deno.serve(handler);
+// Deno.serve passes (req, { remoteAddr }) — wrap so connInfo doesn't
+// leak into the test-only adminOverride positional param.
+Deno.serve((req) => handler(req));

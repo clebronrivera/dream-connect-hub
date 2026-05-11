@@ -11,8 +11,8 @@
 // is what gets stored — the pin itself is never persisted browser-side.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyPin } from "../_shared/auth/pinHash.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -117,7 +117,7 @@ export async function handler(
     });
   }
 
-  const matches = await bcrypt.compare(body.pin, config.passcode_hash);
+  const matches = await verifyPin(body.pin, config.passcode_hash);
 
   if (!matches) {
     await supabase
@@ -161,4 +161,6 @@ export async function handler(
   });
 }
 
-Deno.serve(handler);
+// Deno.serve passes (req, { remoteAddr }) — wrap so connInfo doesn't
+// leak into the test-only adminOverride positional param.
+Deno.serve((req) => handler(req));
