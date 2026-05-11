@@ -67,6 +67,12 @@ export async function handler(
     }
     case "confirmLitterBorn":
       return await confirmLitterBorn(supabase, body.payload, json);
+    case "listLitterPuppies":
+      return await listLitterPuppies(supabase, body.payload, json);
+    case "createPuppy":
+      return await createPuppy(supabase, body.payload, json);
+    case "updatePuppy":
+      return await updatePuppy(supabase, body.payload, json);
     default:
       return json(400, { ok: false, error: `Unknown op: ${body.op ?? "(none)"}` });
   }
@@ -154,6 +160,140 @@ async function confirmLitterBorn(
       totalCount: total,
     },
   });
+}
+
+interface ListLitterPuppiesPayload {
+  upcomingLitterId?: string;
+}
+
+async function listLitterPuppies(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as ListLitterPuppiesPayload;
+  if (!isUuid(p.upcomingLitterId))
+    return json(400, { ok: false, error: "upcomingLitterId must be a UUID" });
+
+  const { data, error } = await supabase
+    .from("puppies")
+    .select(
+      "id, name, gender, breed, photos, primary_photo, description, ready_date, status, created_at, updated_at",
+    )
+    .eq("upcoming_litter_id", p.upcomingLitterId)
+    .order("created_at", { ascending: true });
+  if (error)
+    return json(500, { ok: false, error: "Failed to list puppies", details: error.message });
+  return json(200, { ok: true, data: data ?? [] });
+}
+
+interface CreatePuppyPayload {
+  upcomingLitterId?: string;
+  litterId?: string | null;
+  name?: string;
+  gender?: "Male" | "Female";
+}
+
+async function createPuppy(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as CreatePuppyPayload;
+  if (!isUuid(p.upcomingLitterId))
+    return json(400, { ok: false, error: "upcomingLitterId must be a UUID" });
+  if (!p.name || typeof p.name !== "string" || p.name.trim().length === 0)
+    return json(400, { ok: false, error: "name is required" });
+  if (p.gender !== "Male" && p.gender !== "Female")
+    return json(400, { ok: false, error: "gender must be 'Male' or 'Female'" });
+
+  // Pull the litter row to inherit breed + ready_date (the trigger keeps puppies
+  // in sync if the litter's ready_date later changes).
+  const { data: litter } = await supabase
+    .from("litters")
+    .select("breed, ready_date")
+    .eq("id", p.upcomingLitterId)
+    .maybeSingle();
+
+  const { data: upcoming } = await supabase
+    .from("upcoming_litters")
+    .select("breed")
+    .eq("id", p.upcomingLitterId)
+    .maybeSingle();
+
+  const breed = litter?.breed ?? upcoming?.breed ?? "";
+  if (!breed)
+    return json(500, { ok: false, error: "Litter has no breed; confirm setup first" });
+
+  const insertable: Record<string, unknown> = {
+    name: p.name.trim(),
+    gender: p.gender,
+    breed,
+    upcoming_litter_id: p.upcomingLitterId,
+    litter_id: litter ? p.upcomingLitterId : null,
+    status: "Available",
+    is_publicly_visible: false,        // hidden until first photo
+    photos: [],
+  };
+  if (litter?.ready_date) insertable.ready_date = litter.ready_date;
+
+  const { data, error } = await supabase
+    .from("puppies")
+    .insert(insertable)
+    .select("id, name, gender, breed, ready_date")
+    .single();
+  if (error || !data)
+    return json(500, { ok: false, error: "Failed to create puppy", details: error?.message });
+  return json(200, { ok: true, data });
+}
+
+const UPDATE_PUPPY_ALLOWED = new Set([
+  "name",
+  "gender",
+  "photos",
+  "primary_photo",
+  "description",
+  "ready_date",
+  "status",
+  "is_publicly_visible",
+]);
+
+interface UpdatePuppyPayload {
+  puppyId?: string;
+  fields?: Record<string, unknown>;
+}
+
+async function updatePuppy(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as UpdatePuppyPayload;
+  if (!isUuid(p.puppyId))
+    return json(400, { ok: false, error: "puppyId must be a UUID" });
+  if (!p.fields || typeof p.fields !== "object")
+    return json(400, { ok: false, error: "fields object is required" });
+
+  const patch: Record<string, unknown> = {};
+  for (const key of Object.keys(p.fields)) {
+    if (!UPDATE_PUPPY_ALLOWED.has(key))
+      return json(400, { ok: false, error: `Disallowed field: ${key}` });
+    patch[key] = (p.fields as Record<string, unknown>)[key];
+  }
+  if (Object.keys(patch).length === 0)
+    return json(400, { ok: false, error: "fields must contain at least one allowed key" });
+
+  patch.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("puppies")
+    .update(patch)
+    .eq("id", p.puppyId)
+    .select("id, name, gender, breed, photos, primary_photo, description, ready_date, status, is_publicly_visible")
+    .single();
+  if (error || !data)
+    return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });
+  return json(200, { ok: true, data });
 }
 
 // Wrap to keep connInfo out of the test-only adminOverride positional param.

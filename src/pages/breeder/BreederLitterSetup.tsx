@@ -107,7 +107,8 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
     onSuccess: () => {
       toast.success("Litter saved");
       queryClient.invalidateQueries({ queryKey: HOME_QK });
-      navigate(`/breeder/litters/${litterId}`, { replace: true });
+      // Jump straight into the puppy wizard — the spec's "Yes → setup → capture" path.
+      navigate(`/breeder/litters/${litterId}/wizard`, { replace: true });
     },
     onError: (err: Error) => toast.error(err.message),
   });

@@ -101,7 +101,7 @@ export default function BreederLitter() {
         <div className="space-y-3">
           <Button
             className="h-14 w-full text-base"
-            onClick={() => navigate(`/breeder/litters/${row.upcoming_litter_id}/puppies`)}
+            onClick={() => navigate(`/breeder/litters/${row.upcoming_litter_id}/wizard`)}
           >
             <PawPrint className="mr-2 h-5 w-5" />
             Manage these puppies
