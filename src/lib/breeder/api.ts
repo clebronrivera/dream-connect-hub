@@ -123,6 +123,13 @@ export function confirmLitterBorn(
   return callBreederWrite<ConfirmLitterBornResult>(token, "confirmLitterBorn", payload);
 }
 
+export function updateLitterDates(
+  token: string,
+  payload: { litterId: string; dateOfBirth?: string; readyDate?: string },
+): Promise<BreederWriteResult<{ litterId: string }>> {
+  return callBreederWrite(token, "updateLitterDates", payload);
+}
+
 export interface BreederPuppyRow {
   id: string;
   name: string;

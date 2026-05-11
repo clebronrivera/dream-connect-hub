@@ -67,6 +67,8 @@ export async function handler(
     }
     case "confirmLitterBorn":
       return await confirmLitterBorn(supabase, body.payload, json);
+    case "updateLitterDates":
+      return await updateLitterDates(supabase, body.payload, json);
     case "listLitterPuppies":
       return await listLitterPuppies(supabase, body.payload, json);
     case "createPuppy":
@@ -160,6 +162,89 @@ async function confirmLitterBorn(
       totalCount: total,
     },
   });
+}
+
+interface UpdateLitterDatesPayload {
+  litterId?: string;
+  dateOfBirth?: string;
+  readyDate?: string;
+}
+
+async function updateLitterDates(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as UpdateLitterDatesPayload;
+  if (!isUuid(p.litterId))
+    return json(400, { ok: false, error: "litterId must be a UUID" });
+
+  const patch: Record<string, unknown> = {};
+  if (p.dateOfBirth !== undefined) {
+    if (!isIsoDate(p.dateOfBirth))
+      return json(400, { ok: false, error: "dateOfBirth must be YYYY-MM-DD" });
+    patch.date_of_birth = p.dateOfBirth;
+  }
+  if (p.readyDate !== undefined) {
+    if (!isIsoDate(p.readyDate))
+      return json(400, { ok: false, error: "readyDate must be YYYY-MM-DD" });
+    patch.ready_date = p.readyDate;
+  }
+  if (Object.keys(patch).length === 0)
+    return json(400, { ok: false, error: "Provide dateOfBirth and/or readyDate" });
+
+  // Look up the litter; if no row yet (common for legacy admin-created
+  // upcoming_litters that have never been touched by the breeder tool),
+  // we'll need to UPSERT with breed inherited from upcoming_litters,
+  // since breed is NOT NULL on litters.
+  patch.updated_at = new Date().toISOString();
+
+  const { data: existing } = await supabase
+    .from("litters")
+    .select("breed")
+    .eq("id", p.litterId)
+    .maybeSingle();
+
+  if (existing) {
+    // Plain UPDATE — the propagate_litter_ready_date trigger handles
+    // fanning a ready_date change out to puppies that haven't been
+    // manually overridden.
+    const { error } = await supabase.from("litters").update(patch).eq("id", p.litterId);
+    if (error)
+      return json(500, { ok: false, error: "Failed to update litter dates", details: error.message });
+  } else {
+    // No litters row yet — create one. Inherit breed from upcoming_litters
+    // so we satisfy the NOT NULL constraint and the row remains discoverable
+    // via the breeder_litter_summary view's shared-UUID JOIN.
+    const { data: upcoming } = await supabase
+      .from("upcoming_litters")
+      .select("breed")
+      .eq("id", p.litterId)
+      .maybeSingle();
+    if (!upcoming?.breed)
+      return json(404, {
+        ok: false,
+        error: "No upcoming_litters row found for this id — confirm the litter is born first",
+      });
+    const insertable: Record<string, unknown> = {
+      id: p.litterId,
+      breed: upcoming.breed,
+      ...patch,
+    };
+    const { error: insErr } = await supabase.from("litters").insert(insertable);
+    if (insErr)
+      return json(500, { ok: false, error: "Failed to create litters row", details: insErr.message });
+  }
+
+  // Mirror date_of_birth back to upcoming_litters so home cards stay accurate.
+  if (patch.date_of_birth !== undefined) {
+    await supabase
+      .from("upcoming_litters")
+      .update({ date_of_birth: patch.date_of_birth })
+      .eq("id", p.litterId);
+  }
+
+  return json(200, { ok: true, data: { litterId: p.litterId } });
 }
 
 interface ListLitterPuppiesPayload {
