@@ -8,9 +8,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { CalendarHeart, Heart, Share2 } from 'lucide-react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
-import { getPuppyImage, getDisplayPrice, getSizeCategory } from '@/lib/puppy-display-utils';
+import {
+  getDisplayPrice,
+  getPuppyMediaList,
+  getSizeCategory,
+} from '@/lib/puppy-display-utils';
 import type { Puppy } from '@/lib/supabase';
 import { PuppyPlaceholderSvg, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
+import { PuppyMediaThumbs } from '@/components/puppy/PuppyMediaThumbs';
 
 function formatReadyDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -42,7 +47,8 @@ export function PuppyCard({
   onShare,
   onSendInterest,
 }: Props) {
-  const imageUrl = getPuppyImage(puppy);
+  const { photos, videoUrl } = getPuppyMediaList(puppy);
+  const hasMedia = photos.length > 0 || !!videoUrl;
   const price = getDisplayPrice(puppy);
   const status = puppy.status || 'Unknown';
   const isAvailable = status === 'Available';
@@ -55,11 +61,11 @@ export function PuppyCard({
       onClick={onOpenDetail}
     >
       <div className="relative aspect-square cursor-pointer overflow-hidden bg-white/5">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
+        {hasMedia ? (
+          <PuppyMediaThumbs
+            photos={photos}
+            videoUrl={videoUrl}
             alt={puppy.name || 'Puppy'}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center p-3">

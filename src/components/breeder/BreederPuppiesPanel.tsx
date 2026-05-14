@@ -46,6 +46,10 @@ export function BreederPuppiesPanel({ home }: Props) {
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [addGender, setAddGender] = useState<"Male" | "Female">("Female");
+  // Sold puppies are hidden by default — they're out of the breeder's
+  // day-to-day workflow. Toggle below the roster reveals them when the
+  // breeder needs to look something up.
+  const [showSold, setShowSold] = useState(false);
 
   // Only litters that already have a litters row can host new puppies
   // (the schema requires breed inheritance via createPuppy). Pre-birth
@@ -113,7 +117,14 @@ export function BreederPuppiesPanel({ home }: Props) {
     );
   }
 
-  const puppies = data ?? [];
+  const allPuppies = data ?? [];
+  const activePuppies = allPuppies.filter((p) => p.status !== "Sold");
+  const soldPuppies = allPuppies.filter((p) => p.status === "Sold");
+
+  const invalidateAfterRowChange = () => {
+    queryClient.invalidateQueries({ queryKey: ALL_PUPPIES_QK });
+    queryClient.invalidateQueries({ queryKey: ["breeder", "home"] });
+  };
 
   return (
     <div className="space-y-3">
@@ -132,7 +143,7 @@ export function BreederPuppiesPanel({ home }: Props) {
         </p>
       )}
 
-      {puppies.length === 0 ? (
+      {activePuppies.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-md border bg-muted/40 p-6 text-center">
           <PawPrint className="h-6 w-6 text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">
@@ -142,10 +153,41 @@ export function BreederPuppiesPanel({ home }: Props) {
         </div>
       ) : (
         <ul className="divide-y rounded-md border">
-          {puppies.map((p) => (
-            <PuppyHubRow key={p.id} puppy={p} />
+          {activePuppies.map((p) => (
+            <PuppyHubRow
+              key={p.id}
+              puppy={p}
+              onDeleted={invalidateAfterRowChange}
+              onPublished={invalidateAfterRowChange}
+            />
           ))}
         </ul>
+      )}
+
+      {soldPuppies.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowSold((s) => !s)}
+          >
+            {showSold
+              ? `Hide sold puppies`
+              : `Show sold puppies (${soldPuppies.length})`}
+          </Button>
+          {showSold && (
+            <ul className="divide-y rounded-md border opacity-80">
+              {soldPuppies.map((p) => (
+                <PuppyHubRow
+                  key={p.id}
+                  puppy={p}
+                  onDeleted={invalidateAfterRowChange}
+                  onPublished={invalidateAfterRowChange}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

@@ -9,6 +9,10 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { PlayCircle, Dog } from "lucide-react";
+import {
+  puppyMediaLayoutClass,
+  puppyMediaTileClass,
+} from "./puppyMediaLayout";
 
 interface MediaItem {
   kind: "photo" | "video";
@@ -46,7 +50,7 @@ export function PuppyMediaCollage({ photos, videoUrl, alt }: PuppyMediaCollagePr
 
   return (
     <>
-      <div className={layoutClass(visibleCount)}>
+      <div className={puppyMediaLayoutClass(visibleCount)}>
         {visible.map((item, i) => {
           const isLast = i === visibleCount - 1;
           const showOverflow = isLast && overflow > 0;
@@ -56,7 +60,7 @@ export function PuppyMediaCollage({ photos, videoUrl, alt }: PuppyMediaCollagePr
               type="button"
               onClick={() => setActiveIdx(i)}
               className={`group relative overflow-hidden rounded-lg bg-muted ${
-                tileClass(visibleCount, i)
+                puppyMediaTileClass(visibleCount, i)
               }`}
               aria-label={
                 item.kind === "video"
@@ -147,21 +151,3 @@ function VideoThumb({ url }: { url: string }) {
   );
 }
 
-function layoutClass(count: number): string {
-  if (count === 1) return "grid grid-cols-1 gap-2 aspect-square";
-  if (count === 2) return "grid grid-cols-2 gap-2 aspect-[2/1]";
-  // 3 and 4 share the same 2-col layout; tile-level row-span handles the
-  // 3-up "1 large + 2 stacked" arrangement.
-  return "grid grid-cols-2 gap-2 aspect-square";
-}
-
-function tileClass(count: number, index: number): string {
-  if (count <= 2) return "";
-  if (count === 3) {
-    // Index 0 takes the full left column; indices 1 and 2 stack on the right.
-    if (index === 0) return "row-span-2";
-    return "";
-  }
-  // count === 4: every tile is a single cell.
-  return "";
-}

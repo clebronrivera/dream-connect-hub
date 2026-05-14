@@ -13,14 +13,11 @@ import { useMemo } from 'react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 import {
   getDisplayPrice,
+  getPuppyMediaList,
   getSizeCategory,
   isPoodleOrDoodle,
   isSmallBreed,
 } from '@/lib/puppy-display-utils';
-import {
-  resolvePuppyPhotosPublicUrl,
-  resolvePuppyVideoUrl,
-} from '@/lib/puppy-photos';
 import { PuppyMediaCollage } from '@/components/puppy/PuppyMediaCollage';
 import type { Puppy } from '@/lib/supabase';
 
@@ -43,22 +40,10 @@ export function PuppyDetailModal({
   onShareClick,
   onSendInterest,
 }: Props) {
-  // Build the deduped, resolved photo list once per open. Falls back to the
-  // primary photo when the photos array is empty so legacy puppies still
-  // show their hero image.
-  const resolvedPhotos = useMemo(() => {
-    if (!puppy) return [] as string[];
-    const all: (string | null | undefined)[] = [
-      puppy.primary_photo,
-      ...(puppy.photos ?? []),
-    ];
-    const resolved = all
-      .map((p) => resolvePuppyPhotosPublicUrl(p))
-      .filter((u): u is string => !!u);
-    return Array.from(new Set(resolved));
-  }, [puppy]);
-  const resolvedVideo = useMemo(
-    () => (puppy ? resolvePuppyVideoUrl(puppy.video_path) : null),
+  // Build the deduped, resolved media list once per open. Same helper as the
+  // card so they don't drift.
+  const { photos: resolvedPhotos, videoUrl: resolvedVideo } = useMemo(
+    () => (puppy ? getPuppyMediaList(puppy) : { photos: [] as string[], videoUrl: null }),
     [puppy],
   );
 
