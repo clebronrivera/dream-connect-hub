@@ -15,6 +15,7 @@ import { ProjectionByMonthChart } from '@/components/admin/insights/ProjectionBy
 import { PipelineFunnelChart } from '@/components/admin/insights/PipelineFunnelChart';
 import { BreedPerformanceTable } from '@/components/admin/insights/BreedPerformanceTable';
 import { AgingActionList } from '@/components/admin/insights/AgingActionList';
+import { NeedsAttentionCard } from '@/components/admin/NeedsAttentionCard';
 
 function formatShortDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -113,6 +114,8 @@ export default function Dashboard() {
     <div>
       <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
       <p className="text-sm text-muted-foreground mt-1 mb-8">Revenue, pipeline &amp; operations</p>
+
+      <NeedsAttentionCard />
 
       {/* ===== Revenue & Projections ===== */}
       <RevenueKpiTiles />

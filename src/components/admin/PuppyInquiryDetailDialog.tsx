@@ -16,8 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import type { PuppyInquiry } from '@/lib/supabase';
 import { toDatetimeLocal } from '@/lib/date-utils';
 import { Field, Section } from '@/components/admin/InquiryDetailShared';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Send } from 'lucide-react';
 import { fetchCustomerHistory } from '@/lib/admin/customers-service';
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface PuppyInquiryDetailDialogProps {
   open: boolean;
@@ -104,6 +107,43 @@ export function PuppyInquiryDetailDialog({
       followed_up_at: followedUpIso,
     });
   };
+
+  const sendDepositLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!inquiry?.id) throw new Error('No inquiry');
+      const { data, error } = await supabase.functions.invoke(
+        'send-deposit-link-from-inquiry',
+        { body: { inquiry_id: inquiry.id } },
+      );
+      if (error) {
+        const remoteMessage = (data as { error?: string } | null | undefined)?.error;
+        throw new Error(remoteMessage || error.message || 'Failed to send');
+      }
+      return data as { deposit_request_id: string };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Deposit link sent',
+        description: `Buyer emailed; deposit request ${data.deposit_request_id}.`,
+      });
+      queryClient.invalidateQueries({ queryKey });
+      if (selectedId)
+        queryClient.invalidateQueries({ queryKey: ['puppy-inquiry-detail', selectedId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-needs-attention'] });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: 'Could not send deposit link',
+        description: err.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const canSendDepositLink =
+    !!inquiry?.customer_id &&
+    !!inquiry?.puppy_id &&
+    UUID_RE.test(inquiry.puppy_id ?? '');
 
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < listRows.length - 1 && listRows.length > 1;
@@ -227,6 +267,33 @@ export function PuppyInquiryDetailDialog({
               </Button>
             </div>
           </Section>
+
+          {canSendDepositLink && (
+            <Section title="Quick action">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Mint a deposit_requests row in <code>deposit_link_sent</code>{' '}
+                  state and email the buyer the gated{' '}
+                  <code>/deposit?requestId=…</code> link in one click. Skips the
+                  manual review pass; only available when the inquiry is linked
+                  to a known customer and a specific puppy.
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => sendDepositLinkMutation.mutate()}
+                  disabled={sendDepositLinkMutation.isPending}
+                  className="gap-2"
+                >
+                  {sendDepositLinkMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Send deposit link
+                </Button>
+              </div>
+            </Section>
+          )}
         </div>
       </DialogContent>
     </Dialog>
