@@ -9,26 +9,41 @@
 // The capture page returns here when done, and we re-render with one
 // more puppy in the list — until we've filled all expected slots.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
+  ArrowLeftRight,
   ArrowRight,
   CheckCircle2,
   Heart,
   Loader2,
   PawPrint,
   Plus,
+  Syringe,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
   createPuppy,
   listLitterPuppies,
   loadBreederHome,
+  updatePuppy,
   type BreederPuppyRow,
 } from "@/lib/breeder/api";
 import { getSuggestedPuppyName } from "@/lib/puppy-name-generator";
@@ -285,63 +300,24 @@ export default function BreederPuppiesWizard() {
           <p className="text-sm text-muted-foreground">None yet.</p>
         ) : (
           <ul className="divide-y rounded-md border">
-            {puppies.map((p) => {
-              const photosArr = p.photos ?? [];
-              // primary_photo may exist independently of the photos array
-              // (admin-uploaded puppies have this shape). Count it once.
-              const photoCount =
-                photosArr.length +
-                (p.primary_photo && !photosArr.includes(p.primary_photo) ? 1 : 0);
-              const captured = photoCount > 0;
-              const isPublic = p.is_publicly_visible === true;
-              return (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{p.name}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {p.gender}
-                      </Badge>
-                      {p.status && p.status !== "Available" && (
-                        <Badge variant="secondary" className="text-xs">
-                          {p.status}
-                        </Badge>
-                      )}
-                      {!isPublic && (
-                        <Badge variant="outline" className="border-amber-300 bg-amber-50 text-xs text-amber-900">
-                          Hidden
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {captured
-                        ? `${photoCount} ${photoCount === 1 ? "photo" : "photos"}`
-                        : "No photos yet"}
-                      {p.base_price != null && (
-                        <>
-                          {" · "}
-                          <span className="font-medium text-foreground">
-                            ${Number(p.base_price).toLocaleString()}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <Button
-                    variant={captured ? "ghost" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      navigate(`/breeder/puppies/${p.id}/capture?from=${litterId}`)
-                    }
-                  >
-                    {captured ? "Update" : "Capture"}
-                  </Button>
-                </li>
-              );
-            })}
+            {puppies.map((p) => (
+              <PuppyListRow
+                key={p.id}
+                puppy={p}
+                litterId={litterId ?? ""}
+                onNavigate={(id) =>
+                  navigate(`/breeder/puppies/${id}/capture?from=${litterId}`)
+                }
+                onUpdated={() => {
+                  if (litterId) {
+                    queryClient.invalidateQueries({ queryKey: PUPPIES_QK(litterId) });
+                  }
+                  // Also bust the home cache so the litter summary card
+                  // (Boys/Girls/Total) reflects gender swaps immediately.
+                  queryClient.invalidateQueries({ queryKey: HOME_QK });
+                }}
+              />
+            ))}
           </ul>
         )}
       </section>
@@ -382,5 +358,165 @@ export default function BreederPuppiesWizard() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Per-puppy row in the "Puppies so far" list. Surfaces gender/status/photo
+// counts and lets the breeder set an optional "vaccinated on" date inline —
+// the saved-summary use-case the operator hits after the capture sweep is
+// done, when she has the actual vet card in front of her.
+function PuppyListRow({
+  puppy,
+  onNavigate,
+  onUpdated,
+}: {
+  puppy: BreederPuppyRow;
+  litterId: string;
+  onNavigate: (id: string) => void;
+  onUpdated: () => void;
+}) {
+  const { session } = useBreederAuth();
+  const initialVaccinatedAt = puppy.vaccinated_at ?? "";
+  const [vaccinatedAt, setVaccinatedAt] = useState(initialVaccinatedAt);
+
+  const updateMut = useMutation({
+    mutationFn: async (val: string | null) => {
+      if (!session) throw new Error("No breeder session");
+      const res = await updatePuppy(session.token, puppy.id, {
+        vaccinated_at: val,
+      });
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: () => onUpdated(),
+    onError: (err: Error) => {
+      // Revert local state so the input shows what's actually persisted.
+      setVaccinatedAt(initialVaccinatedAt);
+      toast.error(err.message);
+    },
+  });
+
+  const saveVaccinatedAt = () => {
+    if (vaccinatedAt === initialVaccinatedAt) return;
+    updateMut.mutate(vaccinatedAt ? vaccinatedAt : null);
+  };
+
+  const genderMut = useMutation({
+    mutationFn: async (newGender: "Male" | "Female") => {
+      if (!session) throw new Error("No breeder session");
+      const res = await updatePuppy(session.token, puppy.id, {
+        gender: newGender,
+      });
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(
+        `${data.name} is now a ${data.gender === "Male" ? "boy" : "girl"}`,
+      );
+      onUpdated();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const newGender: "Male" | "Female" =
+    puppy.gender === "Male" ? "Female" : "Male";
+  const currentLabel = puppy.gender === "Male" ? "Boy" : "Girl";
+  const newLabel = newGender === "Male" ? "Boy" : "Girl";
+
+  const totalPhotos =
+    (puppy.primary_photo ? 1 : 0) + (puppy.photos?.length ?? 0);
+  const hasPhoto = totalPhotos > 0;
+
+  return (
+    <li className="flex flex-col gap-2 p-3">
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate font-medium">{puppy.name}</span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  disabled={genderMut.isPending}
+                  className="inline-flex items-center gap-1 rounded-full border border-input bg-background px-2 py-0.5 text-[10px] font-medium transition hover:bg-muted disabled:opacity-50"
+                  aria-label={`Change ${puppy.name}'s gender (currently ${currentLabel})`}
+                >
+                  {currentLabel}
+                  <ArrowLeftRight
+                    className="h-2.5 w-2.5 opacity-60"
+                    aria-hidden
+                  />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Switch {puppy.name} to a {newLabel.toLowerCase()}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Reassigns {puppy.name} from <strong>{currentLabel}</strong>{" "}
+                    to <strong>{newLabel}</strong>. The litter's male and
+                    female counts will shift by one to match.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => genderMut.mutate(newGender)}
+                  >
+                    Switch to {newLabel}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            {puppy.status && puppy.status !== "Available" && (
+              <Badge variant="secondary" className="text-[10px]">
+                {puppy.status}
+              </Badge>
+            )}
+            {puppy.is_publicly_visible === false && (
+              <Badge
+                variant="outline"
+                className="text-[10px] text-muted-foreground"
+              >
+                Hidden
+              </Badge>
+            )}
+          </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {hasPhoto
+              ? `${totalPhotos} photo${totalPhotos === 1 ? "" : "s"}`
+              : "No photos yet"}
+            {puppy.base_price != null &&
+              ` · $${Number(puppy.base_price).toLocaleString()}`}
+          </div>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => onNavigate(puppy.id)}>
+          Open
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        <Syringe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+        <label
+          htmlFor={`vacc-${puppy.id}`}
+          className="text-xs text-muted-foreground"
+        >
+          Vaccinated
+        </label>
+        <Input
+          id={`vacc-${puppy.id}`}
+          type="date"
+          value={vaccinatedAt}
+          onChange={(e) => setVaccinatedAt(e.target.value)}
+          onBlur={saveVaccinatedAt}
+          disabled={updateMut.isPending}
+          className="h-8 max-w-[170px] text-xs"
+        />
+        {updateMut.isPending && (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+        )}
+      </div>
+    </li>
   );
 }
