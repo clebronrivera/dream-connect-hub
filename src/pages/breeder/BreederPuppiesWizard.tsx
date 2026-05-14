@@ -21,6 +21,7 @@ import {
   PawPrint,
   Plus,
   Syringe,
+  Trash2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -41,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
   createPuppy,
+  deletePuppy,
   listLitterPuppies,
   loadBreederHome,
   updatePuppy,
@@ -420,6 +422,20 @@ function PuppyListRow({
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      if (!session) throw new Error("No breeder session");
+      const res = await deletePuppy(session.token, puppy.id);
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success(`${puppy.name} deleted`);
+      onUpdated();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const newGender: "Male" | "Female" =
     puppy.gender === "Male" ? "Female" : "Male";
   const currentLabel = puppy.gender === "Male" ? "Boy" : "Girl";
@@ -521,6 +537,40 @@ function PuppyListRow({
         <Button size="sm" variant="outline" onClick={() => onNavigate(puppy.id)}>
           Open
         </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              disabled={deleteMut.isPending}
+              aria-label={`Delete ${puppy.name}`}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Permanently delete {puppy.name}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This deletes the puppy record entirely, along with any
+                attached photos, video, and expense entries. This cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMut.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete {puppy.name}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <div className="flex items-center gap-2">
         <Syringe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />

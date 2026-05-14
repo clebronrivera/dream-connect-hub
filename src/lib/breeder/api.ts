@@ -220,6 +220,13 @@ export function createPuppy(
   return callBreederWrite(token, "createPuppy", payload);
 }
 
+export function deletePuppy(
+  token: string,
+  puppyId: string,
+): Promise<BreederWriteResult<{ id: string }>> {
+  return callBreederWrite(token, "deletePuppy", { puppyId });
+}
+
 export function updatePuppy(
   token: string,
   puppyId: string,
