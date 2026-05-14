@@ -305,11 +305,12 @@ export default function Puppies() {
                       )}
                       <div>
                         <DialogTitle>
-                          Send Interest — {prePuppy.name || "Unnamed"}
+                          Express interest in {prePuppy.name || "this puppy"}
                         </DialogTitle>
                         <DialogDescription>
                           {prePuppy.breed}
-                          {prePuppy.gender && ` • ${prePuppy.gender}`}
+                          {prePuppy.ready_date &&
+                            ` • Ready ${prePuppy.ready_date}`}
                           {getDisplayAgeWeeks(prePuppy) != null &&
                             ` • ${getDisplayAgeWeeks(prePuppy)} weeks`}
                         </DialogDescription>
