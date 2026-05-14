@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { getAgeWeeks, getReadyDateFromDob } from '@/lib/puppy-utils';
-import { MAIN_BREEDS, OTHER_BREED_OPTION } from '@/lib/breed-utils';
+import { MAIN_BREEDS, OTHER_BREED_OPTION, PUPPY_GENDERS, GENDER_OTHER_OPTION } from '@/lib/breed-utils';
 import { getSuggestedPuppyName } from '@/lib/puppy-name-generator';
 import { generatePuppyDescription } from '@/lib/puppy-description-generator';
 import { useState, useEffect } from 'react';
@@ -78,10 +78,13 @@ export default function PuppyForm() {
     form.setValue('final_price', Math.max(0, base - amount));
   }, [basePrice, discountActive, discountAmount, form]);
 
-  // Auto-fill name when gender is selected on new puppy and name is empty
+  // Auto-fill name when gender is selected on new puppy and name is empty.
+  // Only triggers for the canonical Male/Female values; custom gender text
+  // intentionally skips the name suggester.
   const gender = form.watch('gender');
   useEffect(() => {
     if (isEdit || !gender) return;
+    if (gender !== 'Male' && gender !== 'Female') return;
     const current = form.getValues('name');
     if (current != null && String(current).trim() !== '') return;
     form.setValue('name', getSuggestedPuppyName(gender, existingNames));
@@ -216,7 +219,7 @@ export default function PuppyForm() {
                   <div className="flex items-center justify-between gap-2">
                     <FormLabel>Name *</FormLabel>
                     {!isEdit && (
-                      gender ? (
+                      gender === 'Male' || gender === 'Female' ? (
                         <Button
                           type="button"
                           variant="outline"
@@ -316,21 +319,55 @@ export default function PuppyForm() {
             <FormField
               control={form.control}
               name="gender"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gender</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const value = field.value ?? '';
+                const isOther =
+                  value !== '' && value !== 'Male' && value !== 'Female';
+                const selectValue = isOther
+                  ? GENDER_OTHER_OPTION
+                  : value || undefined;
+                return (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <Select
+                      value={selectValue}
+                      onValueChange={(v) => {
+                        if (v === GENDER_OTHER_OPTION) {
+                          // Clear so the user can type the custom value.
+                          field.onChange('');
+                        } else {
+                          field.onChange(v);
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PUPPY_GENDERS.map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value={GENDER_OTHER_OPTION}>
+                          {GENDER_OTHER_OPTION}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {selectValue === GENDER_OTHER_OPTION && (
+                      <Input
+                        placeholder="Custom gender"
+                        value={value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="mt-2"
+                      />
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
@@ -565,12 +602,16 @@ export default function PuppyForm() {
               const breedSelect = form.watch('breed_select');
               const breed = breedSelect === OTHER_BREED_OPTION ? (form.watch('other_breed') || '').trim() : breedSelect;
               const name = form.watch('name')?.trim();
-              const genderVal = form.watch('gender');
-              const canGenerate = !!name && !!breed && !!genderVal;
+              const genderRaw = form.watch('gender');
+              // Description generator only knows Male/Female pronouns; pass
+              // undefined for custom values so it falls back to they/them.
+              const genderVal: 'Male' | 'Female' | undefined =
+                genderRaw === 'Male' || genderRaw === 'Female' ? genderRaw : undefined;
+              const canGenerate = !!name && !!breed && !!genderRaw;
               const handleGenerate = () => {
                 if (!canGenerate) return;
                 const text = generatePuppyDescription(
-                  { name: name || 'This puppy', breed, gender: genderVal ?? undefined, color: form.watch('color') || undefined, date_of_birth: form.watch('date_of_birth') || undefined, age_weeks: form.watch('age_weeks') ?? undefined },
+                  { name: name || 'This puppy', breed, gender: genderVal, color: form.watch('color') || undefined, date_of_birth: form.watch('date_of_birth') || undefined, age_weeks: form.watch('age_weeks') ?? undefined },
                   { sentenceCount: 5 }
                 );
                 form.setValue('description', text);

@@ -1,12 +1,10 @@
-/** Breed options for Puppy Interest Form (multi-select) */
+import { MAIN_BREEDS } from "@/lib/breed-utils";
+
+/** Breed options for Puppy Interest Form (multi-select). Derived from the
+ *  canonical MAIN_BREEDS list so the inquiry form, the public filter pills,
+ *  and the admin puppy form never drift. */
 export const BREED_PREFERENCE_OPTIONS = [
-  { value: "Toy Poodle", label: "Toy Poodle" },
-  { value: "Standard Poodle", label: "Standard Poodle" },
-  { value: "Labradoodle", label: "Labradoodle" },
-  { value: "Goldendoodle", label: "Goldendoodle" },
-  { value: "Shih Tzu", label: "Shih Tzu" },
-  { value: "Pomeranian", label: "Pomeranian" },
-  { value: "Maltese", label: "Maltese" },
+  ...MAIN_BREEDS.map((breed) => ({ value: breed, label: breed })),
   { value: "No Preference", label: "No Preference" },
 ] as const;
 
