@@ -228,6 +228,7 @@ export interface Puppy {
   is_deceased?: boolean;
   photos?: string[];
   primary_photo?: string;
+  video_path?: string | null;
   description?: string;
   mom_weight_approx?: number;
   dad_weight_approx?: number;

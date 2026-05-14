@@ -71,10 +71,14 @@ export async function handler(
       return await updateLitterDates(supabase, body.payload, json);
     case "listLitterPuppies":
       return await listLitterPuppies(supabase, body.payload, json);
+    case "listAllPuppies":
+      return await listAllPuppies(supabase, json);
     case "createPuppy":
       return await createPuppy(supabase, body.payload, json);
     case "updatePuppy":
       return await updatePuppy(supabase, body.payload, json);
+    case "deletePuppy":
+      return await deletePuppy(supabase, body.payload, json);
     case "listParents":
       return await listParents(supabase, json);
     case "createParent":
@@ -292,6 +296,37 @@ async function listLitterPuppies(
   return json(200, { ok: true, data: data ?? [] });
 }
 
+async function listAllPuppies(
+  supabase: SupabaseClient,
+  json: JsonResponder,
+): Promise<Response> {
+  // Roster across every litter — drives the /breeder Puppies tab so the
+  // breeder can edit any puppy even when its parent litter is no longer
+  // surfaced on the Home view (e.g. older "previous" upcoming_litters).
+  // Service-role bypass means RLS doesn't need to know about the breeder
+  // client.
+  const { data, error } = await supabase
+    .from("puppies")
+    .select(
+      `id, name, gender, breed, photos, primary_photo, video_path,
+       description, ready_date, base_price, status, is_publicly_visible,
+       vaccinated_at, created_at, updated_at, upcoming_litter_id, litter_id,
+       upcoming_litters:upcoming_litter_id (
+         breed,
+         dam:dam_id ( name ),
+         sire:sire_id ( name )
+       )`,
+    )
+    .order("created_at", { ascending: false });
+  if (error)
+    return json(500, {
+      ok: false,
+      error: "Failed to list all puppies",
+      details: error.message,
+    });
+  return json(200, { ok: true, data: data ?? [] });
+}
+
 interface CreatePuppyPayload {
   upcomingLitterId?: string;
   litterId?: string | null;
@@ -483,6 +518,70 @@ async function updatePuppy(
   }
 
   return json(200, { ok: true, data });
+}
+
+interface DeletePuppyPayload {
+  puppyId?: string;
+}
+
+async function deletePuppy(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as DeletePuppyPayload;
+  if (!isUuid(p.puppyId))
+    return json(400, { ok: false, error: "puppyId must be a UUID" });
+
+  // Capture the parent litter before delete so we can refresh counts after.
+  // FK posture on puppies.id (verified): deposit_agreements + deposit_requests
+  // both SET NULL, puppy_expenses CASCADEs. Hard delete is safe — agreement
+  // history is preserved with a null puppy_id, expenses go away with the row.
+  const { data: prior } = await supabase
+    .from("puppies")
+    .select("upcoming_litter_id")
+    .eq("id", p.puppyId)
+    .maybeSingle();
+  if (!prior)
+    return json(404, { ok: false, error: "Puppy not found" });
+
+  const { error } = await supabase.from("puppies").delete().eq("id", p.puppyId);
+  if (error)
+    return json(500, {
+      ok: false,
+      error: "Failed to delete puppy",
+      details: error.message,
+    });
+
+  if (prior.upcoming_litter_id) {
+    await recomputeLitterCountsExactly(supabase, prior.upcoming_litter_id);
+  }
+
+  return json(200, { ok: true, data: { id: p.puppyId } });
+}
+
+async function recomputeLitterCountsExactly(
+  supabase: SupabaseClient,
+  upcomingLitterId: string,
+): Promise<void> {
+  // Unlike syncLitterCounts (which only grows to preserve admin targets), a
+  // delete is the breeder explicitly correcting reality — set the counts to
+  // what's actually there, even if that means decrementing below the prior
+  // target.
+  const { data: rows } = await supabase
+    .from("puppies")
+    .select("gender")
+    .eq("upcoming_litter_id", upcomingLitterId);
+  const males = (rows ?? []).filter((r) => r.gender === "Male").length;
+  const females = (rows ?? []).filter((r) => r.gender === "Female").length;
+  await supabase
+    .from("upcoming_litters")
+    .update({
+      male_puppy_count: males,
+      female_puppy_count: females,
+      total_puppy_count: males + females,
+    })
+    .eq("id", upcomingLitterId);
 }
 
 async function shiftLitterCountForGenderChange(

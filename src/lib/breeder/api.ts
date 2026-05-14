@@ -161,11 +161,70 @@ export function listLitterPuppies(
   return callBreederWrite<BreederPuppyRow[]>(token, "listLitterPuppies", { upcomingLitterId });
 }
 
+export interface BreederPuppyWithLitter extends BreederPuppyRow {
+  upcoming_litter_id: string | null;
+  litter_id: string | null;
+  dam_name: string | null;
+  sire_name: string | null;
+}
+
+interface ListAllPuppiesRow extends BreederPuppyRow {
+  upcoming_litter_id: string | null;
+  litter_id: string | null;
+  upcoming_litters: {
+    breed: string | null;
+    dam: { name: string | null } | null;
+    sire: { name: string | null } | null;
+  } | null;
+}
+
+/**
+ * Roster across every litter — including older "previous" upcoming_litters
+ * that may have rotated off the breeder Home view. Calls the
+ * listAllPuppies op on breeder-write (v12+); the edge function joins the
+ * dam/sire names so the puppies hub can show parent context per row.
+ */
+export async function listAllBreederPuppies(
+  token: string,
+): Promise<BreederWriteResult<BreederPuppyWithLitter[]>> {
+  const res = await callBreederWrite<ListAllPuppiesRow[]>(token, "listAllPuppies");
+  if (!res.ok) return res;
+  const flattened: BreederPuppyWithLitter[] = res.data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    gender: row.gender,
+    breed: row.breed,
+    photos: row.photos,
+    primary_photo: row.primary_photo,
+    video_path: row.video_path,
+    description: row.description,
+    ready_date: row.ready_date,
+    base_price: row.base_price,
+    status: row.status,
+    is_publicly_visible: row.is_publicly_visible,
+    vaccinated_at: row.vaccinated_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    upcoming_litter_id: row.upcoming_litter_id,
+    litter_id: row.litter_id,
+    dam_name: row.upcoming_litters?.dam?.name ?? null,
+    sire_name: row.upcoming_litters?.sire?.name ?? null,
+  }));
+  return { ok: true, data: flattened };
+}
+
 export function createPuppy(
   token: string,
   payload: { upcomingLitterId: string; name: string; gender: "Male" | "Female" },
 ): Promise<BreederWriteResult<{ id: string; name: string; gender: string; breed: string; ready_date: string | null }>> {
   return callBreederWrite(token, "createPuppy", payload);
+}
+
+export function deletePuppy(
+  token: string,
+  puppyId: string,
+): Promise<BreederWriteResult<{ id: string }>> {
+  return callBreederWrite(token, "deletePuppy", { puppyId });
 }
 
 export function updatePuppy(

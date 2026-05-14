@@ -24,7 +24,9 @@ export interface BreederLitterSummary {
   female_puppy_count: number | null;
   total_puppy_count: number | null;
   dam_name: string | null;
+  dam_photo_path: string | null;
   sire_name: string | null;
+  sire_photo_path: string | null;
   litter_id: string | null;
   litter_date_of_birth: string | null;
   ready_date: string | null;

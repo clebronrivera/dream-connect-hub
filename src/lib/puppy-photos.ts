@@ -71,6 +71,31 @@ export async function deletePuppyPhoto(storagePath: string): Promise<void> {
   if (error) throw new Error(`Delete failed: ${error.message}`);
 }
 
+const VIDEO_BUCKET = 'puppy-videos';
+
+/**
+ * Resolve a stored puppies.video_path value to a browser-playable URL.
+ * Like resolvePuppyPhotosPublicUrl but against the puppy-videos bucket. New
+ * breeder uploads already store a full https URL, so the absolute-passthrough
+ * case is the common path; the bucket-resolve fallback exists for legacy or
+ * test data that stores just the path.
+ */
+export function resolvePuppyVideoUrl(stored: string | null | undefined): string | null {
+  const s = typeof stored === 'string' ? stored.trim() : '';
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('//')
+  ) {
+    return lower.startsWith('//') ? `https:${s}` : s;
+  }
+  const pathKey = s.replace(/^\/+/, '');
+  const { data } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(pathKey);
+  return data.publicUrl;
+}
+
 /** Path prefix for breeding dog photos in the same bucket. */
 export const BREEDING_DOGS_PREFIX = 'breeding-dogs';
 

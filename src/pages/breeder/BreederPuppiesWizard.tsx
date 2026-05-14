@@ -21,6 +21,7 @@ import {
   PawPrint,
   Plus,
   Syringe,
+  Trash2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -41,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
   createPuppy,
+  deletePuppy,
   listLitterPuppies,
   loadBreederHome,
   updatePuppy,
@@ -48,6 +50,7 @@ import {
 } from "@/lib/breeder/api";
 import { getSuggestedPuppyName } from "@/lib/puppy-name-generator";
 import { getLastPuppyForLitter } from "@/lib/breeder/captureState";
+import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
 
 const HOME_QK = ["breeder", "home"] as const;
 const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] as const;
@@ -419,6 +422,20 @@ function PuppyListRow({
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      if (!session) throw new Error("No breeder session");
+      const res = await deletePuppy(session.token, puppy.id);
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success(`${puppy.name} deleted`);
+      onUpdated();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const newGender: "Male" | "Female" =
     puppy.gender === "Male" ? "Female" : "Male";
   const currentLabel = puppy.gender === "Male" ? "Boy" : "Girl";
@@ -427,10 +444,35 @@ function PuppyListRow({
   const totalPhotos =
     (puppy.primary_photo ? 1 : 0) + (puppy.photos?.length ?? 0);
   const hasPhoto = totalPhotos > 0;
+  // Show the same image the public site uses as the puppy's primary so the
+  // breeder can confirm the face photo without opening the capture flow.
+  const heroUrl = resolvePuppyPhotosPublicUrl(
+    puppy.primary_photo ?? puppy.photos?.[0] ?? null,
+  );
 
   return (
     <li className="flex flex-col gap-2 p-3">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onNavigate(puppy.id)}
+          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-muted"
+          aria-label={`Open ${puppy.name}`}
+        >
+          {heroUrl ? (
+            <img
+              src={heroUrl}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <PawPrint
+              className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/50"
+              aria-hidden
+            />
+          )}
+        </button>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate font-medium">{puppy.name}</span>
@@ -495,6 +537,40 @@ function PuppyListRow({
         <Button size="sm" variant="outline" onClick={() => onNavigate(puppy.id)}>
           Open
         </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              disabled={deleteMut.isPending}
+              aria-label={`Delete ${puppy.name}`}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Permanently delete {puppy.name}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This deletes the puppy record entirely, along with any
+                attached photos, video, and expense entries. This cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMut.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete {puppy.name}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <div className="flex items-center gap-2">
         <Syringe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />

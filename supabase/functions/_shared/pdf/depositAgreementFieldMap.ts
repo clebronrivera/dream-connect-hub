@@ -80,7 +80,7 @@ export interface PuppyJoinData {
 // ---------------------------------------------------------------------------
 
 /** All text field names in deposit_agreement_template.pdf */
-const TEXT_FIELDS = [
+export const TEXT_FIELDS = [
   "buyerName", "email", "phone", "streetAddress", "city", "state", "zipCode",
   "howFindOther", "referredBy",
   "puppyName", "breedColor", "sex", "dateOfBirth",
@@ -93,7 +93,7 @@ const TEXT_FIELDS = [
 ] as const;
 
 /** All checkbox field names in deposit_agreement_template.pdf */
-const CHECKBOX_FIELDS = [
+export const CHECKBOX_FIELDS = [
   // How heard
   "findInstagram", "findFacebook", "findTikTok", "findGoogle",
   "findReferral", "findFBMktplace", "findYouTube", "findPrevBought",
@@ -223,11 +223,15 @@ function fmtShortDate(iso: string | null | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
+  // Date-only strings (YYYY-MM-DD) must use UTC to avoid timezone-induced
+  // off-by-one: new Date("2026-05-24") parses as UTC midnight, which becomes
+  // 2026-05-23 in Eastern time. Timestamps (with T) use Eastern.
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
   return d.toLocaleDateString("en-US", {
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
-    timeZone: "America/New_York",
+    timeZone: isDateOnly ? "UTC" : "America/New_York",
   });
 }
 

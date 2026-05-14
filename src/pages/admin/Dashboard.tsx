@@ -1,16 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dog, MessageSquare, Calendar, ShoppingCart, Mail, Package, BarChart3, TrendingUp, Loader2, ClipboardCheck } from 'lucide-react';
+import { Dog, MessageSquare, Mail, BarChart3, TrendingUp, Loader2, ClipboardCheck } from 'lucide-react';
 import { SUBJECT_UPCOMING_LITTER, sourceToSlug, type RecentInquirySource } from '@/lib/inquiry-subjects';
 import { daysSince } from '@/lib/date-utils';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics';
-import { useDashboardInventory } from '@/hooks/use-dashboard-inventory';
 import { useDashboardRecent } from '@/hooks/use-dashboard-recent';
 import { fetchDepositRequestCounts } from '@/lib/admin/deposit-requests-service';
+import { RevenueKpiTiles } from '@/components/admin/insights/RevenueKpiTiles';
+import { ProjectionTiles } from '@/components/admin/insights/ProjectionTiles';
+import { RevenueTimeseriesChart } from '@/components/admin/insights/RevenueTimeseriesChart';
+import { ProjectionByMonthChart } from '@/components/admin/insights/ProjectionByMonthChart';
+import { PipelineFunnelChart } from '@/components/admin/insights/PipelineFunnelChart';
+import { BreedPerformanceTable } from '@/components/admin/insights/BreedPerformanceTable';
+import { AgingActionList } from '@/components/admin/insights/AgingActionList';
 
-// --- Helper functions ---
 function formatShortDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -30,9 +35,7 @@ function SectionSpinner() {
 }
 
 function SectionError({ message }: { message: string }) {
-  return (
-    <p className="text-sm text-destructive py-4">{message}</p>
-  );
+  return <p className="text-sm text-destructive py-4">{message}</p>;
 }
 
 export interface RecentInquiryRow {
@@ -49,7 +52,6 @@ export default function Dashboard() {
 
   const { data: statsData, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError } = useDashboardAnalytics();
-  const { data: inventoryData, isLoading: inventoryLoading } = useDashboardInventory();
   const { data: recentData, isLoading: recentLoading, error: recentError } = useDashboardRecent();
   const { data: depositRequestCounts } = useQuery({
     queryKey: ['deposit-requests-counts'],
@@ -57,7 +59,7 @@ export default function Dashboard() {
     refetchInterval: 30_000,
   });
 
-  // --- Derived analytics metrics ---
+  // --- Derived analytics metrics (used in the Operations block below) ---
   const daysSinceEarliest = analyticsData?.earliestInquiry ? daysSince(analyticsData.earliestInquiry) : 0;
   const weeksElapsed = Math.max(1, Math.floor(daysSinceEarliest / 7));
   const monthsElapsed = Math.max(1, Math.floor(daysSinceEarliest / 30));
@@ -69,12 +71,6 @@ export default function Dashboard() {
     analyticsData && analyticsData.totalInquiryCount > 0
       ? (analyticsData.totalInquiryCount / monthsElapsed).toFixed(1)
       : null;
-  const topSellingBreeds = analyticsData
-    ? Object.entries(analyticsData.soldByBreed)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([breed, count]) => ({ breed, count }))
-    : [];
   const topBreedInquiries = analyticsData
     ? Object.entries(analyticsData.breedCountFromInquiries)
         .sort(([, a], [, b]) => b - a)
@@ -115,15 +111,44 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-foreground mb-8">Dashboard Overview</h1>
+      <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+      <p className="text-sm text-muted-foreground mt-1 mb-8">Revenue, pipeline &amp; operations</p>
 
-      {/* Section 1: Operational counts — loads independently */}
+      {/* ===== Revenue & Projections ===== */}
+      <RevenueKpiTiles />
+
+      <h2 className="text-lg font-semibold text-foreground mt-10 mb-4">Forward revenue</h2>
+      <ProjectionTiles />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <RevenueTimeseriesChart />
+        <ProjectionByMonthChart />
+      </div>
+
+      {/* ===== Pipeline ===== */}
+      <h2 className="text-lg font-semibold text-foreground mt-10 mb-4">Pipeline</h2>
+      <div className="mb-6">
+        <PipelineFunnelChart />
+      </div>
+      <div className="mb-10">
+        <AgingActionList />
+      </div>
+
+      {/* ===== Breed performance ===== */}
+      <h2 className="text-lg font-semibold text-foreground mt-10 mb-4">Breed performance</h2>
+      <div className="mb-10">
+        <BreedPerformanceTable />
+      </div>
+
+      {/* ===== Operations ===== */}
+      <h2 className="text-lg font-semibold text-foreground mt-10 mb-4">Operations</h2>
+
       {statsLoading ? (
         <SectionSpinner />
       ) : statsError ? (
         <SectionError message="Could not load operational stats. Check your connection and refresh." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <Link to="/admin/puppies" className="block">
             <Card className="cursor-pointer hover:shadow-lg transition-all">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -188,16 +213,15 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Section 2: Analytics / trend metrics — loads independently */}
       {analyticsLoading ? (
         <SectionSpinner />
       ) : analyticsError ? (
         <SectionError message="Could not load analytics metrics." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Inquiries / Week</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg inquiries / week</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -210,7 +234,7 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Inquiries / Month</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg inquiries / month</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -223,24 +247,11 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Selling Breeds</CardTitle>
+              <CardTitle className="text-sm font-medium">Top inquired breeds</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-medium">
-                {topSellingBreeds.length === 0
-                  ? 'Not enough data yet'
-                  : topSellingBreeds.map(({ breed, count }) => `${breed} (${count})`).join(', ')}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Dog Breed Inquiries</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-medium">
+              <div className="text-sm">
                 {topBreedInquiries.length === 0
                   ? 'Not enough data yet'
                   : topBreedInquiries.map(({ breed, count }) => `${breed} (${count})`).join(', ')}
@@ -250,30 +261,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Section 3: Upcoming features — inactive/grayed cards, loads independently */}
-      <h2 className="text-sm font-medium text-muted-foreground mb-3">Upcoming Features</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {[
-          { title: 'Products Available', value: inventoryLoading ? '…' : (inventoryData?.availableProductCount ?? 0), icon: ShoppingCart, description: 'Available for purchase' },
-          { title: 'Kits', value: inventoryLoading ? '…' : (inventoryData?.kitCount ?? 0), icon: Package, description: 'Product kits' },
-          { title: 'Consultations', value: statsLoading ? '…' : (statsData?.unseenConsultations ?? 0), icon: Calendar, description: 'Unseen submissions' },
-          { title: 'Product Inquiries', value: statsLoading ? '…' : (statsData?.unseenProductInquiries ?? 0), icon: ShoppingCart, description: 'New inquiries' },
-        ].map((stat) => (
-          <Card key={stat.title} className="opacity-50 pointer-events-none bg-muted/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Section 4: Recent inquiries table — loads independently */}
-      <h2 className="text-lg font-semibold text-foreground mb-3">Most Recent Inquiries</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-3">Most recent inquiries</h2>
       {recentLoading ? (
         <SectionSpinner />
       ) : recentError ? (
