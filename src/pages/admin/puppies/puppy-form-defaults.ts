@@ -52,5 +52,6 @@ export function puppyToFormValues(puppy: Puppy): PuppyFormValues {
     display_order: puppy.display_order || 0,
     primary_photo: puppy.primary_photo || '',
     photos: puppy.photos || [],
+    reserved_for_customer_id: puppy.reserved_for_customer_id ?? null,
   };
 }

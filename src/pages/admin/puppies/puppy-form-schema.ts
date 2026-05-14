@@ -35,6 +35,7 @@ export const puppySchema = z
     display_order: optionalNumber(z.number()),
     primary_photo: z.string().optional(),
     photos: z.array(z.string()).optional(),
+    reserved_for_customer_id: z.string().optional().nullable(),
   })
   .refine(
     (data) => {

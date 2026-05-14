@@ -54,6 +54,29 @@ export interface PuppyInquiry {
   additional_comments?: string;
   puppy_name_at_submit?: string;
   puppy_status_at_submit?: string;
+  customer_id?: string | null;
+}
+
+export interface Customer {
+  id: string;
+  email?: string | null;
+  phone?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  city?: string | null;
+  state?: string | null;
+  preferences?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerHistoryItem {
+  source: 'puppy_inquiry' | 'deposit_request';
+  id: string;
+  created_at: string;
+  puppy_name?: string | null;
+  puppy_id?: string | null;
+  status?: string | null;
 }
 
 export interface ConsultationRequest {
@@ -240,6 +263,7 @@ export interface Puppy {
   listing_date?: string; // Date added to website (YYYY-MM-DD)
   litter_id?: string | null;
   upcoming_litter_id?: string | null;
+  reserved_for_customer_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }

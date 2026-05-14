@@ -30,6 +30,7 @@ import { PuppyFormPhotoSection } from './PuppyFormPhotoSection';
 import { PuppyLitterSection } from './PuppyLitterSection';
 import { AddLittermateDialog } from './AddLittermateDialog';
 import { GenerateLittermatesDialog } from './GenerateLittermatesDialog';
+import { ReservedForField } from './ReservedForField';
 
 export default function PuppyForm() {
   const { id } = useParams();
@@ -399,6 +400,25 @@ export default function PuppyForm() {
                       <SelectItem value="Reserved">Reserved</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="reserved_for_customer_id"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Reserved for</FormLabel>
+                  <ReservedForField
+                    value={(field.value as string | null) ?? null}
+                    onChange={(next) => field.onChange(next)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Attach a customer to this puppy so their inquiry history
+                    and the eventual deposit agreement track together.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

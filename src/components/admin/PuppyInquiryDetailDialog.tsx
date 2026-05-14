@@ -17,6 +17,7 @@ import type { PuppyInquiry } from '@/lib/supabase';
 import { toDatetimeLocal } from '@/lib/date-utils';
 import { Field, Section } from '@/components/admin/InquiryDetailShared';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { fetchCustomerHistory } from '@/lib/admin/customers-service';
 
 interface PuppyInquiryDetailDialogProps {
   open: boolean;
@@ -175,6 +176,13 @@ export function PuppyInquiryDetailDialog({
             )}
           </Section>
 
+          {inquiry.customer_id ? (
+            <CustomerHistorySection
+              customerId={inquiry.customer_id}
+              currentInquiryId={inquiry.id ?? null}
+            />
+          ) : null}
+
           <Section title="Admin">
             <div className="space-y-3">
               <div className="space-y-2">
@@ -222,5 +230,68 @@ export function PuppyInquiryDetailDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CustomerHistorySection({
+  customerId,
+  currentInquiryId,
+}: {
+  customerId: string;
+  currentInquiryId: string | null;
+}) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['customer-history', customerId],
+    queryFn: () => fetchCustomerHistory(customerId),
+    enabled: !!customerId,
+  });
+  if (isLoading) {
+    return (
+      <Section title="Customer history">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading…
+        </div>
+      </Section>
+    );
+  }
+  if (isError) return null;
+  const rows = (data ?? []).filter((r) => r.id !== currentInquiryId);
+  if (rows.length === 0) {
+    return (
+      <Section title="Customer history">
+        <p className="text-sm text-muted-foreground">
+          No other submissions for this customer yet.
+        </p>
+      </Section>
+    );
+  }
+  return (
+    <Section title="Customer history">
+      <ul className="space-y-1.5 text-sm">
+        {rows.map((r) => (
+          <li key={`${r.source}-${r.id}`} className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-muted-foreground">
+              {new Date(r.created_at).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+            <span className="font-medium">
+              {r.source === 'puppy_inquiry' ? 'Inquiry' : 'Deposit request'}
+            </span>
+            {r.puppy_name ? (
+              <span className="text-muted-foreground">— {r.puppy_name}</span>
+            ) : null}
+            {r.status ? (
+              <span className="ml-auto text-xs text-muted-foreground">
+                {r.status}
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
