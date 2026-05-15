@@ -306,9 +306,20 @@ function CaptureForm({
     });
   }
 
+  async function goToStep(nextIdx: number) {
+    const clamped = Math.max(0, Math.min(nextIdx, STEPS.length - 1));
+    if (clamped === stepIdx) return;
+    try {
+      await persistCurrent();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+      return;
+    }
+    setStepIdx(clamped);
+  }
+
   async function handleNext() {
-    await persistCurrent();
-    setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
+    await goToStep(stepIdx + 1);
   }
 
   function handleBack() {
@@ -326,13 +337,82 @@ function CaptureForm({
 
   const step = STEPS[stepIdx]!;
 
+  // Completion hints surface in the side-menu list so the breeder can scan
+  // which steps still need filling without clicking through every one.
+  function isStepFilled(s: Step): boolean {
+    switch (s) {
+      case "name":
+        return !!name.trim();
+      case "face":
+      case "back":
+      case "top":
+      case "paw":
+        return !!photos[s as keyof PhotosState];
+      case "video":
+        return !!videoUrl;
+      case "price":
+        return priceText.trim() !== "";
+      case "notes":
+        return notes.trim() !== "";
+      case "status":
+        return isPubliclyVisible || (puppy.status ?? "Available") !== "Available";
+      case "done":
+        return false;
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-screen-sm space-y-5 px-4 py-6">
+    <div className="mx-auto max-w-screen-xl px-4 py-6">
+      <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+        {/* Side menu — desktop only. Phone keeps the existing progress bar
+            + Back/Next so the single-column flow is preserved. */}
+        <aside className="hidden md:block">
+          <nav
+            aria-label="Capture steps"
+            className="sticky top-6 space-y-1 rounded-md border bg-card p-2"
+          >
+            <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Steps
+            </p>
+            {STEPS.map((s, i) => {
+              const active = i === stepIdx;
+              const filled = isStepFilled(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => void goToStep(i)}
+                  aria-current={active ? "step" : undefined}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
+                      active
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : filled
+                          ? "bg-emerald-500 text-white"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {filled && !active ? "✓" : i + 1}
+                  </span>
+                  <span className="truncate">{STEP_LABELS[s]}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <div className="mx-auto w-full max-w-screen-sm space-y-5 md:mx-0">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {STEP_LABELS[step]} · Step {stepIdx + 1} of {STEPS.length}
         </p>
-        <div className="flex gap-1">
+        <div className="flex gap-1 md:hidden">
           {STEPS.map((_, i) => (
             <span
               key={i}
@@ -525,6 +605,8 @@ function CaptureForm({
             <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );

@@ -264,6 +264,15 @@ export interface Puppy {
   litter_id?: string | null;
   upcoming_litter_id?: string | null;
   reserved_for_customer_id?: string | null;
+  /** Joined parent metadata from the puppy's upcoming_litter row. Populated
+   *  by fetchAvailablePuppies via a Supabase nested select. May be null when
+   *  the puppy isn't tied to any litter row (legacy / orphan). */
+  upcoming_litter?: {
+    dam_name: string | null;
+    sire_name: string | null;
+    dam_photo_path: string | null;
+    sire_photo_path: string | null;
+  } | null;
   created_at?: string;
   updated_at?: string;
 }

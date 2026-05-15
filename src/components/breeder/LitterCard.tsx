@@ -5,7 +5,7 @@
 //   - Born, needs photos — post_birth + at least one puppy missing photos
 //   - Up to date         — post_birth + every puppy has at least one photo
 
-import { ArrowRight, CalendarClock, Camera, CheckCircle2, Heart, PawPrint } from "lucide-react";
+import { ArrowRight, CalendarClock, Camera, CheckCircle2, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
 import type { BreederLitterSummary } from "@/types/breeder";
@@ -100,11 +100,9 @@ export function LitterCard({ row, now, onClick }: LitterCardProps) {
           />
         ) : (
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-full border bg-muted text-muted-foreground"
+            className="h-16 w-16 rounded-full border bg-muted"
             aria-hidden
-          >
-            <PawPrint className="h-7 w-7" />
-          </div>
+          />
         )}
         <span
           className={`absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background ${TONE_STYLES[state.tone]}`}

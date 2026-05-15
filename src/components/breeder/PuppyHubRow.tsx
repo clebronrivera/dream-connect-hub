@@ -8,7 +8,7 @@
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PawPrint, ArrowRight, Trash2, Eye, Loader2 } from "lucide-react";
+import { ArrowRight, Trash2, Eye, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,12 +110,7 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
             className="h-full w-full object-cover"
             loading="lazy"
           />
-        ) : (
-          <PawPrint
-            className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/50"
-            aria-hidden
-          />
-        )}
+        ) : null}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
