@@ -36,6 +36,7 @@ import {
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { cn } from "@/lib/utils";
 import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+import { PuppyInterestNote } from "@/components/PuppyInterestNote";
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
@@ -71,6 +72,18 @@ const defaultValues: Partial<PuppyInterestFormValues> = {
   wantsAiTraining: false,
 };
 
+// When the form is launched with an implicit puppy (puppy-card flow), most
+// preference questions are noise — the buyer is already telling us which
+// puppy they want. We fill in schema-compatible defaults so validation
+// passes without rendering those rows.
+const puppySpecificDefaults: Partial<PuppyInterestFormValues> = {
+  interestedSpecific: "yes",
+  sizePreference: "no_preference",
+  breedPreference: ["No Preference"],
+  genderPreference: "No Preference",
+  timeline: "just_browsing",
+};
+
 const SHOW_AI_TRAINING_SECTION = false;
 const SHOW_STAY_CONNECTED_SECTION = true;
 
@@ -86,11 +99,21 @@ export function PuppyInterestForm({
   const { toast } = useToast();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
+  const puppySpecific = Boolean(initialPuppyId);
+
+  // Optional "About your home" questions only shown on the puppy-card flow.
+  // Stored alongside other preferences in the inquiry's preferences JSON.
+  const [homeQuestions, setHomeQuestions] = useState<{
+    q_living_situation?: string;
+    q_household_members?: string;
+    q_first_dog?: "yes" | "no";
+  }>({});
+
   const form = useForm<PuppyInterestFormValues>({
     resolver: zodResolver(puppyInterestFormSchema),
     defaultValues: {
       ...defaultValues,
-      interestedSpecific: initialPuppyId ? "yes" : "no",
+      ...(puppySpecific ? puppySpecificDefaults : {}),
       selectedPuppyId: initialPuppyId ?? "",
     },
   });
@@ -131,6 +154,9 @@ export function PuppyInterestForm({
     const preferences: Record<string, unknown> = {
       firstName: values.firstName,
       lastName: values.lastName,
+      // Preference inputs hidden in the puppy-card flow are stored as their
+      // schema defaults; readers should treat them as "not asked" when
+      // deposit_interest is true.
       sizePreference: values.sizePreference,
       breedPreference: values.breedPreference,
       genderPreference: values.genderPreference,
@@ -140,6 +166,15 @@ export function PuppyInterestForm({
       wantsAiTraining: values.wantsAiTraining === true,
       // Preserve tri-state consent: true, false, or unspecified (null).
       consentCommunications: values.consentCommunications ?? null,
+      ...(puppySpecific
+        ? {
+            deposit_interest: true,
+            q_living_situation: homeQuestions.q_living_situation || undefined,
+            q_household_members:
+              homeQuestions.q_household_members || undefined,
+            q_first_dog: homeQuestions.q_first_dog || undefined,
+          }
+        : {}),
     };
 
     const row = {
@@ -309,7 +344,9 @@ export function PuppyInterestForm({
           </div>
         </div>
 
-        {/* 2. Puppy Preferences */}
+        {/* 2. Puppy Preferences — hidden when the form is launched with an
+            implicit puppy (puppy-card flow); the buyer's already picked one. */}
+        {!puppySpecific && (
         <div className={sectionClass}>
           <h3 className={sectionTitleClass}>Puppy Preferences</h3>
           <FormField
@@ -498,6 +535,81 @@ export function PuppyInterestForm({
             )}
           />
         </div>
+        )}
+
+        {/* 2b. About your home — only shown on the puppy-card flow. Optional
+            puppy-guide questions that pre-fill the eventual deposit form. */}
+        {puppySpecific && (
+          <div className={sectionClass}>
+            <h3 className={sectionTitleClass}>About your home (Optional)</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium" htmlFor="q_living_situation">
+                  Where will the puppy primarily live?
+                </label>
+                <Select
+                  value={homeQuestions.q_living_situation ?? ""}
+                  onValueChange={(v) =>
+                    setHomeQuestions((s) => ({ ...s, q_living_situation: v }))
+                  }
+                >
+                  <SelectTrigger id="q_living_situation" className="mt-1">
+                    <SelectValue placeholder="Select (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="house_yard">House with a yard</SelectItem>
+                    <SelectItem value="house_no_yard">House, no yard</SelectItem>
+                    <SelectItem value="apartment">Apartment</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium" htmlFor="q_household_members">
+                  Who else lives in your home?
+                </label>
+                <Input
+                  id="q_household_members"
+                  placeholder="e.g. spouse + two kids, or solo"
+                  className="mt-1"
+                  value={homeQuestions.q_household_members ?? ""}
+                  onChange={(e) =>
+                    setHomeQuestions((s) => ({
+                      ...s,
+                      q_household_members: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Is this your first dog?</p>
+                <RadioGroup
+                  className="mt-1 flex gap-4"
+                  value={homeQuestions.q_first_dog ?? ""}
+                  onValueChange={(v) =>
+                    setHomeQuestions((s) => ({
+                      ...s,
+                      q_first_dog: v === "yes" || v === "no" ? v : undefined,
+                    }))
+                  }
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="q_first_dog_yes" />
+                    <label htmlFor="q_first_dog_yes" className="cursor-pointer text-sm">
+                      Yes
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="q_first_dog_no" />
+                    <label htmlFor="q_first_dog_no" className="cursor-pointer text-sm">
+                      No
+                    </label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 3. Experience & Background */}
         <div className={sectionClass}>
@@ -721,6 +833,8 @@ export function PuppyInterestForm({
             />
           </>
         )}
+
+        {puppySpecific && <PuppyInterestNote />}
 
         {captchaRequired && (
           <div className="flex justify-center">

@@ -11,7 +11,9 @@ export const puppySchema = z
     breed_select: z.string().min(1, 'Please select a breed'),
     other_breed: z.string().optional(),
     listing_date: z.string().optional(),
-    gender: z.enum(['Male', 'Female']).optional(),
+    // Canonical values are "Male" / "Female"; free-text allowed for the rare
+    // edge case via the form's "Other (specify)" escape hatch.
+    gender: z.string().optional(),
     color: z.string().optional(),
     date_of_birth: z.string().optional(),
     age_weeks: optionalNumber(z.number()),
@@ -33,6 +35,7 @@ export const puppySchema = z
     display_order: optionalNumber(z.number()),
     primary_photo: z.string().optional(),
     photos: z.array(z.string()).optional(),
+    reserved_for_customer_id: z.string().optional().nullable(),
   })
   .refine(
     (data) => {

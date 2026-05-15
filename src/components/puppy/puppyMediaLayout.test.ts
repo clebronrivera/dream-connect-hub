@@ -16,9 +16,9 @@ describe("puppyMediaLayoutClass", () => {
     );
   });
 
-  it("uses a 2-up wide layout for two items", () => {
+  it("uses a 2-up square layout for two items so two-photo puppies fill the gallery as two tall halves", () => {
     expect(puppyMediaLayoutClass(2)).toBe(
-      "grid grid-cols-2 gap-2 aspect-[2/1]",
+      "grid grid-cols-2 gap-2 aspect-square",
     );
   });
 

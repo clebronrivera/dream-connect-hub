@@ -6,7 +6,9 @@
 
 export function puppyMediaLayoutClass(count: number): string {
   if (count === 1) return "grid grid-cols-1 gap-2 aspect-square";
-  if (count === 2) return "grid grid-cols-2 gap-2 aspect-[2/1]";
+  // 2-photo case fills the square as two tall halves so two-photo puppies
+  // don't read as a wide orphan band next to four-photo neighbors.
+  if (count === 2) return "grid grid-cols-2 gap-2 aspect-square";
   // 3 and 4 share the 2-col layout; tile-level row-span gives 3 the
   // "1 large + 2 stacked" arrangement.
   return "grid grid-cols-2 gap-2 aspect-square";

@@ -1,52 +1,81 @@
-/** Canonical list of main breeds we sell (used in admin form and filters). */
+/**
+ * Canonical breed + gender values used across the public site, the admin
+ * forms, and the breeder wizard. One source of truth so the inquiry form,
+ * puppy create/edit form, upcoming-litter form, and the public filter pills
+ * all agree on the same short names.
+ */
+
 export const MAIN_BREEDS = [
-  'Shih Tzu',
-  'Golden Doodles',
-  'Labradoodles',
-  'Maltese',
-  'Poodle',
+  'Goldendoodle',
+  'Mini Goldendoodle',
+  'Labradoodle',
+  'Mini Labradoodle',
+  'Toy Poodle',
   'Mini Poodle',
-  'Mini Doodle',
+  'Standard Poodle',
+  'Shih Tzu',
+  'Maltese',
+  'Pomeranian',
+  'Yorkie',
   'Chihuahua',
-  'Yorkies',
 ] as const;
 
 export type MainBreed = (typeof MAIN_BREEDS)[number];
 
-/** Dropdown value when user selects "other" and types a custom breed (puppies + upcoming litters). */
+/** Dropdown value when the admin/breeder selects "other" and types a custom breed. */
 export const OTHER_BREED_OPTION = 'Unspecified / Other';
 
-/** Map common variants / old records to canonical breed (key = lowercase). */
+/** Map common variants / old records to canonical breed (key = lowercase, trimmed). */
 const BREED_ALIASES: Record<string, MainBreed> = {
+  // Goldendoodle (full-size / unspecified parent size)
+  'goldendoodle': 'Goldendoodle',
+  'goldendoodles': 'Goldendoodle',
+  'golden doodle': 'Goldendoodle',
+  'golden doodles': 'Goldendoodle',
+  'f1 labradoodle x f1b goldendoodle': 'Goldendoodle',
+  // Mini Goldendoodle — Goldendoodle crossed with a Mini/Toy Poodle. The
+  // breeder's existing DB labels these as "F1B Goldendoodle x Miniature
+  // Poodle" or "F1B Mini Goldendoodle x Miniature Poodle".
+  'mini goldendoodle': 'Mini Goldendoodle',
+  'f1b goldendoodle x miniature poodle': 'Mini Goldendoodle',
+  'f1b mini goldendoodle x miniature poodle': 'Mini Goldendoodle',
+  // Labradoodle family
+  'labradoodle': 'Labradoodle',
+  'labradoodles': 'Labradoodle',
+  'mini labradoodle': 'Mini Labradoodle',
+  // Poodle family
+  'toy poodle': 'Toy Poodle',
+  'akc toy poodle': 'Toy Poodle',
+  'akc toy poodle x toy poodle': 'Toy Poodle',
+  'mini poodle': 'Mini Poodle',
+  'miniature poodle': 'Mini Poodle',
+  'standard poodle': 'Standard Poodle',
+  'poodle': 'Mini Poodle',
+  // Other main breeds
   'shih tzu': 'Shih Tzu',
   'shihtzu': 'Shih Tzu',
   'shih-tzu': 'Shih Tzu',
-  'golden doodle': 'Golden Doodles',
-  'golden doodles': 'Golden Doodles',
-  'labradoodle': 'Labradoodles',
-  'labradoodles': 'Labradoodles',
   'maltese': 'Maltese',
-  'poodle': 'Poodle',
-  'mini poodle': 'Mini Poodle',
-  'mini doodle': 'Mini Doodle',
-  'mini doodles': 'Mini Doodle',
+  'pomeranian': 'Pomeranian',
+  'yorkie': 'Yorkie',
+  'yorkies': 'Yorkie',
+  'yorkshire terrier': 'Yorkie',
   'chihuahua': 'Chihuahua',
-  'yorkie': 'Yorkies',
-  'yorkies': 'Yorkies',
 };
 
 /**
  * Normalize a breed string to the canonical MAIN_BREEDS value when possible,
- * so old records (e.g. "Golden Doodle", "Yorkie") match the main breeds list.
+ * so old records (parent-cross labels, plural spellings) match the main list.
  */
 export function normalizeBreedToCanonical(breed: string): string {
   if (!breed?.trim()) return breed || '';
   const key = breed.trim().toLowerCase();
-  const canonical = BREED_ALIASES[key] ?? MAIN_BREEDS.find((b) => b.toLowerCase() === key);
+  const canonical =
+    BREED_ALIASES[key] ?? MAIN_BREEDS.find((b) => b.toLowerCase() === key);
   return canonical ?? breed.trim();
 }
 
-/** Whether the breed is one of the main dropdown options (after normalization). */
+/** Whether the breed is one of the canonical dropdown options (after normalization). */
 export function isMainBreed(breed: string): boolean {
   if (!breed?.trim()) return false;
   const canonical = normalizeBreedToCanonical(breed);
@@ -54,35 +83,50 @@ export function isMainBreed(breed: string): boolean {
 }
 
 /** Known crossbreed display labels: key is "dam|sire" (order-independent, normalized). */
-const CROSSBREED_DISPLAY: Record<string, string> = {
-  'golden doodles|poodle': 'Goldendoodle',
-  'poodle|golden doodles': 'Goldendoodle',
-  'labradoodles|poodle': 'Labradoodle',
-  'poodle|labradoodles': 'Labradoodle',
-  'mini doodle|poodle': 'Mini Doodle',
-  'poodle|mini doodle': 'Mini Doodle',
+const CROSSBREED_DISPLAY: Record<string, MainBreed> = {
+  'goldendoodle|poodle': 'Goldendoodle',
+  'poodle|goldendoodle': 'Goldendoodle',
+  'goldendoodle|mini poodle': 'Mini Goldendoodle',
+  'mini poodle|goldendoodle': 'Mini Goldendoodle',
+  'goldendoodle|miniature poodle': 'Mini Goldendoodle',
+  'miniature poodle|goldendoodle': 'Mini Goldendoodle',
+  'goldendoodle|toy poodle': 'Mini Goldendoodle',
+  'toy poodle|goldendoodle': 'Mini Goldendoodle',
+  'labradoodle|poodle': 'Labradoodle',
+  'poodle|labradoodle': 'Labradoodle',
+  'labradoodle|mini poodle': 'Mini Labradoodle',
+  'mini poodle|labradoodle': 'Mini Labradoodle',
   'mini poodle|poodle': 'Mini Poodle',
   'poodle|mini poodle': 'Mini Poodle',
 };
 
 function normalizeKey(breed: string): string {
-  return (breed || '').trim().toLowerCase();
+  return normalizeBreedToCanonical(breed).toLowerCase();
 }
 
 /**
  * Compute customer-facing display breed from dam and sire breeds.
- * Same breed -> that name; else known crossbreed label; else "DamBreed x SireBreed".
+ * Same breed -> that name; else known crossbreed label; else the dam breed
+ * (since the dam is what most parent-cross conventions key on).
  */
-export function getDisplayBreedFromParentBreeds(damBreed: string, sireBreed: string): string {
+export function getDisplayBreedFromParentBreeds(
+  damBreed: string,
+  sireBreed: string,
+): string {
   const d = normalizeKey(damBreed);
   const s = normalizeKey(sireBreed);
   if (!d && !s) return '';
-  if (!d) return sireBreed.trim();
-  if (!s) return damBreed.trim();
-  if (d === s) return damBreed.trim();
-  const key1 = `${d}|${s}`;
-  const key2 = `${s}|${d}`;
-  const known = CROSSBREED_DISPLAY[key1] ?? CROSSBREED_DISPLAY[key2];
+  if (!d) return normalizeBreedToCanonical(sireBreed);
+  if (!s) return normalizeBreedToCanonical(damBreed);
+  if (d === s) return normalizeBreedToCanonical(damBreed);
+  const known = CROSSBREED_DISPLAY[`${d}|${s}`] ?? CROSSBREED_DISPLAY[`${s}|${d}`];
   if (known) return known;
-  return `${damBreed.trim()} x ${sireBreed.trim()}`;
+  return normalizeBreedToCanonical(damBreed);
 }
+
+/** Gender canonical values used everywhere a puppy or parent dog has a gender input. */
+export const PUPPY_GENDERS = ['Male', 'Female'] as const;
+export type PuppyGender = (typeof PUPPY_GENDERS)[number];
+
+/** Dropdown value that reveals a free-text input for the rare edge case. */
+export const GENDER_OTHER_OPTION = 'Other (specify)';
