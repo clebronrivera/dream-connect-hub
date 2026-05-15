@@ -14,6 +14,7 @@ import {
   getSizeCategory,
 } from '@/lib/puppy-display-utils';
 import type { Puppy } from '@/lib/supabase';
+import { resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 import { PuppyPlaceholderSvg, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { PuppyMediaThumbs } from '@/components/puppy/PuppyMediaThumbs';
 
@@ -144,6 +145,7 @@ export function PuppyCard({
             </p>
           );
         })()}
+        <ParentThumbs puppy={puppy} />
         {puppy.description && (
           <p className="mt-2 line-clamp-2 text-sm text-white/65">{puppy.description}</p>
         )}
@@ -184,5 +186,67 @@ export function PuppyCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ParentThumbs({ puppy }: { puppy: Puppy }) {
+  const litter = puppy.upcoming_litter;
+  if (!litter) return null;
+  const damUrl = resolvePuppyPhotosPublicUrl(litter.dam_photo_path);
+  const sireUrl = resolvePuppyPhotosPublicUrl(litter.sire_photo_path);
+  if (!damUrl && !sireUrl) return null;
+  return (
+    <div className="mt-2 flex items-center gap-3 text-xs text-white/70">
+      <ParentChip
+        url={damUrl}
+        label="Mom"
+        name={litter.dam_name}
+      />
+      <ParentChip
+        url={sireUrl}
+        label="Dad"
+        name={litter.sire_name}
+      />
+    </div>
+  );
+}
+
+function ParentChip({
+  url,
+  label,
+  name,
+}: {
+  url: string | null;
+  label: string;
+  name: string | null;
+}) {
+  if (!url) {
+    if (!name) return null;
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span
+          className="h-7 w-7 rounded-full border border-white/15 bg-white/10"
+          aria-hidden
+        />
+        <span>
+          <span className="font-semibold text-white/85">{label}:</span>{' '}
+          {name}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <img
+        src={url}
+        alt={name ? `${label} ${name}` : label}
+        className="h-7 w-7 rounded-full border border-white/15 object-cover"
+        loading="lazy"
+      />
+      <span>
+        <span className="font-semibold text-white/85">{label}:</span>{' '}
+        {name ?? '—'}
+      </span>
+    </span>
   );
 }

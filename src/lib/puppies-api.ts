@@ -29,9 +29,14 @@ export async function fetchAvailablePuppies(): Promise<Puppy[]> {
   const { supabase } = await import("@/lib/supabase");
 
   return runWithTransientRetries(async () => {
+    // Join the puppy's upcoming_litter so the public card can show dam/sire
+    // thumbnails. Left-join shape: puppies without an upcoming_litter_id
+    // (post-birth orphans or older rows) come back with upcoming_litter=null.
     const { data, error } = await supabase
       .from("puppies")
-      .select("*")
+      .select(
+        "*, upcoming_litter:upcoming_litters(dam_name, sire_name, dam_photo_path, sire_photo_path)",
+      )
       .eq("is_publicly_visible", true)
       .eq("is_deceased", false)
       .eq("status", "Available")
@@ -49,6 +54,6 @@ export async function fetchAvailablePuppies(): Promise<Puppy[]> {
       throw new Error(`Puppies could not be loaded from Supabase: ${error.message}`);
     }
 
-    return data || [];
+    return (data ?? []) as Puppy[];
   });
 }
