@@ -287,7 +287,7 @@ async function listLitterPuppies(
   const { data, error } = await supabase
     .from("puppies")
     .select(
-      "id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, created_at, updated_at",
+      "id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, created_at, updated_at",
     )
     .eq("upcoming_litter_id", p.upcomingLitterId)
     .order("created_at", { ascending: true });
@@ -308,9 +308,10 @@ async function listAllPuppies(
   const { data, error } = await supabase
     .from("puppies")
     .select(
-      `id, name, gender, breed, photos, primary_photo, video_path,
-       description, ready_date, base_price, status, is_publicly_visible,
-       vaccinated_at, created_at, updated_at, upcoming_litter_id, litter_id,
+      `id, name, gender, breed, color, date_of_birth, photos, primary_photo,
+       video_path, description, ready_date, base_price, status,
+       is_publicly_visible, vaccinated_at, created_at, updated_at,
+       upcoming_litter_id, litter_id,
        upcoming_litters:upcoming_litter_id (
          breed,
          dam:dam_id ( name ),
@@ -432,6 +433,8 @@ async function syncLitterCounts(
 const UPDATE_PUPPY_ALLOWED = new Set([
   "name",
   "gender",
+  "color",
+  "date_of_birth",
   "photos",
   "primary_photo",
   "video_path",
@@ -498,7 +501,7 @@ async function updatePuppy(
     .from("puppies")
     .update(patch)
     .eq("id", p.puppyId)
-    .select("id, name, gender, breed, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at")
+    .select("id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });

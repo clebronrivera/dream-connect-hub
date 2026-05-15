@@ -130,3 +130,26 @@ export type PuppyGender = (typeof PUPPY_GENDERS)[number];
 
 /** Dropdown value that reveals a free-text input for the rare edge case. */
 export const GENDER_OTHER_OPTION = 'Other (specify)';
+
+/** Canonical color list for the breeder's puppy dropdown. Not exhaustive —
+ *  designed to cover the common breeds Dream Puppies works with (poodle /
+ *  doodle / shih tzu / pomeranian family). The puppies.color column is text,
+ *  so other values stored historically still read through. */
+export const PUPPY_COLORS = [
+  'Black',
+  'White',
+  'Cream',
+  'Apricot',
+  'Red',
+  'Tan',
+  'Brown',
+  'Chocolate',
+  'Silver',
+  'Gray',
+  'Sable',
+  'Merle',
+  'Phantom',
+  'Parti',
+  'Brindle',
+] as const;
+export type PuppyColor = (typeof PUPPY_COLORS)[number];
