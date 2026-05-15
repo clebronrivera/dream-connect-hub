@@ -50,6 +50,7 @@ import { PhotoCaptureSlot } from "@/components/breeder/PhotoCaptureSlot";
 import { VideoCaptureSlot } from "@/components/breeder/VideoCaptureSlot";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
+  listAllBreederPuppies,
   listLitterPuppies,
   updatePuppy,
   type BreederPuppyRow,
@@ -104,9 +105,10 @@ export default function BreederPuppyCapture() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // The wizard query is the source of truth for the row. We piggyback on
-  // it so navigating wizard ↔ capture is instant.
-  const { data: puppies = [], isLoading } = useQuery({
+  // Primary query: litter siblings when we have a litter context. Cheap +
+  // shared with the wizard's "Puppies so far" list so navigating
+  // wizard ↔ capture is instant.
+  const { data: litterPuppies = [], isLoading: litterLoading } = useQuery({
     queryKey: litterId ? PUPPIES_QK(litterId) : ["breeder", "litterPuppies", "none"],
     enabled: !!session && !!litterId,
     queryFn: async () => {
@@ -117,10 +119,50 @@ export default function BreederPuppyCapture() {
     },
   });
 
-  const puppy = useMemo(
-    () => puppies.find((p) => p.id === puppyId),
-    [puppies, puppyId],
-  );
+  // Fallback: when there's no litter context (older puppies, post-birth
+  // puppies missing upcoming_litter_id, etc) OR when the litter query
+  // doesn't include this puppy, fall back to the global roster so every
+  // puppy can be opened from the Puppies tab without "Puppy not found".
+  const needsFallback =
+    !litterId || (!litterLoading && !litterPuppies.some((p) => p.id === puppyId));
+  const { data: allPuppies = [], isLoading: allLoading } = useQuery({
+    queryKey: ["breeder", "allPuppies"] as const,
+    enabled: !!session && needsFallback,
+    queryFn: async () => {
+      if (!session) throw new Error("No breeder session");
+      const res = await listAllBreederPuppies(session.token);
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+  });
+
+  const isLoading = litterLoading || (needsFallback && allLoading);
+
+  const puppy = useMemo<BreederPuppyRow | undefined>(() => {
+    const fromLitter = litterPuppies.find((p) => p.id === puppyId);
+    if (fromLitter) return fromLitter;
+    return allPuppies.find((p) => p.id === puppyId);
+  }, [litterPuppies, allPuppies, puppyId]);
+
+  // "Other names in this litter" for the suggest-name button. Use litter
+  // siblings when known; otherwise infer from the fallback roster by
+  // matching litter_id / upcoming_litter_id on the resolved puppy.
+  const otherNames = useMemo(() => {
+    if (litterPuppies.length > 0) {
+      return litterPuppies.filter((p) => p.id !== puppyId).map((p) => p.name);
+    }
+    if (!puppy) return [];
+    return allPuppies
+      .filter((p) => {
+        if (p.id === puppyId) return false;
+        if (puppy.upcoming_litter_id) {
+          return p.upcoming_litter_id === puppy.upcoming_litter_id;
+        }
+        if (puppy.litter_id) return p.litter_id === puppy.litter_id;
+        return false;
+      })
+      .map((p) => p.name);
+  }, [litterPuppies, allPuppies, puppy, puppyId]);
 
   if (!puppyId) {
     return <div className="p-6 text-sm text-muted-foreground">Missing puppy id.</div>;
@@ -154,10 +196,11 @@ export default function BreederPuppyCapture() {
     <CaptureForm
       puppyId={puppyId}
       puppy={puppy}
-      otherNames={puppies.filter((p) => p.id !== puppyId).map((p) => p.name)}
+      otherNames={otherNames}
       litterId={litterId}
       onPersist={() => {
         if (litterId) queryClient.invalidateQueries({ queryKey: PUPPIES_QK(litterId) });
+        queryClient.invalidateQueries({ queryKey: ["breeder", "allPuppies"] });
         queryClient.invalidateQueries({ queryKey: HOME_QK });
         queryClient.invalidateQueries({ queryKey: PUPPY_QK(puppyId) });
       }}

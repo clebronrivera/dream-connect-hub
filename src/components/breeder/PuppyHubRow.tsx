@@ -5,12 +5,21 @@
 // row routes to the capture flow so the breeder can edit photos, status,
 // price, or notes.
 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowRight, Trash2, Eye, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +35,18 @@ import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import { resolvePuppyPhotosPublicUrl } from "@/lib/puppy-photos";
 import { deletePuppy, updatePuppy } from "@/lib/breeder/api";
 import type { BreederPuppyWithLitter } from "@/lib/breeder/api";
+import { PUPPY_COLORS } from "@/lib/breed-utils";
+
+function formatShortDob(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 interface PuppyHubRowProps {
   puppy: BreederPuppyWithLitter;
@@ -44,6 +65,53 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
     .join(" × ");
   const totalPhotos =
     (puppy.primary_photo ? 1 : 0) + (puppy.photos?.length ?? 0);
+  const dobLabel = formatShortDob(puppy.date_of_birth);
+
+  // Inline edit state. Inputs are uncontrolled-ish: we mirror DB values into
+  // local state and save on blur (price) / change (color). On save error we
+  // revert to the prior DB value so the UI never lies.
+  const [priceText, setPriceText] = useState<string>(
+    puppy.base_price != null ? String(puppy.base_price) : "",
+  );
+  const [colorValue, setColorValue] = useState<string>(puppy.color ?? "");
+
+  const updateMut = useMutation({
+    mutationFn: async (fields: Parameters<typeof updatePuppy>[2]) => {
+      if (!session) throw new Error("No breeder session");
+      const res = await updatePuppy(session.token, puppy.id, fields);
+      if (!res.ok) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: () => onPublished?.(),
+    onError: (err: Error) => {
+      toast.error(err.message);
+      // Revert local state so it matches what's actually persisted.
+      setPriceText(puppy.base_price != null ? String(puppy.base_price) : "");
+      setColorValue(puppy.color ?? "");
+    },
+  });
+
+  function savePrice() {
+    const trimmed = priceText.trim();
+    const initial = puppy.base_price != null ? String(puppy.base_price) : "";
+    if (trimmed === initial) return;
+    if (trimmed === "") {
+      updateMut.mutate({ base_price: null });
+      return;
+    }
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || n < 0 || n > 100000) {
+      toast.error("Price must be 0–100000");
+      setPriceText(initial);
+      return;
+    }
+    updateMut.mutate({ base_price: n });
+  }
+
+  function saveColor(next: string) {
+    setColorValue(next);
+    updateMut.mutate({ color: next || null });
+  }
   // Puppies that aren't tied to an active upcoming_litter still open in the
   // capture flow; the ?from= param just controls where the wizard's back
   // button lands. Fall back to /breeder when missing.
@@ -138,9 +206,51 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
           {totalPhotos > 0
             ? ` · ${totalPhotos} photo${totalPhotos === 1 ? "" : "s"}`
             : " · No photos yet"}
-          {puppy.base_price != null &&
-            ` · $${Number(puppy.base_price).toLocaleString()}`}
+          {dobLabel && ` · DOB ${dobLabel}`}
         </p>
+        {/* Inline quick edits — stopPropagation so interacting with these
+            controls doesn't trigger the row navigate. */}
+        <div
+          className="mt-1.5 flex flex-wrap items-center gap-2 text-xs"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <label className="flex items-center gap-1">
+            <span className="text-muted-foreground">$</span>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="50"
+              value={priceText}
+              placeholder="Price"
+              onChange={(e) => setPriceText(e.target.value)}
+              onBlur={savePrice}
+              disabled={updateMut.isPending}
+              className="h-7 w-24 px-2 text-xs"
+              aria-label={`Set price for ${puppy.name}`}
+            />
+          </label>
+          <Select value={colorValue || undefined} onValueChange={saveColor}>
+            <SelectTrigger
+              className="h-7 w-32 px-2 text-xs"
+              aria-label={`Set color for ${puppy.name}`}
+              disabled={updateMut.isPending}
+            >
+              <SelectValue placeholder="Color" />
+            </SelectTrigger>
+            <SelectContent>
+              {PUPPY_COLORS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {updateMut.isPending && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          )}
+        </div>
       </div>
       {canPublishFromHub && (
         <Button

@@ -141,6 +141,10 @@ export interface BreederPuppyRow {
   name: string;
   gender: "Male" | "Female";
   breed: string;
+  /** Free-text color; PUPPY_COLORS in breed-utils lists the canonical options. */
+  color: string | null;
+  /** ISO date (YYYY-MM-DD). */
+  date_of_birth: string | null;
   photos: string[] | null;
   primary_photo: string | null;
   video_path: string | null;
@@ -194,6 +198,8 @@ export async function listAllBreederPuppies(
     name: row.name,
     gender: row.gender,
     breed: row.breed,
+    color: row.color ?? null,
+    date_of_birth: row.date_of_birth ?? null,
     photos: row.photos,
     primary_photo: row.primary_photo,
     video_path: row.video_path,
@@ -233,6 +239,8 @@ export function updatePuppy(
   fields: Partial<{
     name: string;
     gender: "Male" | "Female";
+    color: string | null;
+    date_of_birth: string | null;
     photos: string[];
     primary_photo: string;
     video_path: string | null;
