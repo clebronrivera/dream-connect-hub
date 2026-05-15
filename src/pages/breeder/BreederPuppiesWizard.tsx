@@ -9,7 +9,7 @@
 // The capture page returns here when done, and we re-render with one
 // more puppy in the list — until we've filled all expected slots.
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
@@ -20,7 +20,6 @@ import {
   Loader2,
   PawPrint,
   Plus,
-  Syringe,
   Trash2,
 } from "lucide-react";
 import {
@@ -38,7 +37,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
   createPuppy,
@@ -97,6 +95,17 @@ function slotIsComplete(slot: PuppySlot): boolean {
   const p = slot.filledBy;
   if (!p) return false;
   return !!p.primary_photo || (Array.isArray(p.photos) && p.photos.length > 0);
+}
+
+function formatLitterDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function BreederPuppiesWizard() {
@@ -215,6 +224,31 @@ export default function BreederPuppiesWizard() {
             </>
           )}
         </p>
+        {(() => {
+          const dobIso =
+            litterRow.litter_date_of_birth ?? litterRow.upcoming_date_of_birth ?? null;
+          const dob = dobIso ? formatLitterDate(dobIso) : null;
+          const ready = litterRow.ready_date
+            ? formatLitterDate(litterRow.ready_date)
+            : null;
+          const size = (() => {
+            if (!totalExpected) return null;
+            const males = expectedMale;
+            const females = expectedFemale;
+            if (males === 0 && females === 0) {
+              return `${totalExpected} ${totalExpected === 1 ? "puppy" : "puppies"}`;
+            }
+            return `${totalExpected} ${totalExpected === 1 ? "puppy" : "puppies"} (${males}♂ · ${females}♀)`;
+          })();
+          if (!dob && !ready && !size) return null;
+          return (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              {size && <span>{size}</span>}
+              {dob && <span>DOB {dob}</span>}
+              {ready && <span>Ready {ready}</span>}
+            </div>
+          );
+        })()}
         <div className="mt-2 flex gap-1">
           {slots.map((s, i) => (
             <span
@@ -365,9 +399,8 @@ export default function BreederPuppiesWizard() {
 }
 
 // Per-puppy row in the "Puppies so far" list. Surfaces gender/status/photo
-// counts and lets the breeder set an optional "vaccinated on" date inline —
-// the saved-summary use-case the operator hits after the capture sweep is
-// done, when she has the actual vet card in front of her.
+// counts. Vaccinated date input was removed — it lives on the capture flow
+// now, not the management list.
 function PuppyListRow({
   puppy,
   onNavigate,
@@ -379,30 +412,6 @@ function PuppyListRow({
   onUpdated: () => void;
 }) {
   const { session } = useBreederAuth();
-  const initialVaccinatedAt = puppy.vaccinated_at ?? "";
-  const [vaccinatedAt, setVaccinatedAt] = useState(initialVaccinatedAt);
-
-  const updateMut = useMutation({
-    mutationFn: async (val: string | null) => {
-      if (!session) throw new Error("No breeder session");
-      const res = await updatePuppy(session.token, puppy.id, {
-        vaccinated_at: val,
-      });
-      if (!res.ok) throw new Error(res.error);
-      return res.data;
-    },
-    onSuccess: () => onUpdated(),
-    onError: (err: Error) => {
-      // Revert local state so the input shows what's actually persisted.
-      setVaccinatedAt(initialVaccinatedAt);
-      toast.error(err.message);
-    },
-  });
-
-  const saveVaccinatedAt = () => {
-    if (vaccinatedAt === initialVaccinatedAt) return;
-    updateMut.mutate(vaccinatedAt ? vaccinatedAt : null);
-  };
 
   const genderMut = useMutation({
     mutationFn: async (newGender: "Male" | "Female") => {
@@ -571,27 +580,6 @@ function PuppyListRow({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
-      <div className="flex items-center gap-2">
-        <Syringe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-        <label
-          htmlFor={`vacc-${puppy.id}`}
-          className="text-xs text-muted-foreground"
-        >
-          Vaccinated
-        </label>
-        <Input
-          id={`vacc-${puppy.id}`}
-          type="date"
-          value={vaccinatedAt}
-          onChange={(e) => setVaccinatedAt(e.target.value)}
-          onBlur={saveVaccinatedAt}
-          disabled={updateMut.isPending}
-          className="h-8 max-w-[170px] text-xs"
-        />
-        {updateMut.isPending && (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-        )}
       </div>
     </li>
   );
