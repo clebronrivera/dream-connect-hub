@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Litter Announcement — Koko × Star — Mini Goldendoodles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter+Tight:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark:       #1A1438;
+    --bg-dark-soft:  #2A2152;
+    --primary:       #7C5CFF;
+    --primary-soft:  #E4DBFF;
+    --accent:        #FBCFE8;
+    --accent-deep:   #EC4899;
+    --sun:           #FFD66B;
+    --leaf:          #86E6B7;
+    --cyan:          #5BC8FF;
+    --line:          rgba(255,255,255,0.12);
+    --text-soft:     rgba(255,255,255,0.72);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #ECE5F7;
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    color: #2D2A4A;
+    padding: 32px 24px 80px;
+  }
+  .doc-header {
+    max-width: 1300px;
+    margin: 0 auto 32px;
+    text-align: center;
+  }
+  .doc-header h1 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  .doc-header p {
+    margin: 0;
+    color: #5A5478;
+    font-size: 15px;
+  }
+  .doc-header code {
+    font-family: 'JetBrains Mono', monospace;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .row {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    justify-items: center;
+  }
+  .post-wrap {
+    width: 100%;
+  }
+  .post-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #5A5478;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .post {
+    width: 100%;
+    aspect-ratio: 1080 / 1350;
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 16px 40px rgba(45, 42, 74, 0.22);
+  }
+  .post-inner {
+    position: absolute;
+    inset: 0;
+    width: 1080px;
+    height: 1350px;
+    transform-origin: top left;
+    background: var(--bg-dark);
+    color: white;
+    overflow: hidden;
+  }
+
+  /* ===== top glow ===== */
+  .glow {
+    position: absolute;
+    top: -200px; left: -200px;
+    width: 800px; height: 800px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(236,72,153,0.45) 0%, rgba(236,72,153,0) 70%);
+    filter: blur(20px);
+    pointer-events: none;
+  }
+  .glow-2 {
+    position: absolute;
+    top: 600px; right: -200px;
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,92,255,0.4) 0%, rgba(124,92,255,0) 70%);
+    filter: blur(20px);
+    pointer-events: none;
+  }
+
+  /* ===== header pills ===== */
+  .header-row {
+    position: absolute;
+    top: 56px; left: 56px; right: 56px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 5;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 28px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--bg-dark);
+  }
+  .pill-breed { background: var(--accent); }
+  .pill-status { background: var(--sun); }
+
+  /* ===== puppy grid ===== */
+  .puppy-grid {
+    position: absolute;
+    top: 144px; left: 56px; right: 56px;
+    display: grid;
+    gap: 16px;
+  }
+  .puppy-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .puppy-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .puppy-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .puppy-tile {
+    background: var(--bg-dark-soft);
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 0 0 14px;
+  }
+  .puppy-photo {
+    position: absolute;
+    inset: 6px;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .puppy-photo svg { width: 100%; height: 100%; display: block; }
+  .puppy-label {
+    position: relative;
+    z-index: 2;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    color: var(--bg-dark);
+  }
+  .lbl-pink { background: var(--accent); }
+  .lbl-sun  { background: var(--sun); }
+  .lbl-cyan { background: var(--cyan); }
+  .lbl-leaf { background: var(--leaf); }
+
+  /* ===== parents row ===== */
+  .parents {
+    position: absolute;
+    top: 740px; left: 56px; right: 56px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .parent-card {
+    background: var(--bg-dark-soft);
+    border-radius: 24px;
+    padding: 20px 24px;
+    display: grid; grid-template-columns: 84px 1fr; gap: 16px; align-items: center;
+  }
+  .parent-avatar {
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #FFD9A0, #C97740);
+    border: 3px solid var(--primary);
+  }
+  .parent-avatar.dad {
+    background: linear-gradient(135deg, #B8553A, #5A2614);
+  }
+  .parent-avatar svg { width: 100%; height: 100%; display: block; }
+  .parent-info .role {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 14px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .parent-info .name {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    color: white;
+    margin: 0 0 4px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .parent-info .meta {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 16px;
+    color: var(--text-soft);
+    line-height: 1.3;
+  }
+
+  /* ===== headline ===== */
+  .headline {
+    position: absolute;
+    top: 920px; left: 56px; right: 56px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 0.92;
+    text-transform: uppercase;
+  }
+  .headline .l1 { color: white; font-size: 124px; }
+  .headline .l2 { color: var(--accent-deep); font-size: 124px; }
+
+  /* ===== stats strip ===== */
+  .stats {
+    position: absolute;
+    top: 1130px; left: 56px; right: 56px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  }
+  .stat {
+    border-right: 1px solid var(--line);
+    padding-right: 8px;
+  }
+  .stat:last-child { border-right: none; }
+  .stat .k {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-soft);
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .stat .v {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    color: white;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat.ready .v {
+    display: inline-block;
+    background: var(--leaf);
+    color: var(--bg-dark);
+    padding: 4px 10px;
+    border-radius: 8px;
+  }
+
+  /* ===== CTA + footer ===== */
+  .cta-row {
+    position: absolute;
+    bottom: 56px; left: 56px; right: 56px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  }
+  .cta {
+    background: var(--accent);
+    color: var(--bg-dark);
+    border-radius: 999px;
+    padding: 22px 38px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    box-shadow: 0 8px 0 var(--accent-deep);
+  }
+  .footer-info {
+    text-align: right;
+  }
+  .footer-info .url {
+    font-family: 'JetBrains Mono', monospace;
+    color: white;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+  .footer-info .meta {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-soft);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    margin-top: 4px;
+  }
+  .logo-corner-bg {
+    position: absolute;
+    bottom: 76px; right: 56px;
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: white;
+    padding: 4px;
+    box-shadow: 0 4px 18px rgba(124,92,255,0.4);
+  }
+  .logo-corner-bg img { width: 100%; height: 100%; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>Litter Post — 3 headline variants for Carlos</h1>
+  <p>
+    Single-image format · <code>1080 × 1350</code> portrait · uses Direction&nbsp;B / Lavender (dark variant)
+    · <strong>no personality words anywhere</strong>
+    · facts only: breed, dates, count, genetics, contact
+  </p>
+</div>
+
+<div class="row">
+
+  <!-- ===== VARIANT A: spelled-out count + breed ===== -->
+  <div class="post-wrap">
+    <div class="post-label">Pattern A · spelled-out count + breed (recommended)</div>
+    <div class="post" id="post-a"><div class="post-inner">
+      <div class="glow"></div><div class="glow-2"></div>
+
+      <div class="header-row">
+        <span class="pill pill-breed">◐ MINI GOLDENDOODLES</span>
+        <span class="pill pill-status">★ NEW LITTER</span>
+      </div>
+
+      <div class="puppy-grid cols-4">
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga1" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#C97740"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga1)"/><circle cx="120" cy="135" r="76" fill="#FFD9A0"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#C97740" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#C97740" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-pink">PUPPY #1</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga2" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE0B8"/><stop offset="100%" stop-color="#A85F30"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga2)"/><circle cx="120" cy="135" r="76" fill="#F5C088"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-sun">PUPPY #2</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga3" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9B0"/><stop offset="100%" stop-color="#B97E50"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga3)"/><circle cx="120" cy="135" r="76" fill="#FFCC88"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-cyan">PUPPY #3</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga4" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FCC68A"/><stop offset="100%" stop-color="#8F4F1E"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga4)"/><circle cx="120" cy="135" r="76" fill="#E9AC72"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#8F4F1E" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#8F4F1E" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-leaf">PUPPY #4</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga5" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#A66740"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga5)"/><circle cx="120" cy="135" r="76" fill="#FFCC9A"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A66740" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A66740" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-leaf">PUPPY #5</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga6" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9B0"/><stop offset="100%" stop-color="#A85F30"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga6)"/><circle cx="120" cy="135" r="76" fill="#F0B888"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-sun">PUPPY #6</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga7" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE0B8"/><stop offset="100%" stop-color="#9A5828"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga7)"/><circle cx="120" cy="135" r="76" fill="#FFCC88"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#9A5828" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#9A5828" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-cyan">PUPPY #7</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="ga8" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9A0"/><stop offset="100%" stop-color="#B97E50"/></radialGradient></defs><rect width="240" height="240" fill="url(#ga8)"/><circle cx="120" cy="135" r="76" fill="#FFCC9A"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-pink">PUPPY #8</span></div>
+      </div>
+
+      <div class="parents">
+        <div class="parent-card">
+          <div class="parent-avatar dad"><svg viewBox="0 0 84 84"><circle cx="42" cy="50" r="28" fill="#7A3818"/><ellipse cx="22" cy="36" rx="8" ry="14" fill="#5A2614" transform="rotate(-18 22 36)"/><ellipse cx="62" cy="36" rx="8" ry="14" fill="#5A2614" transform="rotate(18 62 36)"/><ellipse cx="42" cy="55" rx="13" ry="9" fill="#A35030"/><circle cx="34" cy="48" r="2.5" fill="#1a1530"/><circle cx="50" cy="48" r="2.5" fill="#1a1530"/></svg></div>
+          <div class="parent-info">
+            <div class="role">DAD · SIRE</div>
+            <div class="name">Koko</div>
+            <div class="meta">Red Mini Poodle<br/>100% Poodle</div>
+          </div>
+        </div>
+        <div class="parent-card">
+          <div class="parent-avatar"><svg viewBox="0 0 84 84"><circle cx="42" cy="50" r="28" fill="#F5C088"/><ellipse cx="22" cy="36" rx="8" ry="14" fill="#C97740" transform="rotate(-18 22 36)"/><ellipse cx="62" cy="36" rx="8" ry="14" fill="#C97740" transform="rotate(18 62 36)"/><ellipse cx="42" cy="55" rx="13" ry="9" fill="#FFD9A0"/><circle cx="34" cy="48" r="2.5" fill="#1a1530"/><circle cx="50" cy="48" r="2.5" fill="#1a1530"/></svg></div>
+          <div class="parent-info">
+            <div class="role">MOM · DAM</div>
+            <div class="name">Star</div>
+            <div class="meta">Apricot F1B Goldendoodle<br/>75% Poodle / 25% Golden</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="headline">
+        <div class="l1">EIGHT MINI</div>
+        <div class="l2">GOLDENDOODLES.</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">BORN</div><div class="v">04.19.26</div></div>
+        <div class="stat ready"><div class="k">READY</div><div class="v">06.14.26</div></div>
+        <div class="stat"><div class="k">AFTER</div><div class="v">8 WKS</div></div>
+        <div class="stat"><div class="k">LITTER</div><div class="v">8 PUPS</div></div>
+        <div class="stat"><div class="k">CALL/TEXT</div><div class="v" style="font-size:22px">321·697·8864</div></div>
+      </div>
+
+      <div class="cta-row">
+        <span class="cta">RESERVE A PUP →</span>
+        <div class="footer-info">
+          <div class="url">PUPPYHEAVENLLC.COM</div>
+          <div class="meta">GOLDENDOODLE · KOKO × STAR</div>
+        </div>
+      </div>
+      <div class="logo-corner-bg"><img src="../../public/dream-puppies-logo.png" alt="" onerror="this.style.display='none'"/></div>
+    </div></div>
+  </div>
+
+  <!-- ===== VARIANT B: numeric + minimal ===== -->
+  <div class="post-wrap">
+    <div class="post-label">Pattern B · numeric · minimal</div>
+    <div class="post" id="post-b"><div class="post-inner">
+      <div class="glow"></div><div class="glow-2"></div>
+      <div class="header-row">
+        <span class="pill pill-breed">◐ MINI GOLDENDOODLES</span>
+        <span class="pill pill-status">★ NEW LITTER</span>
+      </div>
+
+      <div class="puppy-grid cols-4">
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb1" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#C97740"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb1)"/><circle cx="120" cy="135" r="76" fill="#FFD9A0"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#C97740" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#C97740" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-pink">PUPPY #1</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb2" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE0B8"/><stop offset="100%" stop-color="#A85F30"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb2)"/><circle cx="120" cy="135" r="76" fill="#F5C088"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-sun">PUPPY #2</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb3" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9B0"/><stop offset="100%" stop-color="#B97E50"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb3)"/><circle cx="120" cy="135" r="76" fill="#FFCC88"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-cyan">PUPPY #3</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb4" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FCC68A"/><stop offset="100%" stop-color="#8F4F1E"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb4)"/><circle cx="120" cy="135" r="76" fill="#E9AC72"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#8F4F1E" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#8F4F1E" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-leaf">PUPPY #4</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb5" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#A66740"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb5)"/><circle cx="120" cy="135" r="76" fill="#FFCC9A"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A66740" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A66740" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-leaf">PUPPY #5</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb6" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9B0"/><stop offset="100%" stop-color="#A85F30"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb6)"/><circle cx="120" cy="135" r="76" fill="#F0B888"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-sun">PUPPY #6</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb7" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE0B8"/><stop offset="100%" stop-color="#9A5828"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb7)"/><circle cx="120" cy="135" r="76" fill="#FFCC88"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#9A5828" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#9A5828" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-cyan">PUPPY #7</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gb8" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9A0"/><stop offset="100%" stop-color="#B97E50"/></radialGradient></defs><rect width="240" height="240" fill="url(#gb8)"/><circle cx="120" cy="135" r="76" fill="#FFCC9A"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-pink">PUPPY #8</span></div>
+      </div>
+
+      <div class="parents">
+        <div class="parent-card">
+          <div class="parent-avatar dad"><svg viewBox="0 0 84 84"><circle cx="42" cy="50" r="28" fill="#7A3818"/><ellipse cx="22" cy="36" rx="8" ry="14" fill="#5A2614" transform="rotate(-18 22 36)"/><ellipse cx="62" cy="36" rx="8" ry="14" fill="#5A2614" transform="rotate(18 62 36)"/><ellipse cx="42" cy="55" rx="13" ry="9" fill="#A35030"/><circle cx="34" cy="48" r="2.5" fill="#1a1530"/><circle cx="50" cy="48" r="2.5" fill="#1a1530"/></svg></div>
+          <div class="parent-info">
+            <div class="role">DAD · SIRE</div>
+            <div class="name">Koko</div>
+            <div class="meta">Red Mini Poodle<br/>100% Poodle</div>
+          </div>
+        </div>
+        <div class="parent-card">
+          <div class="parent-avatar"><svg viewBox="0 0 84 84"><circle cx="42" cy="50" r="28" fill="#F5C088"/><ellipse cx="22" cy="36" rx="8" ry="14" fill="#C97740" transform="rotate(-18 22 36)"/><ellipse cx="62" cy="36" rx="8" ry="14" fill="#C97740" transform="rotate(18 62 36)"/><ellipse cx="42" cy="55" rx="13" ry="9" fill="#FFD9A0"/><circle cx="34" cy="48" r="2.5" fill="#1a1530"/><circle cx="50" cy="48" r="2.5" fill="#1a1530"/></svg></div>
+          <div class="parent-info">
+            <div class="role">MOM · DAM</div>
+            <div class="name">Star</div>
+            <div class="meta">Apricot F1B Goldendoodle<br/>75% Poodle / 25% Golden</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="headline">
+        <div class="l1" style="font-size:180px; color: var(--primary)">8 PUPS.</div>
+        <div class="l2" style="font-size:88px">ALL GOLDENDOODLE.</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">BORN</div><div class="v">04.19.26</div></div>
+        <div class="stat ready"><div class="k">READY</div><div class="v">06.14.26</div></div>
+        <div class="stat"><div class="k">AFTER</div><div class="v">8 WKS</div></div>
+        <div class="stat"><div class="k">LITTER</div><div class="v">8 PUPS</div></div>
+        <div class="stat"><div class="k">CALL/TEXT</div><div class="v" style="font-size:22px">321·697·8864</div></div>
+      </div>
+
+      <div class="cta-row">
+        <span class="cta">RESERVE A PUP →</span>
+        <div class="footer-info">
+          <div class="url">PUPPYHEAVENLLC.COM</div>
+          <div class="meta">GOLDENDOODLE · KOKO × STAR</div>
+        </div>
+      </div>
+      <div class="logo-corner-bg"><img src="../../public/dream-puppies-logo.png" alt="" onerror="this.style.display='none'"/></div>
+    </div></div>
+  </div>
+
+  <!-- ===== VARIANT C: dates only ===== -->
+  <div class="post-wrap">
+    <div class="post-label">Pattern C · dates only · most minimal</div>
+    <div class="post" id="post-c"><div class="post-inner">
+      <div class="glow"></div><div class="glow-2"></div>
+      <div class="header-row">
+        <span class="pill pill-breed">◐ MINI GOLDENDOODLES</span>
+        <span class="pill pill-status">★ NEW LITTER</span>
+      </div>
+
+      <div class="puppy-grid cols-4">
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc1" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#C97740"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc1)"/><circle cx="120" cy="135" r="76" fill="#FFD9A0"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#C97740" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#C97740" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-pink">PUPPY #1</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc2" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE0B8"/><stop offset="100%" stop-color="#A85F30"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc2)"/><circle cx="120" cy="135" r="76" fill="#F5C088"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-sun">PUPPY #2</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc3" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9B0"/><stop offset="100%" stop-color="#B97E50"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc3)"/><circle cx="120" cy="135" r="76" fill="#FFCC88"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-cyan">PUPPY #3</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc4" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FCC68A"/><stop offset="100%" stop-color="#8F4F1E"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc4)"/><circle cx="120" cy="135" r="76" fill="#E9AC72"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#8F4F1E" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#8F4F1E" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-leaf">PUPPY #4</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc5" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#A66740"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc5)"/><circle cx="120" cy="135" r="76" fill="#FFCC9A"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A66740" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A66740" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-leaf">PUPPY #5</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc6" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9B0"/><stop offset="100%" stop-color="#A85F30"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc6)"/><circle cx="120" cy="135" r="76" fill="#F0B888"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#A85F30" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-sun">PUPPY #6</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc7" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE0B8"/><stop offset="100%" stop-color="#9A5828"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc7)"/><circle cx="120" cy="135" r="76" fill="#FFCC88"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#9A5828" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#9A5828" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-cyan">PUPPY #7</span></div>
+        <div class="puppy-tile"><div class="puppy-photo"><svg viewBox="0 0 240 240"><defs><radialGradient id="gc8" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFD9A0"/><stop offset="100%" stop-color="#B97E50"/></radialGradient></defs><rect width="240" height="240" fill="url(#gc8)"/><circle cx="120" cy="135" r="76" fill="#FFCC9A"/><ellipse cx="62" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(-18 62 105)"/><ellipse cx="178" cy="105" rx="22" ry="38" fill="#B97E50" transform="rotate(18 178 105)"/><ellipse cx="120" cy="155" rx="36" ry="26" fill="#FFEED4"/><circle cx="98" cy="128" r="6" fill="#1a1530"/><circle cx="142" cy="128" r="6" fill="#1a1530"/><ellipse cx="120" cy="152" rx="7" ry="5" fill="#1a1530"/></svg></div><span class="puppy-label lbl-pink">PUPPY #8</span></div>
+      </div>
+
+      <div class="parents">
+        <div class="parent-card">
+          <div class="parent-avatar dad"><svg viewBox="0 0 84 84"><circle cx="42" cy="50" r="28" fill="#7A3818"/><ellipse cx="22" cy="36" rx="8" ry="14" fill="#5A2614" transform="rotate(-18 22 36)"/><ellipse cx="62" cy="36" rx="8" ry="14" fill="#5A2614" transform="rotate(18 62 36)"/><ellipse cx="42" cy="55" rx="13" ry="9" fill="#A35030"/><circle cx="34" cy="48" r="2.5" fill="#1a1530"/><circle cx="50" cy="48" r="2.5" fill="#1a1530"/></svg></div>
+          <div class="parent-info">
+            <div class="role">DAD · SIRE</div>
+            <div class="name">Koko</div>
+            <div class="meta">Red Mini Poodle<br/>100% Poodle</div>
+          </div>
+        </div>
+        <div class="parent-card">
+          <div class="parent-avatar"><svg viewBox="0 0 84 84"><circle cx="42" cy="50" r="28" fill="#F5C088"/><ellipse cx="22" cy="36" rx="8" ry="14" fill="#C97740" transform="rotate(-18 22 36)"/><ellipse cx="62" cy="36" rx="8" ry="14" fill="#C97740" transform="rotate(18 62 36)"/><ellipse cx="42" cy="55" rx="13" ry="9" fill="#FFD9A0"/><circle cx="34" cy="48" r="2.5" fill="#1a1530"/><circle cx="50" cy="48" r="2.5" fill="#1a1530"/></svg></div>
+          <div class="parent-info">
+            <div class="role">MOM · DAM</div>
+            <div class="name">Star</div>
+            <div class="meta">Apricot F1B Goldendoodle<br/>75% Poodle / 25% Golden</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="headline">
+        <div class="l1" style="font-size:108px">BORN 04.19.</div>
+        <div class="l2" style="font-size:108px">READY 06.14.</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">BORN</div><div class="v">04.19.26</div></div>
+        <div class="stat ready"><div class="k">READY</div><div class="v">06.14.26</div></div>
+        <div class="stat"><div class="k">AFTER</div><div class="v">8 WKS</div></div>
+        <div class="stat"><div class="k">LITTER</div><div class="v">8 PUPS</div></div>
+        <div class="stat"><div class="k">CALL/TEXT</div><div class="v" style="font-size:22px">321·697·8864</div></div>
+      </div>
+
+      <div class="cta-row">
+        <span class="cta">RESERVE A PUP →</span>
+        <div class="footer-info">
+          <div class="url">PUPPYHEAVENLLC.COM</div>
+          <div class="meta">GOLDENDOODLE · KOKO × STAR</div>
+        </div>
+      </div>
+      <div class="logo-corner-bg"><img src="../../public/dream-puppies-logo.png" alt="" onerror="this.style.display='none'"/></div>
+    </div></div>
+  </div>
+
+</div>
+
+<script>
+  function fit() {
+    document.querySelectorAll('.post').forEach(p => {
+      const inner = p.querySelector('.post-inner');
+      const w = p.clientWidth;
+      inner.style.transform = `scale(${w / 1080})`;
+    });
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  window.addEventListener('load', fit);
+</script>
+</body>
+</html>

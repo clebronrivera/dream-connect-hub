@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IG Carousel Preview — Cooper · Mini Goldendoodle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter+Tight:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:            #FAF6FF;
+    --surface:       #FFFFFF;
+    --ink:           #2D2A4A;
+    --ink-soft:      #5A5478;
+    --primary:       #7C5CFF;
+    --primary-soft:  #E4DBFF;
+    --accent:        #FBCFE8;
+    --accent-deep:   #EC4899;
+    --sun:           #FFD66B;
+    --leaf:          #86E6B7;
+    --line:          #E8E0F5;
+    --bg-dark:       #1A1438;
+    --bg-dark-soft:  #2A2152;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #ECE5F7;
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    color: var(--ink);
+    padding: 32px 24px 80px;
+  }
+  .header {
+    max-width: 1400px;
+    margin: 0 auto 32px;
+    text-align: center;
+  }
+  .header h1 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  .header p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 15px;
+  }
+  .header code {
+    font-family: 'JetBrains Mono', monospace;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .carousel {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    justify-items: center;
+  }
+  /* Each slide is rendered at its true 1080x1350 aspect, scaled to fit */
+  .slide {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 1080 / 1350;
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 12px 32px rgba(45, 42, 74, 0.18);
+    font-size: 11px;
+    /* The internal layout designs assume 1080x1350; we scale via CSS transform pattern */
+  }
+  .slide-inner {
+    position: absolute;
+    inset: 0;
+    width: 1080px;
+    height: 1350px;
+    transform-origin: top left;
+    /* JS sets transform: scale(...) to fit container */
+  }
+  .slide-label {
+    position: absolute;
+    top: -22px;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .slide-wrap {
+    position: relative;
+    padding-top: 22px;
+  }
+
+  /* ====== SHARED INTERNAL STYLES (1080x1350 coordinate space) ====== */
+  .s-pad { padding: 80px; }
+  .s-pad-tight { padding: 64px; }
+  .display {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    line-height: 0.95;
+  }
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 500;
+  }
+  .body-text {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 28px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 24px;
+  }
+  .sticker {
+    box-shadow: 0 12px 0 var(--primary);
+    transition: transform 0.1s;
+  }
+  .tilt-l { transform: rotate(-1.2deg); }
+  .tilt-r { transform: rotate(1.2deg); }
+  .logo-corner {
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    bottom: 56px;
+    right: 56px;
+    border-radius: 50%;
+    background: white;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    object-fit: cover;
+  }
+  .logo-corner-dark {
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  /* ====== SLIDE 1: HERO (dark) ====== */
+  .s1 { background: var(--bg-dark); color: white; }
+  .s1-photo {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 720px;
+    background: linear-gradient(135deg, #FFD9B0 0%, #FFB378 60%, #E89855 100%);
+    overflow: hidden;
+  }
+  .s1-photo-mask {
+    position: absolute;
+    bottom: -40px;
+    left: 0; right: 0;
+    height: 80px;
+    background: var(--bg-dark);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  .s1-body {
+    position: absolute;
+    top: 760px;
+    left: 80px;
+    right: 80px;
+  }
+  .s1 .eyebrow {
+    color: var(--accent);
+    font-size: 28px;
+    margin-bottom: 28px;
+  }
+  .s1 .name {
+    font-size: 220px;
+    color: white;
+    margin: 0;
+  }
+  .s1 .subtitle {
+    color: rgba(255,255,255,0.78);
+    font-size: 36px;
+    margin-top: 28px;
+    line-height: 1.3;
+  }
+  .s1 .pill-avail {
+    background: var(--leaf);
+    color: var(--bg-dark);
+    margin-top: 56px;
+  }
+
+  /* ====== SLIDE 2: MEET (light) ====== */
+  .s2 { background: var(--bg); }
+  .s2-photo-card {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-1.2deg);
+    width: 720px;
+    height: 720px;
+    border-radius: 32px;
+    background: linear-gradient(135deg, #FFD9B0 0%, #FFB378 60%, #E89855 100%);
+    box-shadow: 0 16px 0 var(--primary);
+    overflow: hidden;
+  }
+  .s2-body {
+    position: absolute;
+    bottom: 100px;
+    left: 80px;
+    right: 80px;
+  }
+  .s2 .eyebrow {
+    color: var(--primary);
+    font-size: 26px;
+    margin-bottom: 16px;
+  }
+  .s2 .name {
+    font-size: 96px;
+    color: var(--ink);
+    margin: 0 0 24px;
+  }
+  .s2 .blurb {
+    font-size: 30px;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+
+  /* ====== SLIDE 3: ANGLES ====== */
+  .s3 { background: var(--bg); }
+  .s3 .eyebrow {
+    font-size: 26px;
+    color: var(--primary);
+    text-align: center;
+    margin-top: 100px;
+    margin-bottom: 28px;
+  }
+  .s3 .title {
+    font-size: 100px;
+    color: var(--ink);
+    text-align: center;
+    margin: 0 0 80px;
+  }
+  .s3-grid {
+    position: absolute;
+    top: 580px;
+    left: 80px;
+    right: 80px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 360px 360px;
+    gap: 28px;
+  }
+  .s3-tile {
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 0 var(--primary-soft);
+  }
+  .s3-tile-back { background: linear-gradient(135deg, #FFD9B0, #E89855); grid-column: 1 / 3; height: 360px; }
+  .s3-tile-top  { background: linear-gradient(135deg, #FFB378, #C97740); }
+  .s3-tile-paw  { background: linear-gradient(135deg, #F5C9A5, #B97E50); }
+  .s3-tile-label {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    background: white;
+    color: var(--ink);
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+  }
+
+  /* ====== SLIDE 4: PARENTS ====== */
+  .s4 { background: var(--bg-dark); color: white; }
+  .s4 .eyebrow {
+    position: absolute; top: 80px; left: 0; right: 0;
+    text-align: center; color: var(--accent); font-size: 26px;
+  }
+  .s4 .title {
+    position: absolute; top: 130px; left: 0; right: 0;
+    text-align: center; color: white; font-size: 84px; margin: 0;
+  }
+  .s4-pair {
+    position: absolute; top: 320px; left: 80px; right: 80px;
+    display: grid; grid-template-rows: 1fr 1fr; gap: 24px; height: 900px;
+  }
+  .s4-parent {
+    display: grid; grid-template-columns: 380px 1fr;
+    background: var(--bg-dark-soft);
+    border-radius: 28px; padding: 32px; gap: 32px;
+    align-items: center;
+  }
+  .s4-photo {
+    width: 380px; height: 380px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #FFE5D0, #E89855);
+  }
+  .s4-photo.dad {
+    background: linear-gradient(135deg, #E8D9C0, #9B7A52);
+  }
+  .s4-parent-info .label {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 12px;
+  }
+  .s4-parent-info .name {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 80px;
+    color: white;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+  .s4-parent-info .meta {
+    color: rgba(255,255,255,0.75);
+    font-size: 26px;
+  }
+
+  /* ====== SLIDE 5: INCLUDED ====== */
+  .s5 { background: var(--accent); color: var(--ink); }
+  .s5 .eyebrow {
+    font-size: 26px; color: var(--accent-deep); margin: 100px 0 16px;
+  }
+  .s5 .title {
+    font-size: 88px; color: var(--ink); margin: 0 0 56px;
+    line-height: 0.95;
+  }
+  .s5-list {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  }
+  .s5-list li {
+    background: white;
+    border-radius: 999px;
+    padding: 22px 32px;
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 500;
+    font-size: 26px;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .s5-list li::before {
+    content: "✓";
+    color: var(--primary);
+    font-weight: 900;
+    font-size: 32px;
+  }
+
+  /* ====== SLIDE 6: RESERVE ====== */
+  .s6 { background: var(--bg); }
+  .s6 .eyebrow {
+    color: var(--primary); font-size: 26px; margin: 90px 0 12px;
+  }
+  .s6 .title {
+    font-size: 96px; color: var(--ink); margin: 0;
+    line-height: 0.95;
+  }
+  .s6-card {
+    background: white;
+    border-radius: 32px;
+    padding: 56px;
+    margin-top: 60px;
+    border: 4px solid var(--ink);
+    box-shadow: 0 16px 0 var(--accent-deep);
+  }
+  .s6-row { display: flex; align-items: center; gap: 24px; padding: 16px 0; }
+  .s6-row + .s6-row { border-top: 2px solid var(--line); }
+  .s6-row .icon {
+    width: 60px; height: 60px;
+    background: var(--primary-soft);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    color: var(--primary);
+    font-family: 'Archivo'; font-weight: 900;
+  }
+  .s6-row .k {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-soft);
+    font-size: 18px; text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+  .s6-row .v {
+    font-family: 'Inter Tight', sans-serif;
+    color: var(--ink);
+    font-size: 30px; font-weight: 700;
+  }
+  .s6-cta {
+    position: absolute;
+    bottom: 80px; left: 80px; right: 80px;
+    background: var(--primary);
+    color: white;
+    border-radius: 999px;
+    padding: 32px 0;
+    text-align: center;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 48px;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    box-shadow: 0 12px 0 #5A3FE0;
+  }
+
+  /* ====== SLIDE 7: CLOSING ====== */
+  .s7 { background: var(--bg-dark); color: white; }
+  .s7-logo-area {
+    position: absolute; top: 120px; left: 0; right: 0;
+    text-align: center;
+  }
+  .s7-logo {
+    width: 320px; height: 320px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: white;
+    padding: 14px;
+    box-shadow: 0 16px 60px rgba(124, 92, 255, 0.5);
+  }
+  .s7 .eyebrow {
+    color: var(--accent);
+    font-size: 26px;
+    text-align: center;
+    margin-top: 60px;
+  }
+  .s7 .title {
+    font-size: 88px;
+    text-align: center;
+    color: white;
+    margin: 24px 80px;
+    line-height: 0.95;
+  }
+  .s7 .blurb {
+    font-size: 28px;
+    text-align: center;
+    color: rgba(255,255,255,0.82);
+    margin: 0 80px;
+    line-height: 1.45;
+  }
+  .s7 .footer-chrome {
+    position: absolute;
+    bottom: 80px; left: 0; right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.5);
+    font-size: 22px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* ====== shared procedural SVG puppy placeholders ====== */
+  .puppy-svg {
+    width: 100%; height: 100%;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>IG Carousel · Cooper · Mini Goldendoodle</h1>
+  <p>
+    Live preview of the 7-slide post · <code>1080 × 1350</code> portrait · uses your existing
+    Direction&nbsp;B / Lavender brand · Archivo · Inter Tight · JetBrains Mono · sticker shadows · tilts
+  </p>
+</div>
+
+<div class="carousel">
+
+  <!-- SLIDE 1: HERO (dark) -->
+  <div class="slide-wrap"><div class="slide-label">slide 1 · hero</div>
+  <div class="slide"><div class="slide-inner s1">
+    <div class="s1-photo">
+      <!-- procedural puppy face placeholder -->
+      <svg class="puppy-svg" viewBox="0 0 1080 720" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="55%" r="70%">
+            <stop offset="0%" stop-color="#FFE5C0"/>
+            <stop offset="100%" stop-color="#E89855"/>
+          </radialGradient>
+        </defs>
+        <rect width="1080" height="720" fill="url(#g1)"/>
+        <!-- face -->
+        <circle cx="540" cy="400" r="280" fill="#FFD9A0"/>
+        <!-- ears -->
+        <ellipse cx="320" cy="320" rx="90" ry="160" fill="#C97740" transform="rotate(-18 320 320)"/>
+        <ellipse cx="760" cy="320" rx="90" ry="160" fill="#C97740" transform="rotate(18 760 320)"/>
+        <!-- muzzle -->
+        <ellipse cx="540" cy="500" rx="140" ry="100" fill="#FFEED4"/>
+        <!-- eyes -->
+        <circle cx="460" cy="380" r="24" fill="#1a1530"/>
+        <circle cx="620" cy="380" r="24" fill="#1a1530"/>
+        <circle cx="468" cy="370" r="8" fill="#fff"/>
+        <circle cx="628" cy="370" r="8" fill="#fff"/>
+        <!-- nose -->
+        <ellipse cx="540" cy="478" rx="28" ry="20" fill="#1a1530"/>
+        <!-- mouth -->
+        <path d="M540 502 Q514 535 502 522" stroke="#1a1530" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M540 502 Q566 535 578 522" stroke="#1a1530" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <!-- cheek blush -->
+        <circle cx="410" cy="450" r="24" fill="#EC4899" opacity="0.3"/>
+        <circle cx="670" cy="450" r="24" fill="#EC4899" opacity="0.3"/>
+      </svg>
+      <div class="s1-photo-mask"></div>
+    </div>
+    <div class="s1-body">
+      <div class="mono eyebrow">MEET YOUR NEW BEST FRIEND</div>
+      <h1 class="display name">Cooper</h1>
+      <div class="body-text subtitle">Mini Goldendoodle · Male · Ready Jul 6</div>
+      <span class="pill pill-avail display">★ AVAILABLE NOW</span>
+    </div>
+    <img class="logo-corner logo-corner-dark" src="../../public/dream-puppies-logo.png" alt="Dream Puppies" onerror="this.style.display='none'"/>
+  </div></div></div>
+
+  <!-- SLIDE 2: MEET -->
+  <div class="slide-wrap"><div class="slide-label">slide 2 · meet cooper</div>
+  <div class="slide"><div class="slide-inner s2">
+    <div class="s2-photo-card">
+      <svg class="puppy-svg" viewBox="0 0 720 720" preserveAspectRatio="xMidYMid slice">
+        <defs><radialGradient id="g2" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#FFE5C0"/><stop offset="100%" stop-color="#E89855"/></radialGradient></defs>
+        <rect width="720" height="720" fill="url(#g2)"/>
+        <circle cx="360" cy="380" r="220" fill="#FFD9A0"/>
+        <ellipse cx="200" cy="320" rx="70" ry="120" fill="#C97740" transform="rotate(-18 200 320)"/>
+        <ellipse cx="520" cy="320" rx="70" ry="120" fill="#C97740" transform="rotate(18 520 320)"/>
+        <ellipse cx="360" cy="460" rx="110" ry="80" fill="#FFEED4"/>
+        <circle cx="300" cy="370" r="18" fill="#1a1530"/><circle cx="420" cy="370" r="18" fill="#1a1530"/>
+        <circle cx="306" cy="362" r="6" fill="#fff"/><circle cx="426" cy="362" r="6" fill="#fff"/>
+        <ellipse cx="360" cy="448" rx="22" ry="16" fill="#1a1530"/>
+        <path d="M360 466 Q340 490 332 480" stroke="#1a1530" stroke-width="5" fill="none"/>
+        <path d="M360 466 Q380 490 388 480" stroke="#1a1530" stroke-width="5" fill="none"/>
+        <circle cx="260" cy="430" r="18" fill="#EC4899" opacity="0.3"/>
+        <circle cx="460" cy="430" r="18" fill="#EC4899" opacity="0.3"/>
+      </svg>
+    </div>
+    <div class="s2-body">
+      <div class="mono eyebrow">MEET</div>
+      <h1 class="display name">Cooper</h1>
+      <p class="body-text blurb">Calmest of the bunch, with a white star on his chest. Loves to be held and follows you room to room. Already starting his crate training.</p>
+    </div>
+    <img class="logo-corner" src="../../public/dream-puppies-logo.png" alt="Dream Puppies" onerror="this.style.display='none'"/>
+  </div></div></div>
+
+  <!-- SLIDE 3: ANGLES -->
+  <div class="slide-wrap"><div class="slide-label">slide 3 · all angles</div>
+  <div class="slide"><div class="slide-inner s3">
+    <div class="mono eyebrow">FROM EVERY ANGLE</div>
+    <h2 class="display title">See the<br/>whole pup</h2>
+    <div class="s3-grid">
+      <div class="s3-tile s3-tile-back tilt-l">
+        <span class="s3-tile-label">BACK</span>
+      </div>
+      <div class="s3-tile s3-tile-top tilt-r">
+        <span class="s3-tile-label">TOP DOWN</span>
+      </div>
+      <div class="s3-tile s3-tile-paw tilt-l">
+        <span class="s3-tile-label">PAW PRINT</span>
+      </div>
+    </div>
+  </div></div></div>
+
+  <!-- SLIDE 4: PARENTS -->
+  <div class="slide-wrap"><div class="slide-label">slide 4 · meet the parents</div>
+  <div class="slide"><div class="slide-inner s4">
+    <div class="mono eyebrow">HEALTH-TESTED PARENTS</div>
+    <h2 class="display title">Meet Mom &amp; Dad</h2>
+    <div class="s4-pair">
+      <div class="s4-parent">
+        <div class="s4-photo"></div>
+        <div class="s4-parent-info">
+          <div class="label">MOM</div>
+          <h3 class="name">Daisy</h3>
+          <div class="meta">Mini Goldendoodle · Apricot</div>
+        </div>
+      </div>
+      <div class="s4-parent">
+        <div class="s4-photo dad"></div>
+        <div class="s4-parent-info">
+          <div class="label">DAD</div>
+          <h3 class="name">Bruno</h3>
+          <div class="meta">Mini Goldendoodle · Caramel</div>
+        </div>
+      </div>
+    </div>
+  </div></div></div>
+
+  <!-- SLIDE 5: INCLUDED -->
+  <div class="slide-wrap"><div class="slide-label">slide 5 · what's included</div>
+  <div class="slide"><div class="slide-inner s5 s-pad">
+    <div class="mono eyebrow">EVERY PUPPY GOES HOME WITH</div>
+    <h2 class="display title">The whole<br/>starter set</h2>
+    <ul class="s5-list">
+      <li>AKC paperwork</li>
+      <li>Microchip</li>
+      <li>Age-appropriate vaccines</li>
+      <li>Full vet check</li>
+      <li>2-year health guarantee</li>
+      <li>Starter food + blanket</li>
+      <li>7-day text-anytime onboarding</li>
+      <li>Proactive guidance after</li>
+    </ul>
+    <img class="logo-corner" src="../../public/dream-puppies-logo.png" alt="Dream Puppies" onerror="this.style.display='none'"/>
+  </div></div></div>
+
+  <!-- SLIDE 6: RESERVE -->
+  <div class="slide-wrap"><div class="slide-label">slide 6 · how to reserve</div>
+  <div class="slide"><div class="slide-inner s6 s-pad">
+    <div class="mono eyebrow">HOW TO RESERVE</div>
+    <h2 class="display title">Bring<br/>Cooper home</h2>
+    <div class="s6-card">
+      <div class="s6-row">
+        <div class="icon">⏱</div>
+        <div><div class="k">Ready Date</div><div class="v">July 6, 2026</div></div>
+      </div>
+      <div class="s6-row">
+        <div class="icon">$</div>
+        <div><div class="k">Investment</div><div class="v">DM for current pricing</div></div>
+      </div>
+      <div class="s6-row">
+        <div class="icon">📍</div>
+        <div><div class="k">Pickup</div><div class="v">Orlando, FL · or Raeford, NC</div></div>
+      </div>
+      <div class="s6-row">
+        <div class="icon">✉</div>
+        <div><div class="k">Reach Out</div><div class="v">puppyheavenllc.com · @dreampuppies</div></div>
+      </div>
+    </div>
+    <div class="s6-cta">DM us to reserve</div>
+  </div></div></div>
+
+  <!-- SLIDE 7: CLOSING -->
+  <div class="slide-wrap"><div class="slide-label">slide 7 · why dream puppies</div>
+  <div class="slide"><div class="slide-inner s7">
+    <div class="s7-logo-area">
+      <img class="s7-logo" src="../../public/dream-puppies-logo.png" alt="Dream Puppies" onerror="this.style.background='linear-gradient(135deg, #EC4899, #7C5CFF)'; this.alt=''"/>
+      <div class="mono eyebrow">RAISED UNDERFOOT</div>
+      <h2 class="display title">Family-operated.<br/>Family-loved.</h2>
+      <p class="body-text blurb">In our home — never a kennel, never a barn. Proactive guidance during the formative years, not just at pickup. Florida and Raeford, North Carolina.</p>
+    </div>
+    <div class="footer-chrome">A Dream Enterprises LLC company</div>
+  </div></div></div>
+
+</div>
+
+<script>
+  // Scale each .slide-inner to fit its .slide container (which is sized via aspect-ratio).
+  function fit() {
+    document.querySelectorAll('.slide').forEach(slide => {
+      const inner = slide.querySelector('.slide-inner');
+      if (!inner) return;
+      const containerW = slide.clientWidth;
+      const scale = containerW / 1080;
+      inner.style.transform = `scale(${scale})`;
+    });
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  // After fonts & images load, refit (sizes can shift)
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  window.addEventListener('load', fit);
+</script>
+
+</body>
+</html>
