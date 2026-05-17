@@ -1245,14 +1245,43 @@ Read files: `src/components/deposit/PaymentMethodSelector.tsx`, `src/lib/deposit
 | `send-newsletter` | HTTP (admin) | Marketing send to opted-in audience with subject/headline/body/CTA | `RESEND_API_KEY`, `RESEND_FROM` |
 | `generate-training-plan` | HTTP (admin) | Generates and emails a personalized training-plan HTML; logs in `training_plan_submissions` | `RESEND_API_KEY`, `RESEND_FROM` |
 
-**Future edge functions** (per [CLAUDE.md](CLAUDE.md)):
-- Wave D: `mark-payment-sent`, `submit-payment-attestation`
-- Wave F: `generate-agreement-pdf`, `agreement-download-url`
-- Wave H: `finalize-pickup-handover`, `generate-dispute-evidence-packet`
-
 **Shared helpers** (`supabase/functions/_shared/`):
 - `email/send.ts` — Resend wrapper + admin-recipients lookup
-- `email/templates.ts` — ~20 reusable HTML email templates
+- `email/templates.ts` — reusable HTML email templates
 - `cors.ts` — CORS allowlist for browser-originated calls
-- *Wave D will add* `auth/verifyBuyerToken.ts`
-- *Wave F will add* `auth/verifyAdmin.ts` + `pdf/depositAgreementFieldMap.ts` + `pdf/templates/*.pdf`
+- `auth/verifyBuyerToken.ts` — Wave D D5; validates `(agreement_id, buyer_access_token)` against `deposit_agreements`, checks expiration. Used by every public buyer-token edge function.
+- `auth/verifyAdmin.ts` — Wave F F3; extracts JWT, looks up `profiles.role='admin'`. Used by every admin-only edge function.
+- `pdf/depositAgreementFieldMap.ts` + `pdf/templates/*.pdf` — Wave F F2; field map + blank AcroForm templates used by `generate-agreement-pdf`.
+
+## 14. EDGE FUNCTIONS ADDED SINCE WAVE A AUDIT (2026-05-17)
+
+Section 6 (2 functions) and Section 13 (13 functions) together documented
+15 functions as of the Wave A audit. The live codebase now has **28** —
+the 13 functions below were added by Waves D, F, H, and the breeder tool.
+
+| Function | Trigger | Purpose | Key env vars |
+|---|---|---|---|
+| `mark-payment-sent` | HTTP (public, buyer-token) | Wave D D3. Verifies `(agreement_id, buyer_access_token)` via `verifyBuyerToken`, gates on `payment_attestations.attestation_status='signed'` + both screenshots + `transaction_reference_id`, then stamps `buyer_marked_payment_sent_at`. Sends admin "buyer says payment sent" email. Idempotent. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `NOTIFY_EMAIL` |
+| `submit-payment-attestation` | HTTP (public, buyer-token) | Wave H1. Inserts/updates the `payment_attestations` row, captures IP/UA/geolocation, transitions `attestation_status='signed'`. Gates the dashboard's "I have sent payment" button. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `notify-agreement-submitted` | DB webhook on `deposit_agreements` INSERT | Wave D D4. Emails the buyer their permanent payment-dashboard link `/payment/<id>/<token>` so they can return after closing the submit-then-redirect tab. | `RESEND_API_KEY`, `RESEND_FROM`, `PUBLIC_SITE_URL` |
+| `send-deposit-link-from-inquiry` | HTTP (admin) | One-click path from a public puppy inquiry: mints a `deposit_requests` row pre-filled from the inquiry + customer + puppy, sets `request_status='deposit_link_sent'`, reuses the same email template as `send-deposit-link`, stamps `puppy_inquiries.admin_viewed_at`. | `RESEND_API_KEY`, `RESEND_FROM`, `PUBLIC_SITE_URL` |
+| `generate-agreement-pdf` | HTTP (admin) | Wave F F4. `verifyAdmin` → loads template → `assertAllFieldsPresent` → fills via `depositAgreementFieldMap` → flattens → uploads to `agreements/{agreement_id}/{agreement_number}.pdf` → sets `signed_pdf_storage_path` → transitions `agreement_status='complete'`. Invoked synchronously from `finalize-agreement`. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `agreement-download-url` | HTTP (public, buyer-token) | Wave F F6. `verifyBuyerToken` → confirms `signed_pdf_storage_path` set → mints 1-hour signed URL via `createSignedUrl(path, 3600)`. Each visit re-mints; storage URL never lives in inboxes. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `finalize-pickup-handover` | HTTP (admin) | Wave H4. `verifyAdmin` → sets `pickup_handovers.handover_status='in_person_verified'` → generates pickup-handover PDF (pdf-lib + `pickup_handover_template.pdf`) → sends "welcome home" buyer email → transitions `puppies.status='Sold'`. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `RESEND_FROM` |
+| `generate-dispute-evidence-packet` | HTTP (admin) | Wave H8. `verifyAdmin` → mints a ZIP into `dispute-evidence` bucket containing signed agreement PDF + pickup handover PDF + payment screenshots + `agreement_communications` log + audit-trail JSON. Returns 1-hour signed URL. Operator uploads to Square's dispute portal manually. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `breeder-login` | HTTP (public, no JWT) | Accepts `POST { pin, device_label? }`, validates against bcrypt-hashed pin in single-row `breeder_config`, returns `{ ok, token, expiresAt }`. Rate-limited at 5 failed attempts. Client persists token in localStorage; subsequent breeder-tool calls send it as `x-breeder-token`. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `breeder-set-passcode` | HTTP (admin) | `verifyAdmin` → bcrypt-hashes a 4-digit pin and upserts `breeder_config`. Existing breeder sessions are NOT revoked on rotation — they expire naturally at 30 days. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `breeder-upload-photo` | HTTP (public, breeder-token) | `verifyBreederToken` → accepts multipart `{ file, kind: 'puppy'\|'parent', subjectId }` → writes client-side-compressed image to the public `puppy-photos` bucket under `breeder/{kind}/{subjectId}/{uuid}.{ext}`. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `breeder-upload-video` | HTTP (public, breeder-token) | `verifyBreederToken` → accepts multipart `{ file, subjectId }` → writes short MediaRecorder-produced clip to the public `puppy-videos` bucket under `breeder/puppy/{subjectId}/{uuid}.{ext}`. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `breeder-write` | HTTP (public, breeder-token) | Single switchboard for all breeder mutations + RLS-bypass reads. Operations dispatched by `op` field in body (`loadHome`, etc. — see file for full list). | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+
+**Additional shared helpers added since audit:**
+- `auth/verifyBreederToken.ts` — validates the `x-breeder-token` header for the breeder-tool functions.
+- `pdf/templates/pickup_handover_template.pdf` — blank AcroForm template for Wave H4 handover PDFs.
+
+**New Storage buckets** (created by their respective migrations):
+- `agreements` — finalized deposit-agreement PDFs (admin direct read; buyer access via `agreement-download-url` 1-hour signed URLs).
+- `payment-evidence` — buyer-submitted handle + confirmation screenshots (admin direct; buyer-token via signed URLs).
+- `pickup-evidence` — buyer-with-puppy + buyer-with-ID photos (admin-only).
+- `dispute-evidence` — minted ZIPs from `generate-dispute-evidence-packet` (admin-only).
+- `puppy-videos` — breeder-tool short clips (public read).
