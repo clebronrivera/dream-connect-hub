@@ -74,6 +74,9 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
     puppy.base_price != null ? String(puppy.base_price) : "",
   );
   const [colorValue, setColorValue] = useState<string>(puppy.color ?? "");
+  const [genderValue, setGenderValue] = useState<"Male" | "Female">(
+    puppy.gender,
+  );
 
   const updateMut = useMutation({
     mutationFn: async (fields: Parameters<typeof updatePuppy>[2]) => {
@@ -88,6 +91,7 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
       // Revert local state so it matches what's actually persisted.
       setPriceText(puppy.base_price != null ? String(puppy.base_price) : "");
       setColorValue(puppy.color ?? "");
+      setGenderValue(puppy.gender);
     },
   });
 
@@ -111,6 +115,12 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
   function saveColor(next: string) {
     setColorValue(next);
     updateMut.mutate({ color: next || null });
+  }
+
+  function saveGender(next: "Male" | "Female") {
+    if (next === genderValue) return;
+    setGenderValue(next);
+    updateMut.mutate({ gender: next });
   }
   // Puppies that aren't tied to an active upcoming_litter still open in the
   // capture flow; the ?from= param just controls where the wizard's back
@@ -247,6 +257,38 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
               ))}
             </SelectContent>
           </Select>
+          <div
+            role="group"
+            aria-label={`Set sex for ${puppy.name}`}
+            className="inline-flex h-7 overflow-hidden rounded-md border"
+          >
+            <button
+              type="button"
+              onClick={() => saveGender("Male")}
+              disabled={updateMut.isPending}
+              aria-pressed={genderValue === "Male"}
+              className={`px-2 text-xs transition ${
+                genderValue === "Male"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background hover:bg-muted"
+              } disabled:opacity-60`}
+            >
+              Boy
+            </button>
+            <button
+              type="button"
+              onClick={() => saveGender("Female")}
+              disabled={updateMut.isPending}
+              aria-pressed={genderValue === "Female"}
+              className={`border-l px-2 text-xs transition ${
+                genderValue === "Female"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background hover:bg-muted"
+              } disabled:opacity-60`}
+            >
+              Girl
+            </button>
+          </div>
           {updateMut.isPending && (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           )}
