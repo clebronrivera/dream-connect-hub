@@ -9,10 +9,10 @@
 // or /admin/deposit-requests?open=<id> (deposit requests).
 
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BellRing, ArrowRight } from "lucide-react";
+import { Loader2, BellRing, ArrowRight, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface AlertItem {
@@ -101,10 +101,24 @@ function labelForKind(kind: AlertItem["kind"]): { label: string; tone: string } 
 
 export function NeedsAttentionCard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard-needs-attention"],
     queryFn: fetchAlerts,
     refetchInterval: 30_000,
+  });
+
+  const { mutate: dismiss, isPending: dismissPending, variables: dismissingId } = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("puppy_inquiries")
+        .update({ admin_viewed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard-needs-attention"] });
+    },
   });
 
   return (
@@ -139,30 +153,45 @@ export function NeedsAttentionCard() {
                   : `/admin/inquiries?open=${encodeURIComponent(item.id)}&source=puppy-inquiry`;
               return (
                 <li key={`${item.kind}-${item.id}`}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(href)}
-                    className="flex w-full items-center gap-3 py-2 text-left hover:bg-amber-50/60"
-                  >
-                    <Badge variant="outline" className={`shrink-0 ${tone}`}>
-                      {label}
-                    </Badge>
-                    <span className="truncate text-sm font-medium">
-                      {item.customer_name}
-                    </span>
-                    {item.puppy_name ? (
-                      <span className="truncate text-sm text-muted-foreground">
-                        — {item.puppy_name}
+                  <div className="flex w-full items-center gap-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(href)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left hover:bg-amber-50/60"
+                    >
+                      <Badge variant="outline" className={`shrink-0 ${tone}`}>
+                        {label}
+                      </Badge>
+                      <span className="truncate text-sm font-medium">
+                        {item.customer_name}
                       </span>
-                    ) : null}
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {new Date(item.created_at).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
+                      {item.puppy_name ? (
+                        <span className="truncate text-sm text-muted-foreground">
+                          — {item.puppy_name}
+                        </span>
+                      ) : null}
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {new Date(item.created_at).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    </button>
+                    {item.kind !== "pending_deposit_request" && (
+                      <button
+                        type="button"
+                        aria-label="Dismiss"
+                        onClick={() => dismiss(item.id)}
+                        disabled={dismissPending && dismissingId === item.id}
+                        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-amber-100 hover:text-foreground disabled:opacity-40"
+                      >
+                        {dismissPending && dismissingId === item.id
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <X className="h-3.5 w-3.5" />}
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}
