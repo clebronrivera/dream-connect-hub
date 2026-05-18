@@ -68,10 +68,16 @@ export function GalacticHomeMiniFooter() {
         <div className="mt-8 flex flex-col items-center gap-2 border-t border-white/10 pt-8">
           <p className="text-center text-sm text-white/70">{BUSINESS.footerLine}</p>
           <p className="text-center text-xs text-white/55">
-            {BUSINESS.phone} · {BUSINESS.website} · {BUSINESS.tagline}
+            {BUSINESS.phone} · {BUSINESS.website}
           </p>
           <p className="text-center text-sm text-white/70">
             © {new Date().getFullYear()} {BUSINESS.legalName}. {t("footerCopyrightSuffix")}
+          </p>
+          <p className="text-center text-xs text-white/40">
+            Owned and operated by Lebron &middot;{" "}
+            <a href="mailto:clebronrivera@icloud.com" className="transition-colors hover:text-white">
+              clebronrivera@icloud.com
+            </a>
           </p>
           <Link
             to="/admin/login"

@@ -82,6 +82,12 @@ export function Footer() {
           <p className="text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} {BUSINESS.legalName}. {t("footerCopyrightSuffix")}
           </p>
+          <p className="text-center text-xs text-muted-foreground/60">
+            Owned and operated by Lebron &middot;{" "}
+            <a href="mailto:clebronrivera@icloud.com" className="hover:text-foreground transition-colors">
+              clebronrivera@icloud.com
+            </a>
+          </p>
           <Link
             to="/admin/login"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"

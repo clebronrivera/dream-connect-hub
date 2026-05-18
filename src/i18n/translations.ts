@@ -34,9 +34,9 @@ export const translations = {
     breedsFooterBrowse: "Browse puppies",
     breedsFooterContact: "Contact us",
     indexHeroEyebrow: "● Live · Available now",
-    indexHeroTitlePart1: "Find your",
-    indexHeroTitleAccent: "fur-ever",
-    indexHeroTitlePart2: "somebody.",
+    indexHeroTitlePart1: "Every puppy",
+    indexHeroTitleAccent: "gets a dream",
+    indexHeroTitlePart2: "start.",
     indexHeroDescription:
       "Mini Goldendoodles, Labradoodles, Mini Poodles, and Shih Tzus—raised with love on our porch in Florida and Raeford, NC. Health-first care, honest timelines, and humans who pick up the phone.",
     indexHeroBrowseCta: "Browse puppies",
