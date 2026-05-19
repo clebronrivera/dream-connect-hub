@@ -43,7 +43,7 @@ export type GeneratePdfOutcome = GeneratePdfResult | GeneratePdfError;
  * On success:
  *   - PDF uploaded to agreements/{agreement_id}/{agreement_number}.pdf
  *   - deposit_agreements.signed_pdf_storage_path updated
- *   - deposit_agreements.agreement_status set to 'complete'
+ *   - agreement_status stays 'admin_approved' — finalize-pickup-handover transitions to 'complete'
  */
 export async function generateDepositPdf(
   supabase: SupabaseClient,
@@ -81,6 +81,9 @@ export async function generateDepositPdf(
   }
 
   // ── 3. Precondition check ─────────────────────────────────────────────
+  // PR 4 redesign: countersign happens BEFORE payment, so deposit_status may
+  // still be 'pending' when the PDF is first generated. Only check that the
+  // admin has countersigned (agreement_status = 'admin_approved').
   if (agreement.agreement_status !== "admin_approved") {
     return {
       ok: false,
@@ -88,16 +91,6 @@ export async function generateDepositPdf(
       body: {
         error: "Agreement must be in admin_approved status before PDF generation",
         details: `current status: ${agreement.agreement_status}`,
-      },
-    };
-  }
-  if (agreement.deposit_status !== "admin_confirmed") {
-    return {
-      ok: false,
-      status: 400,
-      body: {
-        error: "Deposit must be admin_confirmed before PDF generation",
-        details: `current deposit_status: ${agreement.deposit_status}`,
       },
     };
   }
@@ -209,11 +202,14 @@ export async function generateDepositPdf(
   }
 
   // ── 10. Update agreement row ───────────────────────────────────────────
+  // PR 4/5 redesign: agreement_status transitions are now:
+  //   admin_approved (countersign) → (payment) → complete (pickup handover).
+  // Do NOT set agreement_status='complete' here; that belongs to
+  // finalize-pickup-handover so the status reflects actual physical delivery.
   const { error: updateErr } = await supabase
     .from("deposit_agreements")
     .update({
       signed_pdf_storage_path: storagePath,
-      agreement_status: "complete",
     })
     .eq("id", agreementId);
 

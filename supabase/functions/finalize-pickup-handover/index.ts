@@ -40,6 +40,7 @@ import {
   buyerWelcomeHome,
   adminPickupCompleted,
 } from "../_shared/email/templates.ts";
+import { generateBillOfSale } from "../_shared/pdf/generateBillOfSalePdf.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -202,15 +203,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
   }
 
+  // --- Generate bill of sale PDF (PR 6). Non-blocking — failure is logged. ---
+  let billOfSaleUrl: string | null = null;
+  try {
+    const billResult = await generateBillOfSale(admin, body.agreement_id);
+    if (billResult.ok) {
+      // Mint a 7-day signed URL for the welcome-home email button.
+      const { data: urlData } = await admin.storage
+        .from("agreements")
+        .createSignedUrl(billResult.pdf_path, 7 * 24 * 3600);
+      billOfSaleUrl = urlData?.signedUrl ?? null;
+    } else {
+      console.error("finalize-pickup-handover: generate-bill-of-sale failed:", billResult.body);
+    }
+  } catch (err) {
+    console.error("finalize-pickup-handover: generate-bill-of-sale threw:", err);
+  }
+
   // --- Send buyer welcome-home email. ---
-  // TODO(Carlos): attach bill-of-sale PDF once PR 6 generate-bill-of-sale lands.
   if (agreement.buyer_email) {
     const tpl = buyerWelcomeHome({
       buyerName: agreement.buyer_name,
       puppyName: agreement.puppy_name,
       agreementNumber: agreement.agreement_number,
       pickupDate: handover.pickup_date,
-      billOfSaleUrl: null,
+      billOfSaleUrl,
     });
     const r = await sendEmail({
       to: agreement.buyer_email,
