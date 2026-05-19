@@ -1,13 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dog, MessageSquare, Mail, BarChart3, TrendingUp, Loader2, ClipboardCheck } from 'lucide-react';
+import { Dog, MessageSquare, Mail, BarChart3, TrendingUp, Loader2 } from 'lucide-react';
 import { SUBJECT_UPCOMING_LITTER, sourceToSlug, type RecentInquirySource } from '@/lib/inquiry-subjects';
 import { daysSince } from '@/lib/date-utils';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics';
 import { useDashboardRecent } from '@/hooks/use-dashboard-recent';
-import { fetchDepositRequestCounts } from '@/lib/admin/deposit-requests-service';
 import { RevenueKpiTiles } from '@/components/admin/insights/RevenueKpiTiles';
 import { ProjectionTiles } from '@/components/admin/insights/ProjectionTiles';
 import { RevenueTimeseriesChart } from '@/components/admin/insights/RevenueTimeseriesChart';
@@ -54,11 +52,6 @@ export default function Dashboard() {
   const { data: statsData, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError } = useDashboardAnalytics();
   const { data: recentData, isLoading: recentLoading, error: recentError } = useDashboardRecent();
-  const { data: depositRequestCounts } = useQuery({
-    queryKey: ['deposit-requests-counts'],
-    queryFn: fetchDepositRequestCounts,
-    refetchInterval: 30_000,
-  });
 
   // --- Derived analytics metrics (used in the Operations block below) ---
   const daysSinceEarliest = analyticsData?.earliestInquiry ? daysSince(analyticsData.earliestInquiry) : 0;
@@ -191,24 +184,6 @@ export default function Dashboard() {
               <CardContent>
                 <div className="text-2xl font-bold">{statsData?.unseenContact ?? 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">Unseen submissions</p>
-                <p className="text-xs text-muted-foreground mt-1">Click to view →</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/admin/deposit-requests" className="block">
-            <Card className="cursor-pointer hover:shadow-lg transition-all">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Deposit Requests</CardTitle>
-                <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{depositRequestCounts?.pending ?? 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pending review
-                  {depositRequestCounts?.accepted
-                    ? ` · ${depositRequestCounts.accepted} accepted, awaiting send`
-                    : ''}
-                </p>
                 <p className="text-xs text-muted-foreground mt-1">Click to view →</p>
               </CardContent>
             </Card>

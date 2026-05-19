@@ -3,7 +3,7 @@
 // Do not hardcode these values anywhere else in the codebase.
 
 // Flat deposit amount used when no per-puppy override is set.
-// Override path: puppies.deposit_amount (set by operator in OperatorReviewForm — Wave C).
+// Override path: puppies.deposit_amount, set by admin in AdminInitiateDepositDialog.
 export const DEFAULT_DEPOSIT_AMOUNT = 300;
 
 // Age threshold in days for go-home / pickup-clock calculations.

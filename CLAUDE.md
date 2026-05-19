@@ -1,5 +1,9 @@
 # Dream Connect Hub — Audit, Cleanup & Workflow Completion Plan
 
+> **⚠️ Superseded for Waves A–G by [`docs/spec/reservation-redesign-implementation-plan.md`](docs/spec/reservation-redesign-implementation-plan.md) (May 18, 2026).**
+>
+> The reservation system was redesigned from buyer-self-serve intake to an operator-initiated, wizard-based agreement flow. The public `/request-deposit` route, `RequestDeposit.tsx`, `DepositRequestForm.tsx`, `OperatorReviewForm.tsx`, `DepositRequestDetailPanel.tsx`, the `/admin/deposit-requests` page, and the `notify-deposit-request` edge function were retired in PR 1 of the new plan. Read the redesign plan first; refer back here only for Wave H (chargeback defense) detail, which is folded into the new plan.
+
 ## Context
 
 The May 5 Cowork handoff doc (`local_be449291-.../outputs/CLAUDE.md`) describes Dream Connect Hub as a 13-step reservation workflow (DRAFT → SUBMITTED → OPERATOR_REVIEW → APPROVED → AWAITING_PAYMENT → PAYMENT_CONFIRMED → AGREEMENT_FINALIZED → ACTIVE_RESERVATION) and treats the project as if little had been built. **Reality:** the codebase is far more developed — full Vite + React + TS + Supabase app with 47 migrations, 16 edge functions, branded email templates, RLS hardening waves in flight, and most of the core workflow already wired.

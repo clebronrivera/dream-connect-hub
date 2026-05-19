@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabase";
 
 /**
- * Payload shape for a public deposit request submission.
- * Mirrors DepositRequestForm output.
+ * Payload shape for an admin-initiated deposit request submission.
+ * Carried over from the retired public intake form; still used by
+ * AdminInitiateDepositDialog and related helpers.
  */
 export interface DepositRequestPayload {
   customer_name: string;

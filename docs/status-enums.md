@@ -6,14 +6,15 @@ and documentation must agree with this file. Update *here first*, then
 propagate.
 
 ## deposit_requests.request_status
-- pending — buyer submitted /request-deposit; operator has not reviewed.
-- accepted — operator clicked Accept in OperatorReviewForm. Puppy/price/deposit captured. Link not yet emailed.
-- deposit_link_sent — operator clicked Send Deposit Link. send-deposit-link emailed the URL with ?requestId=… .
-- converted — buyer submitted the formal agreement, creating a deposit_agreements row with deposit_request_id set. Set by trigger link_deposit_agreement_to_request, not by client UPDATE.
-- declined — operator declined. decline_reason populated. Terminal.
+- pending — **legacy.** Buyer submitted the now-retired public /request-deposit intake form. No new rows reach this status after the May 2026 reservation redesign; the public intake route was removed in PR 1. Existing pending rows still need triage.
+- accepted — Admin created the reservation via `AdminInitiateDepositDialog` from the puppy detail page. Puppy/price/deposit captured. Link not yet emailed.
+- deposit_link_sent — Admin clicked Send Deposit Link. `send-deposit-link` emailed the URL with `?requestId=…`.
+- converted — Buyer submitted the wizard agreement, creating a `deposit_agreements` row with `deposit_request_id` set. Written by trigger `link_deposit_agreement_to_request`, not by client UPDATE.
+- declined — Admin declined. `decline_reason` populated. Terminal.
 
 State diagram:
-  pending → accepted → deposit_link_sent → converted (terminal)
+  (legacy) pending → accepted → deposit_link_sent → converted (terminal)
+  (admin-initiated, post-redesign) accepted → deposit_link_sent → converted (terminal)
   pending → declined (terminal)
   accepted → declined (terminal)
 

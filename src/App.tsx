@@ -51,8 +51,6 @@ const DreamyReviews = lazyWithRetry(() => import("./pages/DreamyReviews"));
 const TestimonialsList = lazyWithRetry(() => import("./pages/admin/TestimonialsList"));
 const Newsletter = lazyWithRetry(() => import("./pages/admin/Newsletter"));
 const TrainingPlanPage = lazyWithRetry(() => import("./pages/TrainingPlanPage"));
-const DepositRequests = lazyWithRetry(() => import("./pages/admin/DepositRequests"));
-const RequestDeposit = lazyWithRetry(() => import("./pages/RequestDeposit"));
 const AgreementDownload = lazyWithRetry(() => import("./pages/AgreementDownload"));
 const HeroV3Mockup = lazyWithRetry(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazyWithRetry(() => import("./pages/dev/UpcomingLittersV2Mockup"));
@@ -110,7 +108,6 @@ export function AppRoutes() {
         <Route path="/deposit" element={<DepositAgreement />} />
         <Route path="/payment/:agreementId/:buyerToken" element={<PaymentDashboard />} />
         <Route path="/agreements/:agreementId/:buyerToken/download" element={<AgreementDownload />} />
-        <Route path="/request-deposit" element={<RequestDeposit />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />
         <Route path="/training-plan" element={<TrainingPlanPage />} />
@@ -163,7 +160,6 @@ export function AppRoutes() {
             <Route path="business-modes" element={<BusinessModes />} />
             <Route path="agreements" element={<AgreementsPage />} />
             <Route path="pickup/:agreementId" element={<PickupHandover />} />
-            <Route path="deposit-requests" element={<DepositRequests />} />
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />
             <Route path="settings/breeder-passcode" element={<BreederPasscodeSettings />} />
             <Route path="faq" element={<FaqManager />} />

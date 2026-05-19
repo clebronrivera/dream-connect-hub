@@ -145,8 +145,8 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
   });
 
   // Derive pricing and DOB. Purchase price comes from the selected puppy.
-  // Deposit defaults to a flat amount; the operator can set a per-puppy
-  // override via puppies.deposit_amount in OperatorReviewForm (Wave C).
+  // Deposit defaults to a flat amount; admin can set a per-puppy override
+  // via puppies.deposit_amount in AdminInitiateDepositDialog.
   const purchasePrice = puppy?.final_price ?? puppy?.base_price ?? 0;
   const puppyDob = puppy?.date_of_birth ? new Date(puppy.date_of_birth) : (litter?.date_of_birth ? new Date(litter.date_of_birth) : null);
   // Fallback when puppy isn't born yet: the litter's expected whelping date (or
