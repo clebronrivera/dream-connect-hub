@@ -52,6 +52,7 @@ const TestimonialsList = lazyWithRetry(() => import("./pages/admin/TestimonialsL
 const Newsletter = lazyWithRetry(() => import("./pages/admin/Newsletter"));
 const TrainingPlanPage = lazyWithRetry(() => import("./pages/TrainingPlanPage"));
 const AgreementDownload = lazyWithRetry(() => import("./pages/AgreementDownload"));
+const Reservations = lazyWithRetry(() => import("./pages/admin/Reservations"));
 const HeroV3Mockup = lazyWithRetry(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazyWithRetry(() => import("./pages/dev/UpcomingLittersV2Mockup"));
 const BreederPasscodeSettings = lazyWithRetry(() => import("./pages/admin/settings/BreederPasscodeSettings"));
@@ -158,6 +159,7 @@ export function AppRoutes() {
             <Route path="inventory/kits/:id/edit" element={<KitForm />} />
             <Route path="inquiries" element={<Inquiries />} />
             <Route path="business-modes" element={<BusinessModes />} />
+            <Route path="reservations" element={<Reservations />} />
             <Route path="agreements" element={<AgreementsPage />} />
             <Route path="pickup/:agreementId" element={<PickupHandover />} />
             <Route path="payment-settings" element={<PaymentMethodsSettings />} />

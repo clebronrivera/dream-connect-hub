@@ -119,6 +119,8 @@ export interface DepositAgreement {
   rejection_reason?: string;
   rejection_is_within_window?: boolean;
   notes?: string;
+  /** Optional FK back to the originating deposit_requests row. */
+  deposit_request_id?: string | null;
   created_at: string;
   updated_at: string;
 }

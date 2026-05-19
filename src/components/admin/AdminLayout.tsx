@@ -39,7 +39,7 @@ export function AdminLayout() {
     { name: 'Upcoming Litters', href: '/admin/upcoming-litters', icon: CalendarHeart },
     { name: 'Products', href: '/admin/inventory/products', icon: Package },
     { name: 'Kits', href: '/admin/inventory/kits', icon: Box },
-    { name: 'Agreements', href: '/admin/agreements', icon: FileSignature },
+    { name: 'Reservations', href: '/admin/reservations', icon: FileSignature },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
     { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
     { name: 'Breeder Passcode', href: '/admin/settings/breeder-passcode', icon: KeyRound },
