@@ -30,6 +30,9 @@ export interface PickupHandover {
   health_acknowledgment_signed_at?: string | null;
   vet_certificate_handed_over: boolean;
   vet_certificate_acknowledged_at?: string | null;
+  // PR 5 simplified flow timestamps
+  visual_inspection_acknowledged_at?: string | null;
+  bill_of_sale_signed_at?: string | null;
   created_at: string;
   updated_at: string;
 }

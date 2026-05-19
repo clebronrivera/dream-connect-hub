@@ -37,7 +37,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
 import {
-  pickupCompleteBuyer,
+  buyerWelcomeHome,
   adminPickupCompleted,
 } from "../_shared/email/templates.ts";
 
@@ -140,21 +140,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResponse(200, { success: true, already_verified: true });
   }
 
-  // --- Defense-in-depth field check. UI also gates on these. ---
+  // --- Defense-in-depth field check (PR 5 simplified flow). UI also gates on these. ---
+  // Photos and full ID verification are now optional; the primary required evidence is
+  // the visual-inspection acknowledgment, the in-app bill-of-sale signature, and staff initials.
   const missing: string[] = [];
-  if (!handover.photo_buyer_with_puppy_path) missing.push("photo_buyer_with_puppy_path");
-  if (!handover.photo_buyer_with_id_path) missing.push("photo_buyer_with_id_path");
-  if (!handover.buyer_id_type) missing.push("buyer_id_type");
-  if (!handover.buyer_id_last_four) missing.push("buyer_id_last_four");
-  if (!handover.buyer_id_state_or_country) missing.push("buyer_id_state_or_country");
-  if (handover.buyer_id_expiration_verified !== true) missing.push("buyer_id_expiration_verified");
+  if (!handover.visual_inspection_acknowledged_at) missing.push("visual_inspection_acknowledged_at");
+  if (!handover.bill_of_sale_signed_at) missing.push("bill_of_sale_signed_at");
   if (!handover.buyer_signature_canvas) missing.push("buyer_signature_canvas");
   if (!handover.buyer_signature_at) missing.push("buyer_signature_at");
   if (!handover.staff_member_initials) missing.push("staff_member_initials");
   if (!handover.staff_signature_at) missing.push("staff_signature_at");
-  if (handover.vet_certificate_handed_over !== true) missing.push("vet_certificate_handed_over");
-  if (!handover.vet_certificate_acknowledged_at) missing.push("vet_certificate_acknowledged_at");
-  if (!handover.health_acknowledgment_signed_at) missing.push("health_acknowledgment_signed_at");
   if (missing.length > 0) {
     return jsonResponse(422, {
       error: "Pickup handover is missing required fields",
@@ -181,6 +176,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResponse(200, { success: true, already_verified: true });
   }
 
+  // --- Mark agreement complete. ---
+  {
+    const { error: agreementErr } = await admin
+      .from("deposit_agreements")
+      .update({ agreement_status: "complete" })
+      .eq("id", body.agreement_id)
+      .neq("agreement_status", "complete");
+    if (agreementErr) {
+      console.error("finalize-pickup-handover: agreement_status update failed:", agreementErr);
+    }
+  }
+
   // --- Transition puppy Reserved → Sold (if puppy_id present). ---
   // Idempotent: a puppy already 'Sold' stays 'Sold'.
   if (agreement.puppy_id) {
@@ -196,12 +203,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // --- Send buyer welcome-home email. ---
+  // TODO(Carlos): attach bill-of-sale PDF once PR 6 generate-bill-of-sale lands.
   if (agreement.buyer_email) {
-    const tpl = pickupCompleteBuyer({
+    const tpl = buyerWelcomeHome({
       buyerName: agreement.buyer_name,
       puppyName: agreement.puppy_name,
       agreementNumber: agreement.agreement_number,
       pickupDate: handover.pickup_date,
+      billOfSaleUrl: null,
     });
     const r = await sendEmail({
       to: agreement.buyer_email,
