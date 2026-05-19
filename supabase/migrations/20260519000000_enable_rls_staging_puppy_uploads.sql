@@ -1,0 +1,23 @@
+-- staging_puppy_uploads: enable RLS to close public read/write window.
+--
+-- Context: this table was an old pg_net-based photo-upload staging queue
+-- (columns: puppy_id uuid, storage_path text, b64 text, request_id bigint).
+-- It has 0 rows, 0 code references anywhere in the repo, and no existing
+-- policies. RLS was simply never enabled when it was created out-of-band.
+--
+-- Fix: enable RLS with no additional policies.
+--   * anon and authenticated are locked out (no matching policy → denied).
+--   * service_role always bypasses RLS, so any server-side path is unaffected.
+--
+-- What would break if this migration is wrong:
+--   If some code path (e.g. a pg_net callback, a DB trigger, or an edge
+--   function running as authenticated/anon) writes to this table, that write
+--   will fail with a policy violation after this migration. Verify by
+--   searching for staging_puppy_uploads in edge functions and DB triggers
+--   before applying. As of 2026-05-19 no such references exist.
+--
+-- Alternative: DROP TABLE public.staging_puppy_uploads; — also safe given
+-- 0 rows and 0 references, and eliminates the table entirely rather than
+-- just locking it down. Operator's choice.
+
+ALTER TABLE public.staging_puppy_uploads ENABLE ROW LEVEL SECURITY;
