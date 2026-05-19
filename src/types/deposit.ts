@@ -77,6 +77,17 @@ export interface DepositAgreement {
   q_household_members?: string;
   q_puppy_goal?: string;
   q_training_experience?: string;
+  // Wizard care-guide ratings (reservation redesign PR 2). 1–5 Likert, nullable.
+  care_comfort_potty?: number;
+  care_comfort_grooming?: number;
+  care_comfort_health?: number;
+  care_comfort_social?: number;
+  care_comfort_boundaries?: number;
+  // Wizard initials (reservation redesign PR 2). Adopted once, stamped per clause.
+  buyer_initials?: string;
+  initials_adopted_at?: string;
+  // Wizard payment mode (reservation redesign PR 2).
+  payment_mode?: 'deposit_only' | 'full_payment';
   // Arbitration
   arbitration_typed_phrase?: string;
   arbitration_typed_at?: string;

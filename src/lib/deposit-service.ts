@@ -28,6 +28,44 @@ export interface CreateDepositPayload {
   full_pay_flow?: boolean;
   buyer_signature_text: string;
   buyer_signature_font?: string;
+  // Pickup preferences (Wave E / OPD-08).
+  pickup_time_preference?: 'morning' | 'afternoon' | 'evening';
+  pickup_day_preference?: 'weekday' | 'weekend' | 'either';
+  pickup_alt_date?: string;
+  pickup_alt_time?: 'morning' | 'afternoon' | 'evening';
+  pickup_alt_day?: 'weekday' | 'weekend' | 'either';
+  pickup_notes?: string;
+  // Section 3 questionnaire (OPD-07 — all optional).
+  q_first_dog?: string;
+  q_living_situation?: string;
+  q_hours_alone?: string;
+  q_household_members?: string;
+  q_puppy_goal?: string;
+  q_training_experience?: string;
+  // Acknowledgment timestamps (Article IX + Wave E E3 H6 clauses).
+  ack_full_agreement_at?: string;
+  ack_statutory_rights_at?: string;
+  ack_esign_valid_at?: string;
+  ack_genetic_disclaimer_at?: string;
+  ack_arbitration_at?: string;
+  ack_age_attestation_at?: string;
+  ack_welfare_responsibility_at?: string;
+  ack_payment_authorization_at?: string;
+  ack_identity_attestation_at?: string;
+  ack_pre_dispute_contact_at?: string;
+  ack_pickup_acceptance_at?: string;
+  // Arbitration (legacy linear-form field; wizard no longer requires the typed phrase).
+  arbitration_typed_phrase?: string;
+  arbitration_typed_at?: string;
+  // Wizard fields (reservation redesign PR 2).
+  buyer_initials?: string;
+  initials_adopted_at?: string;
+  care_comfort_potty?: number;
+  care_comfort_grooming?: number;
+  care_comfort_health?: number;
+  care_comfort_social?: number;
+  care_comfort_boundaries?: number;
+  payment_mode?: 'deposit_only' | 'full_payment';
   /** Optional — links this agreement back to the deposit_requests row that initiated it. */
   deposit_request_id?: string;
 }
