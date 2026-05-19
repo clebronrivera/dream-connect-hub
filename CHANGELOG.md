@@ -6,6 +6,63 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-05-19 — Reservation redesign (PRs 1–7)
+
+This sprint replaced the buyer-self-serve `/request-deposit` intake with an
+operator-initiated, wizard-based agreement flow. All 13 workflow steps are
+end-to-end functional.
+
+### Added — PR 1 (operator-initiated flow)
+- `/admin/reservations` page with unified reservation list (requests + agreements)
+- New Reservation wizard for operators: create `deposit_requests` row and send
+  tokenized deposit link in one flow
+- Retired: `/request-deposit`, `DepositRequestForm.tsx`, `OperatorReviewForm.tsx`,
+  `DepositRequestDetailPanel.tsx`, `/admin/deposit-requests`, `notify-deposit-request`
+
+### Added — PR 2 (wizard skeleton)
+- Multi-step `DepositWizard.tsx` with `WizardShell.tsx` layout shell
+- `StepContact`, `StepPickup`, `StepPayment`, `StepPuppy` wizard steps
+- Progress bar (`progressPct = Math.round((currentStep / totalSteps) * 100)`)
+
+### Added — PR 3 (signature + clauses)
+- `StepAdoptSignature.tsx` — typed e-signature adoption with auto-initials derivation
+- `StepAgreementTerms.tsx` — 11 `CLAUSE_KEYS` stamped with buyer initials
+- `StepReview.tsx` — final review + submit
+- `BuyerSignature` typed-name component replacing canvas signatures
+
+### Changed — PR 4 (payment flow simplification)
+- `PaymentDashboard.tsx` simplified: removed H1/H2 multi-step attestation gates
+- `mark-payment-sent` edge function: removed attestation precondition checks
+- `confirmDepositPayment`: `senderHandle` made optional (no longer throws on empty)
+- `finalize-agreement` no longer requires `deposit_status = 'admin_confirmed'` before PDF
+
+### Added — PR 5 (pickup handover redesign)
+- `PickupHandover.tsx` redesigned as a 3-step tablet flow (payment check → visual
+  inspection → bill of sale)
+- New DB columns: `visual_inspection_acknowledged_at`, `bill_of_sale_signed_at`
+- Photo uploads and full ID verification demoted to optional
+- `finalize-pickup-handover` now sets `agreement_status = 'complete'` (terminal)
+
+### Added — PR 6 (bill-of-sale PDF)
+- `generateBillOfSalePdf.ts` shared helper — programmatic pdf-lib generation
+  (no AcroForm template required)
+- `generate-bill-of-sale` edge function — admin-triggered standalone generator
+- `finalize-pickup-handover` now auto-generates the bill-of-sale PDF and includes
+  a 7-day signed download URL in the welcome-home buyer email
+
+### Added — PR 7 (tests + docs) — this release
+- `src/test/unit/wizard.test.tsx` — 29 unit tests: CLAUSE_KEYS count, progressPct
+  math, initials derivation, statusFromAgreement / statusFromRequest bucket logic
+- `docs/DEPOSIT_REQUEST_FLOW.md` — canonical 13-step post-redesign flow document
+- `docs/ops/reservation-flow-smoke-test.md` — fully rewritten for new wizard flow
+- Fixed: integration test "throws if senderHandle is empty" → now asserts mismatch=false
+- Fixed: `PaymentDashboard.test.tsx` aligned to PR 4's simplified UI (removed stale
+  H1/H2 form tests; updated button label and "recorded" copy)
+- Fixed: `mark-payment-sent/index.test.ts` removed 5 stale H1/H2 attestation gate
+  tests; `buildMockClient` updated to 2-item queue matching current handler
+
+---
+
 ## 2026-05-07 — Workflow completion (Waves A–G)
 
 This release completes the full 13-step reservation workflow described in

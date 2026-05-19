@@ -2,7 +2,7 @@
 
 Browser-based end-to-end verification of all 13 steps in the deposit-agreement
 workflow. Run this after every deployment that touches `deposit_agreements`,
-`deposit_requests`, `payment_attestations`, any related edge functions, or the
+`deposit_requests`, `pickup_handovers`, any related edge functions, or the
 `agreements` storage bucket.
 
 **Prerequisites:**
@@ -23,171 +23,120 @@ workflow. Run this after every deployment that touches `deposit_agreements`,
 
 ---
 
-## Step 1 — Submit deposit request
+## Step 1 — Operator creates a reservation slot
 
-**Page:** `/request-deposit`
+**Page:** `/admin/reservations` → **New Reservation** button
 
-1. Fill the form with test data:
-   - Name: `SMOKETEST Buyer`
-   - Email: `<buyer test inbox>`
-   - Phone: any valid 10-digit US number
-   - City/State: `Orlando, FL`
-   - Litter: pick any available upcoming litter
-   - How heard: check any option
-2. Click Submit.
-
-**Pass criteria:**
-- ✅ Success message displayed
-- ✅ Row appears in `deposit_requests` with `request_status = 'pending'`
-- ✅ Admin receives email with request summary and `/admin/deposit-requests` link
-
----
-
-## Step 2 — Admin reviews and fills Operator Review Form
-
-**Page:** `/admin/deposit-requests`
-
-1. Find the new SMOKETEST request.
-2. Click to expand → click **Open Review Form**.
-3. Fill in:
-   - Puppy: select any available puppy (or create a test one)
+1. Fill the form:
+   - Puppy: select any available puppy, or leave as "Undecided" for a litter slot
    - Purchase price: `1200`
-   - Deposit amount: leave at `300`
-   - Notes to buyer: `Test deposit — do not pay`
-4. Click Submit.
+   - Deposit amount: `300`
+   - Notes to buyer: `Test reservation — do not pay`
+2. Click **Create Reservation**.
 
 **Pass criteria:**
-- ✅ Request card shows status `Accepted`
-- ✅ "Send Deposit Link" button appears
+- ✅ Row appears in `/admin/reservations` with status `Link Ready`
+- ✅ Row appears in `deposit_requests` with `request_status = 'accepted'`
 
 ---
 
-## Step 3 — Send deposit link
+## Step 2 — Send deposit link to buyer
 
-**Still on:** `/admin/deposit-requests`
-
-1. Click **Send Deposit Link**.
+**Still on:** `/admin/reservations` → find the new row → **Send Deposit Link**
 
 **Pass criteria:**
-- ✅ Request status → `deposit_link_sent`
+- ✅ Row status → `Link Sent`
+- ✅ `deposit_requests.request_status = 'deposit_link_sent'`
 - ✅ Buyer inbox receives email with a `?requestId=…` link
 - ✅ Link URL format: `https://<site>/deposit?requestId=<uuid>`
 
 ---
 
-## Step 4 — Buyer fills deposit agreement form
+## Step 3 — Buyer opens the wizard
 
 1. Click the deposit link from the buyer email.
-2. Verify the form loads (not a "Restricted" page).
-3. Fill all required fields:
-   - Personal info: name, email, phone, city, state, zip
-   - Pickup date: any future date > 8 weeks from puppy DOB
-   - Payment method: select Zelle (or any enabled method)
-   - All acknowledgment checkboxes
-   - Signature: type full legal name
-4. Click Submit.
+2. Verify the wizard loads (not a "Restricted" page).
 
 **Pass criteria:**
-- ✅ Success — form does not show errors
-- ✅ Row appears in `deposit_agreements` with `agreement_status = 'sent'`,
-  `buyer_signed_at` set
+- ✅ Wizard renders step 1 of N
+- ✅ Puppy name / litter shown in the sticky header
+
+---
+
+## Step 4 — Buyer completes the multi-step wizard
+
+Navigate through all wizard steps:
+1. **Contact** — name: `SMOKETEST Buyer`, email: `<buyer test inbox>`, phone, city, state, zip
+2. **Pickup** — any future date > 8 weeks from puppy DOB
+3. **Payment** — select Zelle (or any enabled method)
+4. **Puppy** — verify puppy card shown
+5. **Adopt signature** — type full name; verify initials are auto-derived; click **Adopt**
+6. **Agreement clauses** — tap initials against each of the 11 clauses until all 11/11 are stamped
+7. **Review & submit** — confirm all fields; click **Submit reservation**
+
+**Pass criteria:**
+- ✅ Wizard advances cleanly through all steps
+- ✅ Row appears in `deposit_agreements` with `agreement_status = 'sent'`, `buyer_signed_at` set
 - ✅ `deposit_requests` row transitions to `converted`
 - ✅ Browser auto-redirects to `/payment/<agreementId>/<token>`
 
 ---
 
-## Step 5 — Payment Dashboard — H1 attestation
+## Step 5 — Payment dashboard: buyer notifies payment sent
 
 **Page:** `/payment/<agreementId>/<token>`
 
 1. Verify the page loads and shows:
    - Deposit amount: `$300.00`
-   - Payment method: the one selected in step 4
-   - Operator handle (where to send payment)
+   - Payment method and handle (where to send)
    - Payment memo string
-2. Fill the H1 attestation form:
-   - Your payment handle: `buyer@test.com`
-   - Upload any PNG as the handle screenshot (test placeholder OK)
-   - Re-confirm phone number
-   - Read and sign the attestation text
-3. Click Sign.
+2. (Optional) Upload any PNG as a screenshot for dispute evidence
+3. Click **I've sent my deposit**
 
 **Pass criteria:**
-- ✅ `payment_attestations` row with `attestation_status = 'signed'`,
-  `buyer_payment_handle_screenshot_path` set
-- ✅ Step 3 (confirmation upload) unlocks
-- ✅ "I have sent payment" button is still disabled (H2 incomplete)
-
----
-
-## Step 6 — Payment Dashboard — H2 confirmation
-
-**Still on:** Payment Dashboard
-
-1. Upload any PNG as the confirmation screenshot.
-2. Enter transaction reference: `SMOKE-TEST-12345`
-3. Confirm the memo string shown.
-
-**Pass criteria:**
-- ✅ `payment_attestations` row updated with `confirmation_screenshot_path` and
-  `transaction_reference_id` set
-- ✅ "I have sent payment" button becomes enabled
-
----
-
-## Step 7 — Buyer marks payment sent
-
-1. Click **I have sent payment**.
-
-**Pass criteria:**
-- ✅ Button disables; "payment sent" status displayed
+- ✅ Button disables; recorded-payment notice appears
 - ✅ `deposit_agreements.buyer_marked_payment_sent_at` set
 - ✅ Admin receives "Buyer says payment sent for #DP-…" email
-- ✅ Clicking the button again → UI shows already-sent state (idempotent)
-
-**If 422:** Check the `payment_attestations` row — all four required fields must
-be set: `attestation_status='signed'`, `buyer_payment_handle_screenshot_path`,
-`confirmation_screenshot_path`, `transaction_reference_id`.
+- ✅ Clicking the button again → shows already-sent state (idempotent)
 
 ---
 
-## Step 8 — Admin confirms payment received
+## Step 6 — Admin countersigns
 
-**Page:** `/admin/agreements` → find the SMOKETEST agreement
+**Page:** `/admin/reservations` → find SMOKETEST → open detail panel
 
-1. In the "Confirm Payment" section, type the sender handle: `buyer@test.com`
-2. Click **Confirm Payment Received**.
+1. In the signature section, type the admin signature name.
+2. Click **Save Signature**.
+
+**Pass criteria:**
+- ✅ `admin_signed_at` set, `admin_signature_svg` / `admin_signature_name` populated
+
+---
+
+## Step 7 — Admin confirms payment received
+
+**Still on:** detail panel → "Confirm Payment" section
+
+1. Type the sender handle as seen in your payment app: `buyer@test.com`
+2. Click **Confirm Payment Received**
 
 **Pass criteria:**
 - ✅ `deposit_status = 'admin_confirmed'`
 - ✅ No mismatch banner (handles match)
-- ✅ Buyer receives deposit receipt email (O12 template)
+- ✅ Buyer receives deposit receipt email
 
-**Mismatch test (optional):** Type a different handle (e.g. `wrong@example.com`)
-before confirming. Verify the mismatch banner appears and
-`operator_handle_mismatch_flagged = true` in the DB. Then use the correct handle
-to confirm properly.
-
----
-
-## Step 9 — Admin applies signature
-
-**Still on:** `/admin/agreements` → SMOKETEST agreement
-
-1. In the signature section, draw or type the admin signature.
-2. Click **Save Signature**.
-
-**Pass criteria:**
-- ✅ `admin_signed_at` set, `admin_signature_svg` populated
+**Mismatch test (optional):** Type a different handle (e.g. `wrong@example.com`) before
+confirming. Verify the mismatch banner appears and `operator_handle_mismatch_flagged = true`
+in the DB. Then confirm with the correct handle.
 
 ---
 
-## Step 10 — Admin finalizes → PDF generated
+## Step 8 — Admin finalizes agreement → PDF generated
 
-1. Click **Finalize Agreement**.
+**Still on:** detail panel → **Finalize Agreement**
 
 **Pass criteria:**
-- ✅ `agreement_status = 'admin_approved'` briefly, then `'complete'`
+- ✅ `agreement_status = 'admin_approved'`
 - ✅ `signed_pdf_storage_path` set in `deposit_agreements`
 - ✅ File appears in Supabase Storage → `agreements/<id>/<agreementNumber>.pdf`
 - ✅ `puppies.status = 'Reserved'` for the linked puppy
@@ -196,65 +145,87 @@ to confirm properly.
 
 ---
 
-## Step 11 — Admin downloads PDF
+## Step 9 — Admin downloads PDF
 
 1. Click **Download Agreement PDF** in the admin detail panel.
 
 **Pass criteria:**
 - ✅ PDF opens/downloads — all fields filled, form flattened (no editable fields)
-- ✅ Buyer name, agreement number, deposit amount, payment method, date, both
-  signatures all visible in the PDF
 - ✅ Clicking again mints a fresh URL (no cached stale link)
 
 ---
 
-## Step 12 — Buyer downloads PDF
+## Step 10 — Buyer downloads PDF
 
 1. Open the finalization email in the buyer inbox.
 2. Click the PDF download link.
 
 **Pass criteria:**
-- ✅ Page at `/agreements/<id>/<token>/download` shows "Preparing your download…"
-- ✅ Browser download starts automatically (or "Download starting…" message appears)
-- ✅ Same PDF content as admin download
-- ✅ Visiting with a wrong token (`/agreements/<id>/wrong-tok/download`) → "Download
-  unavailable" error with no retry button (non-retryable)
+- ✅ Page at `/agreements/<id>/<token>/download` redirects to download
+- ✅ Visiting with a wrong token → "Download unavailable" error
 
 ---
 
-## Step 13 — Pickup handover (Wave H4)
+## Step 11 — Admin confirms pickup date
+
+**Page:** `/admin/reservations` → detail panel → **Confirm Pickup Date**
+
+**Pass criteria:**
+- ✅ `confirmed_pickup_date` set on the agreement
+
+---
+
+## Step 12 — Pickup day handover
 
 **Page:** `/admin/pickup/<agreementId>`
 
-1. Open the handover page on a tablet or desktop.
-2. Fill in:
-   - ID type: Driver's License
-   - Last 4 digits: `1234`
-   - State: `FL`
-   - Check the expiration confirmation box
-3. Upload two test photos (any JPG/PNG):
-   - Buyer with puppy
-   - Buyer holding ID next to face
-4. Have the buyer sign the signature pad.
-5. Check health acknowledgment + vet certificate.
-6. Enter staff initials: `TK`
-7. Click **Complete Handover**.
+### Step 12a — Payment check
+1. Verify deposit badge shows "Deposit confirmed".
+2. Click **Continue →**
+
+### Step 12b — Visual inspection
+1. Check all three inspection items:
+   - "Puppy is alert and active"
+   - "Coat and eyes look healthy"
+   - "This is the same dog from the listing photos"
+2. (Optional) Enter buyer ID last-4: `1234`
+3. Click **Buyer accepts delivery →**
+
+### Step 12c — Bill of sale
+1. Verify the bill-of-sale summary shows correct puppy/buyer/price.
+2. Have the buyer type their full name in the signature field.
+3. Enter staff initials: `TK`
+4. Click **Finalize Handover**
 
 **Pass criteria:**
 - ✅ `pickup_handovers.handover_status = 'in_person_verified'`
-- ✅ Photos in `pickup-evidence/<id>/` Storage bucket
+- ✅ `deposit_agreements.agreement_status = 'complete'` (terminal)
 - ✅ `puppies.status = 'Sold'`
-- ✅ Buyer receives "Welcome home!" email
+- ✅ `agreements/<id>/bill-of-sale.pdf` uploaded to Storage
+- ✅ Buyer receives "Welcome home!" email with bill-of-sale download link
+- ✅ Admin receives pickup-complete notification
+- ✅ `/admin/reservations` row shows status `Picked Up`
+
+---
+
+## Step 13 — Generate dispute evidence (optional verification)
+
+**Page:** `/admin/reservations` → detail panel → **Generate Evidence Packet**
+
+**Pass criteria:**
+- ✅ ZIP file appears in `dispute-evidence/<id>/` Storage bucket
+- ✅ Admin receives 1-hour signed download URL
+- ✅ ZIP contains: agreement PDF, bill-of-sale PDF, audit trail JSON
 
 ---
 
 ## Cleanup
 
 After the smoke test run:
-1. In SQL Editor: `DELETE FROM deposit_requests WHERE customer_name = 'SMOKETEST Buyer';`
-   (cascade deletes linked agreement, attestation, communications rows)
+1. In SQL Editor: `DELETE FROM deposit_requests WHERE buyer_name = 'SMOKETEST Buyer';`
+   (cascade deletes linked agreement, pickup_handovers, communications rows)
 2. In Supabase Storage: delete `agreements/<smoketest-id>/` and
-   `payment-evidence/<smoketest-id>/`
+   `dispute-evidence/<smoketest-id>/`
 3. In Table Editor: reset the test puppy status back to `Available` if needed
 
 ---
@@ -264,11 +235,13 @@ After the smoke test run:
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | `/deposit?requestId=…` shows "Restricted" | `validateDepositRequest` failed — request not in `deposit_link_sent` status | Check `deposit_requests.request_status` in DB |
-| Redirect after submit goes to wrong URL | `deposit-service.ts` `submitDepositAgreement` not returning `buyer_access_token` | Check `.select()` in the INSERT — confirm column exists |
+| Wizard step 6 shows < 11 clauses | `CLAUSE_KEYS` array changed | Count items in `StepAgreementTerms.tsx`; should be 11 |
+| Redirect after wizard submit goes to wrong URL | `submitDepositAgreement` not returning `buyer_access_token` | Check `.select()` in the INSERT |
 | Payment Dashboard 404 | `buyer_access_token` column missing | Apply Wave D migration |
-| "I have sent payment" → 422 | Missing H1/H2 attestation fields | Check `payment_attestations` row for the specific `missing_precondition` field in the response |
-| Finalize → PDF generation fails | Template drift (`assertAllFieldsPresent` throws) | Check function logs; compare field names in `depositAgreementFieldMap.ts` vs actual template |
+| "I've sent my deposit" button → silent failure | `markPaymentSent` network error | Check DevTools Network; inspect `mark-payment-sent` edge function logs |
+| Finalize → PDF generation fails | Template drift (`assertAllFieldsPresent` throws) | Check function logs; compare field names in `depositAgreementFieldMap.ts` vs template |
 | `agreements` bucket upload fails | Bucket doesn't exist or RLS missing | Apply `20260506000013_agreements_storage_bucket.sql` |
-| `puppies.status` not transitioning to `Reserved` | `puppy_id` NULL on the agreement | Confirm `OperatorReviewForm` is persisting `puppy_id` |
+| `puppies.status` not → `Reserved` | `puppy_id` NULL on the agreement | Confirm operator set puppy in New Reservation form |
 | PDF download link 403 | Wrong buyer token in URL | Confirm URL built from `buyer_access_token` not `id` |
-| PDF download link "expired" | Token > 30 days old | Issue a new buyer-token link manually |
+| Bill-of-sale email link missing | `generateBillOfSale` threw in `finalize-pickup-handover` | Check edge function logs; storage bucket policies |
+| Pickup page not loading | `agreementId` param missing | Confirm link in admin panel uses correct route `/admin/pickup/<id>` |

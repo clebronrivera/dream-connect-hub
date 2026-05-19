@@ -20,6 +20,26 @@ and **Smoke-tested** columns as each step lands in production.
 
 ---
 
+## Reservation redesign (PRs 1–7)
+
+> **Note:** Waves A–G described below were superseded by the May 2026 reservation
+> redesign. The operator-initiated wizard flow (PRs 1–7) replaces the buyer-self-serve
+> intake from Waves B/C and extends Wave D/H. See
+> [`docs/RESERVATION_REDESIGN_HANDOFF_2026-05-19.md`](docs/RESERVATION_REDESIGN_HANDOFF_2026-05-19.md)
+> and [`docs/DEPOSIT_REQUEST_FLOW.md`](docs/DEPOSIT_REQUEST_FLOW.md) for the current spec.
+
+| PR | Description | Status |
+|----|-------------|--------|
+| PR 1 | Retire public intake; add operator-initiated `/admin/reservations` page | ✅ Complete |
+| PR 2 | Wizard skeleton (`WizardShell`, first 4 steps) | ✅ Complete |
+| PR 3 | Signature adoption (`StepAdoptSignature`) + 11-clause initials step | ✅ Complete |
+| PR 4 | Simplified payment flow: remove H1/H2 gates; `senderHandle` optional | ✅ Complete |
+| PR 5 | Pickup handover redesign: 3-step tablet flow; new DB columns | ✅ Complete |
+| PR 6 | Bill-of-sale PDF generation via shared `generateBillOfSalePdf` helper | ✅ Complete |
+| PR 7 | Tests + docs: wizard unit tests, integration test fixes, docs rewrite | ✅ Complete |
+
+---
+
 ## Dream Connect Hub completion waves (A–H)
 
 | Wave | Description | Code done | Migration applied | Smoke-tested | Status |

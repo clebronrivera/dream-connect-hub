@@ -1,4 +1,4 @@
-// supabase/functions/mark-payment-sent/index.test.ts — Wave G1
+// supabase/functions/mark-payment-sent/index.test.ts — Wave G1 (updated PR 7)
 //
 // Deno unit tests for the mark-payment-sent edge function handler.
 // Run with: deno test --allow-env --no-check supabase/functions/mark-payment-sent/index.test.ts
@@ -8,8 +8,9 @@
 //   - Invalid/missing buyer token → 400/403/404
 //   - Idempotency: buyer_marked_payment_sent_at already set → 200 already_marked
 //   - Lifecycle gate: past initial state → 409
-//   - H1 attestation preconditions (5 individual failure cases)
-//   - Full happy-path → 200 success
+//   - Full happy-path → 200 success (no H1/H2 attestation gate since PR 4)
+//   - Optional payment_screenshot_path in body → accepted without error
+//   - Race condition: UPDATE returns no row → 200 already_marked
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handler } from "./index.ts";
@@ -45,36 +46,23 @@ const VALID_AGREEMENT = {
   deposit_status: "pending",
 };
 
-/** Fully-completed attestation row. */
-const VALID_ATTESTATION = {
-  attestation_status: "signed",
-  buyer_payment_handle_screenshot_path: "payment-evidence/agr-1/handle-123.png",
-  confirmation_screenshot_path: "payment-evidence/agr-1/confirm-456.png",
-  transaction_reference_id: "ZL-7891234567",
-};
-
 /**
  * Build a mock Supabase client for mark-payment-sent tests.
  *
- * verifyBuyerToken makes two queries:
- *   1. deposit_agreements: .select('*').eq('id', ...).maybeSingle()
+ * Since PR 4 removed the H1/H2 attestation gate, the handler makes exactly
+ * two .maybySingle() calls:
+ *   1. verifyBuyerToken → deposit_agreements SELECT
+ *   2. UPDATE → deposit_agreements (race-safe, returns updated row or null)
  *
- * Then the handler makes:
- *   2. payment_attestations: .select(...).eq(...).maybeSingle()
- *   3. deposit_agreements: .update(...).eq(...).is(...).select('id').maybeSingle()
- *   4. (optional) email send — mocked via env / getAdminRecipients returning []
- *
- * We use a queue to return different results for each successive .maybeSingle() call.
+ * The optional email send is mocked via env / getAdminRecipients returning [].
  */
 function buildMockClient(options: {
   agreementResult: { data: typeof VALID_AGREEMENT | null; error: Error | null };
-  attestationResult?: { data: typeof VALID_ATTESTATION | null; error: Error | null };
   updateResult?: { data: { id: string } | null; error: Error | null };
 }): SupabaseClient {
   const results = [
     options.agreementResult,
-    options.attestationResult ?? { data: VALID_ATTESTATION, error: null },
-    options.updateResult   ?? { data: { id: "agr-1" }, error: null },
+    options.updateResult ?? { data: { id: "agr-1" }, error: null },
   ];
   let callIndex = 0;
 
@@ -177,85 +165,12 @@ Deno.test("mark-payment-sent: lifecycle gate — agreement_status != sent return
   assertEquals(body.agreement_status, "admin_approved");
 });
 
-Deno.test("mark-payment-sent: H1 gate — no attestation row returns 422 h1_attestation", async () => {
+Deno.test("mark-payment-sent: happy path — valid token returns 200 success (no H1/H2 gate since PR 4)", async () => {
+  // PR 4 removed the H1/H2 attestation precondition. The handler now goes
+  // straight from token verification to the UPDATE — no attestation query.
   const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: null, error: null }, // no attestation row
-  });
-  const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
-  const res = await handler(req, client);
-  assertEquals(res.status, 422);
-  const body = await res.json();
-  assertEquals(body.missing_precondition, "h1_attestation");
-});
-
-Deno.test("mark-payment-sent: H1 gate — attestation_status=draft returns 422 h1_attestation", async () => {
-  const draftAttestation = { ...VALID_ATTESTATION, attestation_status: "draft" };
-  const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: draftAttestation, error: null },
-  });
-  const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
-  const res = await handler(req, client);
-  assertEquals(res.status, 422);
-  const body = await res.json();
-  assertEquals(body.missing_precondition, "h1_attestation");
-});
-
-Deno.test("mark-payment-sent: H1 gate — missing handle screenshot returns 422 h1_handle_screenshot", async () => {
-  const noScreenshot = {
-    ...VALID_ATTESTATION,
-    buyer_payment_handle_screenshot_path: null,
-  };
-  const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: noScreenshot, error: null },
-  });
-  const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
-  const res = await handler(req, client);
-  assertEquals(res.status, 422);
-  const body = await res.json();
-  assertEquals(body.missing_precondition, "h1_handle_screenshot");
-});
-
-Deno.test("mark-payment-sent: H2 gate — missing confirmation screenshot returns 422 h2_confirmation_screenshot", async () => {
-  const noConfirm = {
-    ...VALID_ATTESTATION,
-    confirmation_screenshot_path: null,
-  };
-  const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: noConfirm, error: null },
-  });
-  const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
-  const res = await handler(req, client);
-  assertEquals(res.status, 422);
-  const body = await res.json();
-  assertEquals(body.missing_precondition, "h2_confirmation_screenshot");
-});
-
-Deno.test("mark-payment-sent: H2 gate — missing transaction_reference_id returns 422 h2_transaction_reference_id", async () => {
-  const noRef = {
-    ...VALID_ATTESTATION,
-    transaction_reference_id: null,
-  };
-  const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: noRef, error: null },
-  });
-  const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
-  const res = await handler(req, client);
-  assertEquals(res.status, 422);
-  const body = await res.json();
-  assertEquals(body.missing_precondition, "h2_transaction_reference_id");
-});
-
-Deno.test("mark-payment-sent: happy path — all preconditions met returns 200 success", async () => {
-  // Build a client where the UPDATE also succeeds
-  const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: VALID_ATTESTATION, error: null },
-    updateResult:      { data: { id: "agr-1" }, error: null },
+    agreementResult: { data: VALID_AGREEMENT, error: null },
+    updateResult:    { data: { id: "agr-1" }, error: null },
   });
   const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
   const res = await handler(req, client);
@@ -265,12 +180,28 @@ Deno.test("mark-payment-sent: happy path — all preconditions met returns 200 s
   assertEquals(typeof body.marked_at, "string");
 });
 
-Deno.test("mark-payment-sent: race condition — UPDATE returns no row → 200 already_marked", async () => {
-  // UPDATE matches 0 rows (another request already wrote) → updateResult data is null
+Deno.test("mark-payment-sent: optional payment_screenshot_path in body is accepted without error", async () => {
+  // payment_screenshot_path is stored for dispute evidence but does NOT gate the call.
   const client = buildMockClient({
-    agreementResult:   { data: VALID_AGREEMENT, error: null },
-    attestationResult: { data: VALID_ATTESTATION, error: null },
-    updateResult:      { data: null, error: null }, // 0 rows updated
+    agreementResult: { data: VALID_AGREEMENT, error: null },
+    updateResult:    { data: { id: "agr-1" }, error: null },
+  });
+  const req = makeRequest({
+    agreement_id: "agr-1",
+    buyer_access_token: "tok-good",
+    payment_screenshot_path: "payment-evidence/agr-1/confirm-456.png",
+  });
+  const res = await handler(req, client);
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.success, true);
+});
+
+Deno.test("mark-payment-sent: race condition — UPDATE returns no row → 200 already_marked", async () => {
+  // UPDATE matches 0 rows (another request already wrote first) → already_marked.
+  const client = buildMockClient({
+    agreementResult: { data: VALID_AGREEMENT, error: null },
+    updateResult:    { data: null, error: null }, // 0 rows updated
   });
   const req = makeRequest({ agreement_id: "agr-1", buyer_access_token: "tok-good" });
   const res = await handler(req, client);

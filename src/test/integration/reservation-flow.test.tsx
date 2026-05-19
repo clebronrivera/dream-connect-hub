@@ -110,10 +110,14 @@ describe('confirmDepositPayment', () => {
     mockInvoke.mockReset();
   });
 
-  it('throws if senderHandle is empty', async () => {
-    await expect(confirmDepositPayment('agr-1', '  ')).rejects.toThrow(
-      'Please type the sender handle'
-    );
+  it('accepts empty senderHandle and returns mismatch=false (PR 4 — handle is optional)', async () => {
+    // PR 4 redesign: senderHandle is no longer required; passing empty string
+    // is valid and produces mismatch=false (both normalized handles are '').
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null }); // no attestation
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+
+    const { mismatch } = await confirmDepositPayment('agr-1', '  ');
+    expect(mismatch).toBe(false);
   });
 
   it('performs the UPDATE and returns mismatch=false when handles match', async () => {
