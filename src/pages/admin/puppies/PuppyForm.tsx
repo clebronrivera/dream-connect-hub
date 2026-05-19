@@ -18,7 +18,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { getAgeWeeks, getReadyDateFromDob } from '@/lib/puppy-utils';
-import { MAIN_BREEDS, OTHER_BREED_OPTION, PUPPY_GENDERS, GENDER_OTHER_OPTION } from '@/lib/breed-utils';
+import {
+  MAIN_BREEDS,
+  OTHER_BREED_OPTION,
+  PUPPY_GENDERS,
+  GENDER_OTHER_OPTION,
+  PUPPY_COLORS,
+  COLOR_OTHER_OPTION,
+  COAT_TYPES,
+} from '@/lib/breed-utils';
 import { getSuggestedPuppyName } from '@/lib/puppy-name-generator';
 import { generatePuppyDescription } from '@/lib/puppy-description-generator';
 import { useState, useEffect } from 'react';
@@ -114,7 +122,7 @@ export default function PuppyForm() {
         }
       }
       // Strip null/undefined optional numbers so Supabase doesn't receive null
-      const optionalNumKeys = ['age_weeks', 'base_price', 'discount_amount', 'final_price', 'mom_weight_approx', 'dad_weight_approx', 'display_order'] as const;
+      const optionalNumKeys = ['age_weeks', 'base_price', 'discount_amount', 'final_price', 'display_order'] as const;
       optionalNumKeys.forEach((k) => { if (payload[k] == null) delete payload[k]; });
       // Empty string is invalid for date columns
       const dateKeys = ['listing_date', 'date_of_birth', 'ready_date'] as const;
@@ -127,17 +135,20 @@ export default function PuppyForm() {
       if (pid === '' || (typeof pid === 'string' && !pid.trim())) {
         (payload as Record<string, unknown>).puppy_id = null;
       }
-      // Clamp final price and force standard health inclusions
+      // coat_type has a CHECK constraint that rejects '' — coerce blank to null
+      const coat = (payload as Record<string, unknown>).coat_type;
+      if (coat === '' || (typeof coat === 'string' && !coat.trim())) {
+        (payload as Record<string, unknown>).coat_type = null;
+      }
+      // Clamp final price (health cert / vaccinations / microchip are universal
+      // and surfaced as static copy on the public site — not per-puppy fields)
       const base = payload.base_price != null ? Number(payload.base_price) : 0;
       const discount = payload.discount_active && payload.discount_amount != null ? Number(payload.discount_amount) : 0;
       payload.final_price = Math.max(0, base - discount);
-      payload.health_certificate = true;
-      payload.vaccinations = payload.vaccinations || 'First round included';
-      payload.microchipped = true;
-      if (payload.is_deceased) {
+      if (payload.is_deceased || payload.status !== 'Available') {
         payload.is_publicly_visible = false;
       } else if (payload.is_publicly_visible == null) {
-        payload.is_publicly_visible = payload.status === 'Available';
+        payload.is_publicly_visible = true;
       }
 
       if (isEdit && id) {
@@ -374,10 +385,78 @@ export default function PuppyForm() {
             <FormField
               control={form.control}
               name="color"
+              render={({ field }) => {
+                const value = (field.value ?? '').toString();
+                const isCanonical =
+                  value !== '' && (PUPPY_COLORS as readonly string[]).includes(value);
+                const selectValue = !value
+                  ? undefined
+                  : isCanonical
+                    ? value
+                    : COLOR_OTHER_OPTION;
+                return (
+                  <FormItem>
+                    <FormLabel>Color</FormLabel>
+                    <Select
+                      value={selectValue}
+                      onValueChange={(v) => {
+                        if (v === COLOR_OTHER_OPTION) {
+                          field.onChange('');
+                        } else {
+                          field.onChange(v);
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select color" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PUPPY_COLORS.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                        <SelectItem value={COLOR_OTHER_OPTION}>
+                          {COLOR_OTHER_OPTION}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {selectValue === COLOR_OTHER_OPTION && (
+                      <Input
+                        placeholder="Custom color"
+                        value={value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="mt-2"
+                      />
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+
+            <FormField
+              control={form.control}
+              name="coat_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormLabel>Coat Type</FormLabel>
+                  <Select
+                    value={(field.value as string) || undefined}
+                    onValueChange={(v) => field.onChange(v === '__clear__' ? '' : v)}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Optional" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="__clear__">— None —</SelectItem>
+                      {COAT_TYPES.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -461,6 +540,13 @@ export default function PuppyForm() {
                 <FormItem>
                   <FormLabel>Date of Birth</FormLabel>
                   <FormControl><Input type="date" {...field} /></FormControl>
+                  {puppy?.upcoming_litter_id || puppy?.litter_id ? (
+                    <p className="text-xs text-amber-700">
+                      This puppy is part of a litter. Change the date of birth
+                      on the litter (Breeder portal) so every littermate stays
+                      in sync — editing it here will desync this one puppy.
+                    </p>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}
@@ -570,34 +656,6 @@ export default function PuppyForm() {
                   </FormItem>
                 );
               }}
-            />
-
-            <FormField
-              control={form.control}
-              name="mom_weight_approx"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mom Weight (lbs)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="dad_weight_approx"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dad Weight (lbs)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
             />
 
             <FormField
