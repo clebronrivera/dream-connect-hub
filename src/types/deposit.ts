@@ -104,9 +104,12 @@ export interface DepositAgreement {
   // Finalization
   admin_approved_at?: string;
   payment_confirmed_at?: string;
-  // Buyer-token surface (Wave D)
+  // Buyer-token surface (Wave D / PR 4)
   buyer_access_token: string;
   buyer_access_token_expires_at: string;
+  /** Manual operator extension window (PR 4). verifyBuyerToken uses
+   *  GREATEST(buyer_access_token_expires_at, COALESCE(extended_until, -infinity)). */
+  extended_until?: string | null;
   buyer_marked_payment_sent_at?: string;
   // H3 — operator payment verification (Wave H phase 1).
   operator_verified_sender_handle?: string | null;

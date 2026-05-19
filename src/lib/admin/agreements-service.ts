@@ -42,28 +42,27 @@ export async function fetchAttestedBuyerHandle(agreementId: string): Promise<str
   return data?.buyer_payment_handle ?? null;
 }
 
-/** Confirm deposit payment (admin). Sends standalone deposit receipt to the
- * buyer (O12). Email failures are logged but do not roll back the confirmation.
+/** Confirm deposit payment (admin). Sends deposit confirmation to buyer.
+ * Email failures are logged but do not roll back the confirmation.
  *
- * Wave H phase 1f: now requires the operator to type the sender handle as
- * it appeared in their payment app. Compared (case-insensitive, trimmed)
- * against payment_attestations.buyer_payment_handle. Mismatch sets
- * operator_handle_mismatch_flagged=true but does NOT block the confirmation
- * — the flag exists for chargeback-evidence purposes (H8). */
+ * senderHandle is optional (PR 4 redesign — operator can confirm without
+ * cross-checking handle). If provided it is compared case-insensitively
+ * against payment_attestations.buyer_payment_handle; mismatch sets
+ * operator_handle_mismatch_flagged=true for chargeback-evidence purposes
+ * but does NOT block the confirmation. */
 export async function confirmDepositPayment(
   id: string,
   senderHandle: string
 ): Promise<{ mismatch: boolean }> {
   const trimmedSenderHandle = senderHandle.trim();
-  if (!trimmedSenderHandle) {
-    throw new Error('Please type the sender handle as it appears in your payment app.');
-  }
 
   const buyerHandle = await fetchAttestedBuyerHandle(id);
   const buyerHandleNormalized = buyerHandle?.trim().toLowerCase() ?? '';
   const senderHandleNormalized = trimmedSenderHandle.toLowerCase();
   const mismatch =
-    !!buyerHandleNormalized && buyerHandleNormalized !== senderHandleNormalized;
+    !!buyerHandleNormalized &&
+    !!senderHandleNormalized &&
+    buyerHandleNormalized !== senderHandleNormalized;
 
   const now = new Date().toISOString();
   const { error } = await supabase
@@ -113,16 +112,40 @@ export async function saveAdminSignature(
   if (error) throw error;
 }
 
-/** Finalize agreement (set admin_approved when all 3 conditions met) */
+/** Finalize / countersign agreement (PR 4 redesign).
+ *
+ * Invokes the `finalize-agreement` edge function which:
+ *   1. Verifies buyer_signed_at + admin_signed_at
+ *   2. Sets agreement_status = 'admin_approved'
+ *   3. Attempts PDF generation (non-blocking if deposit not yet confirmed)
+ *   4. Sends the buyer the `buyerReservationConfirmed` email with payment
+ *      instructions so they know exactly how to send the deposit.
+ *
+ * Unlike the old direct UPDATE, this also triggers the buyer email — which
+ * is why the call goes through the edge function rather than direct table write.
+ */
 export async function finalizeAgreement(id: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('No active admin session.');
+
+  const { error } = await supabase.functions.invoke('finalize-agreement', {
+    body: { agreement_id: id },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (error) throw new Error(error.message || 'Finalize failed');
+}
+
+/** Extend buyer_access_token by writing extended_until = now + days.
+ * verifyBuyerToken uses GREATEST(expires_at, COALESCE(extended_until, -∞)).
+ * Does NOT re-send the buyer email — caller is responsible for that if needed.
+ */
+export async function extendBuyerToken(id: string, days = 30): Promise<void> {
+  const extended_until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   const { error } = await supabase
     .from('deposit_agreements')
-    .update({
-      agreement_status: 'admin_approved',
-      admin_approved_at: new Date().toISOString(),
-    })
+    .update({ extended_until })
     .eq('id', id);
-
   if (error) throw error;
 }
 

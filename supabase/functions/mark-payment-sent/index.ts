@@ -29,6 +29,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 interface RequestBody {
   agreement_id: string;
   buyer_access_token: string;
+  /** Optional path of an already-uploaded payment screenshot (PR 4). Stored
+   *  for dispute-evidence purposes; does NOT gate this call. */
+  payment_screenshot_path?: string;
 }
 
 /**
@@ -92,67 +95,20 @@ export async function handler(
     });
   }
 
-  // 4) H1 + H2 attestation gate (Wave H phase 1e). The buyer can only
-  //    "mark sent" after they've signed the attestation (H1) AND uploaded
-  //    the confirmation screenshot + transaction reference (H2). This
-  //    server-side check is the source of truth — the dashboard hides
-  //    the button until both are done, but the function rejects anyway
-  //    if a client somehow bypasses the UI.
-  const { data: attestation, error: attestationErr } = await admin
-    .from("payment_attestations")
-    .select(
-      "attestation_status, buyer_payment_handle_screenshot_path, " +
-      "confirmation_screenshot_path, transaction_reference_id"
-    )
-    .eq("agreement_id", body.agreement_id)
-    .maybeSingle();
-
-  if (attestationErr) {
-    return jsonResponse(500, {
-      error: "Failed to look up payment attestation",
-      details: attestationErr.message,
-    });
-  }
-  if (!attestation) {
-    return jsonResponse(422, {
-      error: "Payment attestation has not been signed",
-      missing_precondition: "h1_attestation",
-    });
-  }
-  if (attestation.attestation_status !== "signed") {
-    return jsonResponse(422, {
-      error: "Payment attestation is not signed",
-      missing_precondition: "h1_attestation",
-      current_status: attestation.attestation_status,
-    });
-  }
-  if (!attestation.buyer_payment_handle_screenshot_path) {
-    return jsonResponse(422, {
-      error: "Buyer payment-handle screenshot is missing",
-      missing_precondition: "h1_handle_screenshot",
-    });
-  }
-  if (!attestation.confirmation_screenshot_path) {
-    return jsonResponse(422, {
-      error: "Payment confirmation screenshot is missing",
-      missing_precondition: "h2_confirmation_screenshot",
-    });
-  }
-  if (!attestation.transaction_reference_id) {
-    return jsonResponse(422, {
-      error: "Transaction reference id is missing",
-      missing_precondition: "h2_transaction_reference_id",
-    });
-  }
-
-  // 5) Race-safe UPDATE: only sets buyer_marked_payment_sent_at if it's
+  // 4) Race-safe UPDATE: only sets buyer_marked_payment_sent_at if it's
   //    still NULL. If two clicks arrive simultaneously, only the first
   //    write succeeds; the second sees zero rows updated and we treat it
   //    as already-marked.
   const now = new Date().toISOString();
+  const updatePayload: Record<string, unknown> = { buyer_marked_payment_sent_at: now };
+  // Optional screenshot path stored for dispute evidence (PR 4+). No gate.
+  if (body.payment_screenshot_path) {
+    updatePayload.deposit_screenshot_path = body.payment_screenshot_path;
+  }
+
   const { data: updated, error: updateErr } = await admin
     .from("deposit_agreements")
-    .update({ buyer_marked_payment_sent_at: now })
+    .update(updatePayload)
     .eq("id", body.agreement_id)
     .is("buyer_marked_payment_sent_at", null)
     .select("id")
@@ -169,7 +125,7 @@ export async function handler(
     return jsonResponse(200, { success: true, already_marked: true });
   }
 
-  // 6) Notify admins. Email failure is logged but doesn't roll back.
+  // 5) Notify admins. Email failure is logged but doesn't roll back.
   const recipients = getAdminRecipients();
   if (recipients.length > 0) {
     const tpl = adminBuyerMarkedPaymentSent({

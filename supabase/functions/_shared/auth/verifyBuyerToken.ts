@@ -57,10 +57,17 @@ export async function verifyBuyerToken(
       body: { error: "Invalid token for this agreement" },
     };
   }
-  if (
-    agreement.buyer_access_token_expires_at &&
-    new Date(agreement.buyer_access_token_expires_at).getTime() < Date.now()
-  ) {
+  // Token is valid until the later of buyer_access_token_expires_at and
+  // extended_until (set by the admin "Extend link" action — PR 4).
+  const primaryExpiry = agreement.buyer_access_token_expires_at
+    ? new Date(agreement.buyer_access_token_expires_at).getTime()
+    : 0;
+  const extensionExpiry = agreement.extended_until
+    ? new Date(agreement.extended_until).getTime()
+    : 0;
+  const effectiveExpiry = Math.max(primaryExpiry, extensionExpiry);
+
+  if (effectiveExpiry > 0 && effectiveExpiry < Date.now()) {
     return {
       ok: false,
       status: 403,

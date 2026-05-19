@@ -20,6 +20,7 @@ import {
   fetchAttestedBuyerHandle,
   saveAdminSignature,
   finalizeAgreement,
+  extendBuyerToken,
   confirmPickupDate,
   updateAgreementNotes,
   rejectDeposit,
@@ -39,6 +40,7 @@ import {
   XCircle,
   AlertTriangle,
   BookOpen,
+  LinkIcon,
   MessageSquarePlus,
   ClipboardCheck,
   FileArchive,
@@ -277,7 +279,20 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
 
   const finalizeMut = useMutation({
     mutationFn: () => finalizeAgreement(agreement.id),
-    onSuccess: () => { toast.success('Agreement finalized'); invalidate(); },
+    onSuccess: () => {
+      toast.success('Agreement countersigned — buyer confirmation email sent');
+      invalidate();
+    },
+    onError: (err: Error) => toast.error(err.message || 'Finalize failed'),
+  });
+
+  const extendLinkMut = useMutation({
+    mutationFn: () => extendBuyerToken(agreement.id, 30),
+    onSuccess: () => {
+      toast.success('Buyer token extended 30 days. Re-send the payment dashboard link manually if needed.');
+      invalidate();
+    },
+    onError: (err: Error) => toast.error(err.message || 'Failed to extend link'),
   });
 
   const confirmDateMut = useMutation({
@@ -319,7 +334,9 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
 
   const isBuyerSigned = !!agreement.buyer_signed_at;
   const isAdminSigned = !!agreement.admin_signed_at;
-  const allConditionsMet = isBuyerSigned && isAdminSigned && isPaymentConfirmed;
+  // PR 4 redesign: countersign (finalize) requires only buyer + admin signatures.
+  // Payment confirmation is now a separate step that happens AFTER countersign.
+  const canFinalize = isBuyerSigned && isAdminSigned && agreement.agreement_status === 'sent';
   const isCancelled = agreement.agreement_status === 'cancelled';
 
   return (
@@ -530,16 +547,49 @@ export function AgreementDetailPanel({ agreement }: AgreementDetailPanelProps) {
               timestamp={agreement.admin_signed_at}
             />
           </div>
-          {allConditionsMet && agreement.agreement_status !== 'admin_approved' && (
-            <div className="pt-2">
-              <p className="text-sm font-bold text-leaf mb-2">All conditions met — ready to finalize</p>
-              <Button onClick={() => finalizeMut.mutate()} disabled={finalizeMut.isPending}>
-                Finalize Agreement
+          {/* Countersign — enabled once buyer + admin have both signed (PR 4) */}
+          {canFinalize && (
+            <div className="pt-2 space-y-1">
+              <p className="text-sm font-bold text-leaf">
+                Both signatures present — countersign to confirm
+              </p>
+              <p className="text-xs text-inkSoft">
+                This sends the buyer a confirmation email with payment instructions.
+              </p>
+              <Button
+                onClick={() => finalizeMut.mutate()}
+                disabled={finalizeMut.isPending}
+              >
+                {finalizeMut.isPending ? 'Sending…' : 'Countersign Agreement'}
               </Button>
             </div>
           )}
           {agreement.agreement_status === 'admin_approved' && (
-            <p className="text-sm font-bold text-leaf pt-2">SALE FINAL</p>
+            <p className="text-sm font-bold text-leaf pt-2">
+              Countersigned — awaiting deposit
+            </p>
+          )}
+
+          {/* Extend buyer token link */}
+          {agreement.agreement_status !== 'cancelled' && (
+            <div className="pt-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs text-muted-foreground"
+                onClick={() => extendLinkMut.mutate()}
+                disabled={extendLinkMut.isPending}
+              >
+                <LinkIcon className="h-3 w-3 mr-1.5" />
+                {extendLinkMut.isPending ? 'Extending…' : 'Extend buyer payment link (+30 days)'}
+              </Button>
+              {agreement.extended_until && (
+                <p className="text-[11px] text-muted-foreground ml-6">
+                  Currently extended until{' '}
+                  {new Date(agreement.extended_until).toLocaleDateString()}
+                </p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

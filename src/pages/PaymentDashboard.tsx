@@ -1,37 +1,34 @@
 // src/pages/PaymentDashboard.tsx
-// Wave D step 2 — buyer-side payment dashboard.
+// PR 4 — Simplified buyer payment dashboard.
 //
-// After the buyer submits the deposit agreement, DepositForm redirects them
-// here at /payment/<agreementId>/<buyerToken>. The page fetches the
-// agreement via PostgREST with the buyer-token header (RLS gates access),
-// shows the deposit amount + the chosen payment method's handle + the
-// payment memo, and exposes an "I have sent payment" button.
+// Route: /payment/:agreementId/:buyerToken
 //
-// The button calls a stub for now — Wave D step 3 wires it to the
-// `mark-payment-sent` edge function. Wave H1 will gate it on a buyer
-// attestation.
+// Section 1 — Deposit: payment handle + memo + "I've sent my deposit" button.
+//   Optional screenshot upload (dispute protection framing, not a gate).
+// Section 2 — Balance (deposit_only after deposit confirmed): same layout
+//   for the final payment. Wired to mark-payment-sent in a future PR.
+// Screenshot upload: UI present; actual storage wiring deferred to PR 6.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Loader2, Phone } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Phone,
+  Shield,
+  Upload,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   fetchAgreementByToken,
-  fetchPaymentAttestation,
   markPaymentSent,
-  type PaymentAttestationRow,
 } from '@/lib/payment-dashboard-service';
-import {
-  submitH1Attestation,
-  submitH2Confirmation,
-  tryGetGeolocation,
-} from '@/lib/payment-attestation-service';
 import { fetchEnabledPaymentMethods } from '@/lib/deposit-service';
 import { generatePaymentMemo, calculateBalanceDue } from '@/lib/utils/depositCalc';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
@@ -59,24 +56,13 @@ export default function PaymentDashboard() {
     queryFn: fetchEnabledPaymentMethods,
   });
 
-  // Wave H phase 1c — fetch the buyer's payment_attestations row to drive
-  // the multi-step (H1 sign → H2 confirm → mark sent) flow below.
-  const attestationEnabled =
-    !!agreementId && !!buyerToken && agreementQuery.data?.status === 'ok';
-  const attestationQuery = useQuery({
-    queryKey: ['payment-attestation', agreementId, buyerToken],
-    queryFn: () => fetchPaymentAttestation(agreementId, buyerToken),
-    enabled: attestationEnabled,
-    retry: false,
-  });
-
   const markSentMut = useMutation({
     mutationFn: () => markPaymentSent(agreementId, buyerToken),
     onSuccess: (res) => {
       if (res.already_marked) {
-        toast.success("We had already recorded your payment notice.");
+        toast.success("We already had your payment notice on file.");
       } else {
-        toast.success("Got it — we'll watch for your payment and email a receipt once it lands.");
+        toast.success("Got it — we'll watch for your payment and confirm by email.");
       }
       qc.invalidateQueries({ queryKey: ['payment-dashboard', agreementId, buyerToken] });
     },
@@ -88,7 +74,7 @@ export default function PaymentDashboard() {
   if (!agreementId || !buyerToken) {
     return (
       <PageShell>
-        <GateMessage
+        <GateCard
           title="Missing payment link"
           body="This payment link is incomplete. Please use the link we emailed you, or contact us if you can't find it."
         />
@@ -99,7 +85,7 @@ export default function PaymentDashboard() {
   if (agreementQuery.isLoading) {
     return (
       <PageShell>
-        <div className="flex items-center justify-center gap-3 py-8 text-muted-foreground">
+        <div className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading your reservation…</span>
         </div>
@@ -111,9 +97,9 @@ export default function PaymentDashboard() {
   if (!result || result.status === 'not_found') {
     return (
       <PageShell>
-        <GateMessage
+        <GateCard
           title="Reservation link not active"
-          body="This payment link doesn't match an active reservation. Tokens expire 30 days after the agreement is created. Please call us so we can issue a fresh link."
+          body="This payment link doesn't match an active reservation. Please call us and we'll issue a fresh link."
         />
       </PageShell>
     );
@@ -121,86 +107,200 @@ export default function PaymentDashboard() {
   if (result.status === 'expired') {
     return (
       <PageShell>
-        <GateMessage
+        <GateCard
           title="Payment link expired"
-          body="This link is past its 30-day window. Call us and we'll send you a fresh one."
+          body="This link has expired. Call us and we'll send you a fresh one."
         />
       </PageShell>
     );
   }
 
   const a = result.agreement;
-  const method = methodsQuery.data?.find((m) => m.method_key === a.deposit_payment_method);
+  const methods = methodsQuery.data ?? [];
+  const depositMethod = methods.find((m) => m.method_key === a.deposit_payment_method);
   const balanceDue = calculateBalanceDue(a.purchase_price, a.deposit_amount);
-  const memoPreview =
-    a.payment_memo ??
-    generatePaymentMemo(a.buyer_name, a.buyer_phone ?? null, 'Deposit');
+  const memo = a.payment_memo ?? generatePaymentMemo(a.buyer_name, a.buyer_phone ?? null, 'Deposit');
+
+  const isCountersigned = !!a.admin_signed_at;
+  const isDepositConfirmed = a.deposit_status === 'admin_confirmed';
+  const isDepositSent = !!a.buyer_marked_payment_sent_at;
+  const isDepositOnly = a.payment_mode === 'deposit_only' || !a.payment_mode;
 
   return (
     <PageShell>
+      {/* Header */}
       <Card>
         <CardHeader className="border-b bg-leaf/10">
           <CardTitle className="text-lg">Reservation #{a.agreement_number}</CardTitle>
           <p className="text-sm text-ink">
-            Reserved: <strong>{a.puppy_name}</strong>
-            {a.breed ? ` · ${a.breed}` : ''}
+            <strong>{a.puppy_name}</strong>{a.breed ? ` · ${a.breed}` : ''}
           </p>
         </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          <section className="grid grid-cols-3 gap-4 text-center">
+        <CardContent className="pt-5 space-y-6">
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 text-center">
             <Stat label="Purchase price" value={`$${a.purchase_price.toLocaleString()}`} />
-            <Stat label="Deposit due" value={`$${a.deposit_amount.toFixed(2)}`} highlight />
-            <Stat label="Balance due at pickup" value={`$${balanceDue.toFixed(2)}`} />
-          </section>
+            <Stat label="Deposit" value={`$${a.deposit_amount.toFixed(2)}`} highlight />
+            <Stat label="Balance at pickup" value={`$${balanceDue.toFixed(2)}`} />
+          </div>
 
-          <section className="rounded-lg border bg-muted/30 p-4 space-y-3">
-            <h3 className="text-sm font-semibold">Send your deposit</h3>
-            {method ? (
-              <PaymentInstructions methodKey={a.deposit_payment_method} method={method} />
-            ) : methodsQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading payment instructions…</p>
-            ) : (
-              <p className="text-sm text-ink">
-                Selected method <code>{a.deposit_payment_method}</code> is not currently
-                enabled. Please call us at <strong>{PHONE}</strong>.
-              </p>
-            )}
-
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">
-                Payment memo (paste this into the note field on your payment app):
-              </p>
-              <code className="block rounded bg-background border px-3 py-2 text-sm font-mono">
-                {memoPreview}
-              </code>
+          {/* Contract-not-countersigned notice */}
+          {!isCountersigned && (
+            <div className="flex items-start gap-2 rounded-lg border border-sun/40 bg-sun/10 p-3 text-sm text-ink">
+              <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-ink" />
+              <div>
+                <p className="font-medium">Agreement pending countersignature</p>
+                <p className="text-xs text-inkSoft">
+                  Your agreement is not final until we countersign. You'll receive a confirmation
+                  email as soon as it's done — usually within a few hours.
+                </p>
+              </div>
             </div>
-          </section>
+          )}
 
-          {/* Wave H phase 1c+1d: multi-step flow (H1 attestation → H2
-              confirmation → mark sent → done). Step is derived from the
-              agreement's buyer_marked_payment_sent_at and the attestation
-              row's attestation_status / confirmation_captured_at. */}
-          <FlowSection
+          {/* Section 1 — Deposit payment */}
+          <DepositSection
             agreement={a}
-            attestation={attestationQuery.data ?? null}
-            attestationLoading={attestationQuery.isLoading}
-            method={method}
-            memoPreview={memoPreview}
-            agreementId={agreementId}
-            buyerToken={buyerToken}
+            depositMethod={depositMethod}
+            memo={memo}
+            isDepositSent={isDepositSent}
+            isDepositConfirmed={isDepositConfirmed}
             onMarkSent={() => markSentMut.mutate()}
             markSentPending={markSentMut.isPending}
           />
 
+          {/* Section 2 — Balance (deposit-only, unlocks after deposit confirmed) */}
+          {isDepositOnly && isDepositConfirmed && (
+            <BalanceSection
+              agreement={a}
+              balanceDue={balanceDue}
+              methods={methods}
+            />
+          )}
+
           <p className="text-xs text-center text-muted-foreground">
-            Questions? Call <strong>{PHONE}</strong>. This payment link works for 30 days
-            from the date you signed the agreement.
+            Questions? Call <strong>{PHONE}</strong>.
           </p>
         </CardContent>
       </Card>
     </PageShell>
   );
 }
+
+// ── Section 1: Deposit ────────────────────────────────────────────────────
+
+interface DepositSectionProps {
+  agreement: DepositAgreement;
+  depositMethod: PaymentMethodLite | undefined;
+  memo: string;
+  isDepositSent: boolean;
+  isDepositConfirmed: boolean;
+  onMarkSent: () => void;
+  markSentPending: boolean;
+}
+
+function DepositSection({
+  agreement,
+  depositMethod,
+  memo,
+  isDepositSent,
+  isDepositConfirmed,
+  onMarkSent,
+  markSentPending,
+}: DepositSectionProps) {
+  if (isDepositConfirmed) {
+    return (
+      <SectionCard>
+        <SectionHeading>Deposit payment</SectionHeading>
+        <div className="flex items-center gap-2 text-sm text-leaf font-medium">
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+          Payment confirmed — deposit received
+        </div>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard>
+      <SectionHeading>Send your deposit — ${agreement.deposit_amount.toFixed(2)}</SectionHeading>
+
+      {depositMethod ? (
+        <PaymentInstructions method={depositMethod} methodKey={agreement.deposit_payment_method} />
+      ) : (
+        <p className="text-sm text-ink">
+          Payment method <code>{agreement.deposit_payment_method}</code> is not currently
+          configured. Please call us at <strong>{PHONE}</strong>.
+        </p>
+      )}
+
+      <MemoBlock memo={memo} />
+
+      {isDepositSent ? (
+        <div className="flex items-start gap-2 rounded-lg border border-leaf/30 bg-leaf/10 p-3 text-sm text-ink">
+          <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-leaf" />
+          <div>
+            <p className="font-medium">We've recorded your payment notice.</p>
+            <p className="text-xs">
+              Noticed{' '}
+              {new Date(agreement.buyer_marked_payment_sent_at!).toLocaleString()}.
+              We'll confirm receipt and email you once it lands.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <MarkSentBlock
+          label="I've sent my deposit"
+          onSubmit={onMarkSent}
+          pending={markSentPending}
+        />
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Section 2: Balance ────────────────────────────────────────────────────
+
+interface BalanceSectionProps {
+  agreement: DepositAgreement;
+  balanceDue: number;
+  methods: PaymentMethodLite[];
+}
+
+function BalanceSection({ agreement, balanceDue, methods }: BalanceSectionProps) {
+  // Use final_payment_method_intended if set, otherwise fall back to deposit method.
+  const balanceMethodKey =
+    (agreement.final_payment_method_intended as PaymentMethodKey | undefined) ??
+    agreement.deposit_payment_method;
+  const balanceMethod = methods.find((m) => m.method_key === balanceMethodKey);
+  const balanceMemo = generatePaymentMemo(
+    agreement.buyer_name,
+    agreement.buyer_phone ?? null,
+    'Final Payment'
+  );
+
+  return (
+    <SectionCard className="border-primaryDeep/20">
+      <SectionHeading>Make your final payment — ${balanceDue.toFixed(2)}</SectionHeading>
+      <p className="text-xs text-inkSoft">
+        Your deposit was received. When you're ready to send the balance, use the instructions
+        below. Call us at <strong>{PHONE}</strong> once you've sent it and we'll confirm.
+      </p>
+
+      {balanceMethod ? (
+        <PaymentInstructions method={balanceMethod} methodKey={balanceMethodKey} />
+      ) : (
+        <p className="text-sm text-ink">
+          Please call us at <strong>{PHONE}</strong> for balance payment instructions.
+        </p>
+      )}
+
+      <MemoBlock memo={balanceMemo} />
+    </SectionCard>
+  );
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────
 
 interface PaymentMethodLite {
   method_key: PaymentMethodKey;
@@ -212,28 +312,26 @@ interface PaymentMethodLite {
 }
 
 function PaymentInstructions({
-  methodKey,
   method,
+  methodKey,
 }: {
-  methodKey: PaymentMethodKey;
   method: PaymentMethodLite;
+  methodKey: PaymentMethodKey;
 }) {
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-xs font-medium text-muted-foreground">Method</p>
-        <p className="text-base font-semibold">{method.display_name}</p>
-      </div>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Method</p>
+      <p className="text-base font-semibold">{method.display_name}</p>
       {method.handle_or_recipient && (
-        <div>
+        <>
           <p className="text-xs font-medium text-muted-foreground">Send to</p>
           <code className="block rounded bg-background border px-3 py-2 text-sm font-mono">
             {method.handle_or_recipient}
           </code>
-        </div>
+        </>
       )}
       {method.qr_code_public_url && (
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-1">
           <img
             src={method.qr_code_public_url}
             alt={`${method.display_name} QR code`}
@@ -245,19 +343,119 @@ function PaymentInstructions({
         <p className="text-sm italic text-muted-foreground">{method.payment_note}</p>
       )}
       {methodKey === 'square' && (
-        <p className="text-sm text-ink bg-sun/15 border border-sun/30 rounded-sm p-2">
-          For Square, we'll email you the invoice link after we receive your reservation.
+        <p className="text-sm bg-sun/15 border border-sun/30 rounded-sm p-2 text-ink">
+          For Square, we'll email you an invoice link after receiving your reservation.
           Tax is calculated at checkout.
         </p>
       )}
       {methodKey === 'cash' && (
-        <p className="text-sm text-ink bg-sun/15 border border-sun/30 rounded-sm p-2">
-          We prefer payment before pickup for safety. Call <strong>{PHONE}</strong> to
-          coordinate.
+        <p className="text-sm bg-sun/15 border border-sun/30 rounded-sm p-2 text-ink">
+          We prefer payment before pickup for safety. Call <strong>{PHONE}</strong> to coordinate.
         </p>
       )}
     </div>
   );
+}
+
+function MemoBlock({ memo }: { memo: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-muted-foreground">
+        Paste this into the note/memo field on your payment app:
+      </p>
+      <code className="block rounded bg-background border px-3 py-2 text-sm font-mono">
+        {memo}
+      </code>
+    </div>
+  );
+}
+
+function MarkSentBlock({
+  label,
+  onSubmit,
+  pending,
+}: {
+  label: string;
+  onSubmit: () => void;
+  pending: boolean;
+}) {
+  // Screenshot upload — UI present; storage wiring deferred to PR 6.
+  // TODO(PR 6): upload file to payment-evidence bucket via edge fn and pass path to onSubmit.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+      {/* Optional screenshot upload */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Shield className="h-3.5 w-3.5" />
+          <span>Upload a screenshot (optional — recommended)</span>
+        </div>
+        <p className="text-xs text-inkSoft">
+          Attaching a screenshot of your payment creates a dispute packet that protects both of
+          us if there's ever a question about this payment. Takes 10 seconds.
+        </p>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+        >
+          <Upload className="h-3 w-3" />
+          {fileName ?? 'Choose screenshot…'}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            setFileName(f ? f.name : null);
+          }}
+        />
+        {fileName && (
+          <p className="text-[11px] text-muted-foreground">{fileName} selected</p>
+        )}
+      </div>
+
+      <Button
+        type="button"
+        className="w-full bg-primaryDeep hover:bg-primaryDeep/90 text-white"
+        onClick={onSubmit}
+        disabled={pending}
+      >
+        {pending ? (
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Recording…</>
+        ) : (
+          label
+        )}
+      </Button>
+      <p className="text-[11px] text-muted-foreground text-center">
+        Tap this after you've sent the payment in your payment app.
+      </p>
+    </div>
+  );
+}
+
+// ── Layout primitives ─────────────────────────────────────────────────────
+
+function SectionCard({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`rounded-lg border bg-muted/30 p-4 space-y-3 ${className}`}>
+      {children}
+    </section>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-sm font-semibold text-ink">{children}</h3>;
 }
 
 function Stat({
@@ -279,320 +477,6 @@ function Stat({
   );
 }
 
-// ── Wave H phase 1 multi-step flow ─────────────────────────────────────
-
-interface FlowSectionProps {
-  agreement: DepositAgreement;
-  attestation: PaymentAttestationRow | null;
-  attestationLoading: boolean;
-  method: PaymentMethodLite | undefined;
-  memoPreview: string;
-  agreementId: string;
-  buyerToken: string;
-  onMarkSent: () => void;
-  markSentPending: boolean;
-}
-
-function FlowSection({
-  agreement,
-  attestation,
-  attestationLoading,
-  method,
-  memoPreview,
-  agreementId,
-  buyerToken,
-  onMarkSent,
-  markSentPending,
-}: FlowSectionProps) {
-  if (agreement.buyer_marked_payment_sent_at) {
-    return (
-      <section className="space-y-3 rounded-lg border border-leaf/30 bg-leaf/10 p-4">
-        <h3 className="text-sm font-semibold text-ink">Payment recorded</h3>
-        <div className="flex items-start gap-2">
-          <CheckCircle2 className="h-5 w-5 text-leaf mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-ink">
-            <p className="font-medium">We've recorded that you sent payment.</p>
-            <p className="text-xs">
-              Marked sent{' '}
-              {new Date(agreement.buyer_marked_payment_sent_at).toLocaleString()}
-              . We'll confirm receipt and email you once it lands.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (attestationLoading) {
-    return (
-      <section className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading next step…
-      </section>
-    );
-  }
-
-  // H2: attestation signed but no confirmation yet → confirmation form.
-  if (attestation && attestation.attestation_status === 'signed' && !attestation.confirmation_captured_at) {
-    return (
-      <H2Form
-        agreementId={agreementId}
-        buyerToken={buyerToken}
-        memoPreview={memoPreview}
-      />
-    );
-  }
-
-  // Awaiting "I have sent payment" click — H1 + H2 both done, just need the click.
-  if (attestation && attestation.attestation_status === 'signed' && attestation.confirmation_captured_at) {
-    return (
-      <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/10 p-4">
-        <h3 className="text-sm font-semibold text-ink">Final step</h3>
-        <p className="text-sm text-ink">
-          You've signed the attestation and uploaded your confirmation. Click below to let
-          us know to start watching for your payment.
-        </p>
-        <Button
-          type="button"
-          className="bg-primaryDeep hover:bg-primary"
-          onClick={onMarkSent}
-          disabled={markSentPending}
-        >
-          {markSentPending ? 'Recording…' : 'I have sent payment'}
-        </Button>
-      </section>
-    );
-  }
-
-  // Default: render H1 form.
-  return (
-    <H1Form
-      agreement={agreement}
-      method={method}
-      agreementId={agreementId}
-      buyerToken={buyerToken}
-    />
-  );
-}
-
-interface H1FormProps {
-  agreement: DepositAgreement;
-  method: PaymentMethodLite | undefined;
-  agreementId: string;
-  buyerToken: string;
-}
-
-function H1Form({ agreement, method, agreementId, buyerToken }: H1FormProps) {
-  const qc = useQueryClient();
-  const [buyerHandle, setBuyerHandle] = useState('');
-  const [buyerPhone, setBuyerPhone] = useState(agreement.buyer_phone ?? '');
-  const [file, setFile] = useState<File | null>(null);
-
-  const handleToUse = method?.handle_or_recipient ?? '';
-  const attestationText =
-    `I confirm I am ${agreement.buyer_name} and I am sending payment from my own ` +
-    `${method?.display_name ?? agreement.deposit_payment_method} account ${buyerHandle || '[your handle]'} ` +
-    `to Dream Puppies. I authorize this payment and understand the deposit is non-refundable ` +
-    `per the agreement I signed on ${new Date(agreement.created_at).toLocaleDateString()}.`;
-
-  const submitMut = useMutation({
-    mutationFn: async () => {
-      if (!file) throw new Error('Please upload a screenshot of your payment-app handle.');
-      if (!buyerHandle.trim()) throw new Error('Please enter your payment-app handle.');
-      const geolocation = await tryGetGeolocation();
-      return submitH1Attestation({
-        agreementId,
-        buyerToken,
-        paymentMethodHandleToUse: handleToUse || agreement.deposit_payment_method,
-        buyerPaymentHandle: buyerHandle.trim(),
-        buyerPhoneAtPayment: buyerPhone.trim() || undefined,
-        paymentAttestationText: attestationText,
-        geolocation,
-        handleScreenshotFile: file,
-      });
-    },
-    onSuccess: () => {
-      toast.success('Attestation signed. One more step.');
-      qc.invalidateQueries({ queryKey: ['payment-attestation', agreementId, buyerToken] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const canSubmit = !!file && !!buyerHandle.trim() && !submitMut.isPending;
-
-  return (
-    <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/10 p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-ink">Step 2 — Sign the payment attestation</h3>
-        <p className="text-xs text-inkSoft mt-1">
-          Before sending payment, please confirm a few details so we can match the
-          incoming transfer to your reservation.
-        </p>
-      </div>
-
-      <div className="space-y-3 rounded bg-background border p-3">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">Send TO this handle</p>
-          <code className="block text-sm font-mono mt-1">{handleToUse || '(set up by operator)'}</code>
-        </div>
-
-        <div>
-          <Label htmlFor="buyer_handle">Your payment-app handle / email</Label>
-          <Input
-            id="buyer_handle"
-            value={buyerHandle}
-            onChange={(e) => setBuyerHandle(e.target.value)}
-            placeholder="$YourCashtag, your.zelle@email.com, etc."
-            disabled={submitMut.isPending}
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            The handle / email / username on your payment app, in your legal name.
-          </p>
-        </div>
-
-        <div>
-          <Label htmlFor="buyer_phone_at_payment">Confirm your phone</Label>
-          <Input
-            id="buyer_phone_at_payment"
-            value={buyerPhone}
-            onChange={(e) => setBuyerPhone(e.target.value)}
-            placeholder="(555) 123-4567"
-            disabled={submitMut.isPending}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="handle_screenshot">Screenshot of your payment-app handle (showing your name)</Label>
-          <Input
-            id="handle_screenshot"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            disabled={submitMut.isPending}
-          />
-          {file && (
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {file.name} ({Math.round(file.size / 1024)} KB)
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-sm border border-primary/20 bg-primary/10 p-3 text-xs text-ink space-y-1">
-          <p className="font-medium">By clicking below you sign:</p>
-          <p className="italic">{attestationText}</p>
-        </div>
-
-        <Button
-          type="button"
-          className="bg-primaryDeep hover:bg-primary"
-          onClick={() => submitMut.mutate()}
-          disabled={!canSubmit}
-        >
-          {submitMut.isPending ? 'Signing…' : 'Sign attestation and continue'}
-        </Button>
-      </div>
-    </section>
-  );
-}
-
-interface H2FormProps {
-  agreementId: string;
-  buyerToken: string;
-  memoPreview: string;
-}
-
-function H2Form({ agreementId, buyerToken, memoPreview }: H2FormProps) {
-  const qc = useQueryClient();
-  const [transactionId, setTransactionId] = useState('');
-  const [memoUsed, setMemoUsed] = useState(memoPreview);
-  const [file, setFile] = useState<File | null>(null);
-
-  const submitMut = useMutation({
-    mutationFn: async () => {
-      if (!file) throw new Error('Please upload a screenshot of your payment confirmation.');
-      if (!transactionId.trim()) throw new Error('Please enter the transaction reference id.');
-      return submitH2Confirmation({
-        agreementId,
-        buyerToken,
-        transactionReferenceId: transactionId.trim(),
-        paymentMemoUsed: memoUsed.trim() || undefined,
-        confirmationScreenshotFile: file,
-      });
-    },
-    onSuccess: () => {
-      toast.success('Confirmation recorded. Click "I have sent payment" to finish.');
-      qc.invalidateQueries({ queryKey: ['payment-attestation', agreementId, buyerToken] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const canSubmit = !!file && !!transactionId.trim() && !submitMut.isPending;
-
-  return (
-    <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/10 p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-ink">Step 3 — Upload your payment confirmation</h3>
-        <p className="text-xs text-inkSoft mt-1">
-          After you send the deposit, attach a screenshot of the confirmation page from
-          your payment app and the transaction reference id.
-        </p>
-      </div>
-
-      <div className="space-y-3 rounded bg-background border p-3">
-        <div>
-          <Label htmlFor="confirmation_screenshot">Confirmation screenshot (amount, recipient, date, transaction ID visible)</Label>
-          <Input
-            id="confirmation_screenshot"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            disabled={submitMut.isPending}
-          />
-          {file && (
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {file.name} ({Math.round(file.size / 1024)} KB)
-            </p>
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="transaction_reference_id">Transaction reference id</Label>
-          <Input
-            id="transaction_reference_id"
-            value={transactionId}
-            onChange={(e) => setTransactionId(e.target.value)}
-            placeholder="e.g. CB123456789, ZF-987654, TXN-…"
-            disabled={submitMut.isPending}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="memo_used">Memo you actually used</Label>
-          <Input
-            id="memo_used"
-            value={memoUsed}
-            onChange={(e) => setMemoUsed(e.target.value)}
-            placeholder={memoPreview}
-            disabled={submitMut.isPending}
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            We'll cross-check this against our copy of the memo string.
-          </p>
-        </div>
-
-        <Button
-          type="button"
-          className="bg-primaryDeep hover:bg-primary"
-          onClick={() => submitMut.mutate()}
-          disabled={!canSubmit}
-        >
-          {submitMut.isPending ? 'Saving…' : 'Save confirmation and continue'}
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper py-8 px-4">
@@ -601,12 +485,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface GateMessageProps {
-  title: string;
-  body: string;
-}
-
-function GateMessage({ title, body }: GateMessageProps) {
+function GateCard({ title, body }: { title: string; body: string }) {
   return (
     <Card>
       <CardContent className="pt-8 space-y-3 text-center">

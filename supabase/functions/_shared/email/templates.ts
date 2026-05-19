@@ -726,5 +726,203 @@ export function adminPickupCompleted(args: {
   };
 }
 
+// ── PR 4 BUYER FLOW TEMPLATES ─────────────────────────────────────────────
+
+// buyerReservationConfirmed — sent by finalize-agreement after operator
+// countersigns. Replaces agreementFinalizedBuyer in the redesigned flow.
+// Includes payment instructions so the buyer can send the deposit right away.
+export function buyerReservationConfirmed(args: {
+  buyerName: string;
+  agreementNumber: string;
+  puppyName: string;
+  depositAmount: number;
+  balanceDue: number;
+  paymentMethod: string;
+  paymentHandle?: string | null;
+  paymentMemo: string;
+  paymentDashboardUrl: string;
+  /** PDF download URL — available once generate-agreement-pdf runs (PR 6). */
+  downloadUrl?: string | null;
+}): EmailTemplate {
+  const paymentInstructions =
+    rawParagraph(
+      `<strong>Next step: send your ${escape(args.paymentMethod)} deposit of <span style="color:${COLORS.primary};">${money(args.depositAmount)}</span></strong>`
+    ) +
+    (args.paymentHandle
+      ? rawParagraph(`Send to: <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${escape(args.paymentHandle)}</code>`)
+      : "") +
+    rawParagraph(
+      `Include this memo: <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${escape(args.paymentMemo)}</code>`
+    ) +
+    callout(
+      // TODO(Carlos): confirm 48-hour deposit deadline language before ship
+      "Once you've sent the deposit, tap "I've sent my deposit" in the dashboard below. " +
+      "Please complete the deposit within 48 hours to hold your reservation."
+    );
+
+  const body =
+    heading("Your agreement is countersigned — you're all set!") +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `Great news — we've countersigned your deposit agreement for ${escape(args.puppyName)}. ` +
+      `Your spot is officially on hold while we wait for the deposit.`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Puppy", args.puppyName) +
+        row("Deposit amount", money(args.depositAmount)) +
+        row("Balance due at pickup", money(args.balanceDue))
+    ) +
+    paymentInstructions +
+    button("Open my payment dashboard", args.paymentDashboardUrl) +
+    (args.downloadUrl
+      ? button("Download your agreement PDF", args.downloadUrl) +
+        paragraph("The download link opens a 1-hour window — click any time to get a fresh one.")
+      : "") +
+    rawParagraph(
+      `Questions? Call us at <strong>${escape(BRAND.phone)}</strong>.`
+    );
+
+  return {
+    subject: `Agreement countersigned — ${args.agreementNumber} (${args.puppyName})`,
+    html: wrap({
+      previewText: `Your ${args.puppyName} agreement is countersigned — send your deposit to lock it in.`,
+      bodyHtml: body,
+    }),
+  };
+}
+
+// buyerDepositConfirmed — sent when the operator confirms deposit received.
+// Replaces depositReceipt in the redesigned flow for deposit-only buyers.
+export function buyerDepositConfirmed(args: {
+  buyerName: string;
+  agreementNumber: string;
+  puppyName: string;
+  depositAmount: number;
+  balanceDue: number;
+  /** ISO date string; balance is due 7 days before pickup. */
+  balanceDueDate?: string | null;
+  paymentDashboardUrl: string;
+}): EmailTemplate {
+  const balanceLine = args.balanceDueDate
+    ? row("Balance due by", args.balanceDueDate)
+    : "";
+
+  const body =
+    heading("Deposit received — your reservation is confirmed ✓") +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `We've received your deposit for ${escape(args.puppyName)}. ` +
+      `Your reservation is confirmed and your puppy is being held for you.`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Deposit paid", money(args.depositAmount)) +
+        row("Balance due at pickup", money(args.balanceDue)) +
+        balanceLine
+    ) +
+    paragraph(
+      `When pickup time approaches, we'll remind you about the balance payment. ` +
+      `You can always check your reservation status in the dashboard below.`
+    ) +
+    button("View my reservation", args.paymentDashboardUrl) +
+    rawParagraph(
+      `Questions? Call us at <strong>${escape(BRAND.phone)}</strong>.`
+    );
+
+  return {
+    subject: `Deposit confirmed — ${args.agreementNumber} (${args.puppyName})`,
+    html: wrap({
+      previewText: `Your deposit for ${args.puppyName} is confirmed. Reservation locked in!`,
+      bodyHtml: body,
+    }),
+  };
+}
+
+// buyerBalanceReminder — auto-fired 7 days before pickup by send-pending-reminders.
+export function buyerBalanceReminder(args: {
+  buyerName: string;
+  agreementNumber: string;
+  puppyName: string;
+  balanceDue: number;
+  pickupDate: string;
+  paymentMethod: string;
+  paymentHandle?: string | null;
+  paymentMemo: string;
+  paymentDashboardUrl: string;
+}): EmailTemplate {
+  const body =
+    heading(`Balance due in 7 days — ${escape(args.puppyName)}`) +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `Pickup day is almost here! Your balance payment of ${money(args.balanceDue)} is due before pickup on ${escape(args.pickupDate)}.`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Puppy", args.puppyName) +
+        row("Balance due", money(args.balanceDue)) +
+        row("Pickup date", args.pickupDate) +
+        row("Payment method", args.paymentMethod) +
+        (args.paymentHandle ? row("Send to", args.paymentHandle) : "") +
+        row("Memo", args.paymentMemo)
+    ) +
+    button("Open my payment dashboard", args.paymentDashboardUrl) +
+    rawParagraph(
+      `Once you've sent the balance, log in and tap "I've sent my balance." ` +
+      `Questions? Call <strong>${escape(BRAND.phone)}</strong>.`
+    );
+
+  return {
+    subject: `Balance due in 7 days — ${args.puppyName} pickup is almost here`,
+    html: wrap({
+      previewText: `Your ${args.puppyName} balance of ${money(args.balanceDue)} is due in 7 days.`,
+      bodyHtml: body,
+    }),
+  };
+}
+
+// buyerWelcomeHome — sent by finalize-pickup-handover (PR 5) after pickup.
+// Bill-of-sale PDF attached by the caller if available.
+export function buyerWelcomeHome(args: {
+  buyerName: string;
+  puppyName: string;
+  agreementNumber: string;
+  pickupDate: string;
+  /** Signed bill-of-sale download URL — available after PR 6. */
+  billOfSaleUrl?: string | null;
+}): EmailTemplate {
+  const body =
+    heading(`Welcome home, ${escape(args.puppyName)}! 🐾`) +
+    paragraph(`Hi ${args.buyerName},`) +
+    paragraph(
+      `It was such a joy to see ${escape(args.puppyName)} head home with you today. ` +
+      `Congratulations on your new family member — your reservation file is now closed on our end.`
+    ) +
+    table(
+      row("Agreement #", args.agreementNumber) +
+        row("Pickup date", args.pickupDate)
+    ) +
+    (args.billOfSaleUrl
+      ? button("Download your bill of sale", args.billOfSaleUrl) +
+        paragraph("The download link opens a 1-hour window — click any time to get a fresh copy.")
+      : "") +
+    paragraph(
+      `Watch for a separate email with ${escape(args.puppyName)}'s care guide. ` +
+      `We're always happy to answer questions as you settle in together.`
+    ) +
+    rawParagraph(
+      `Share photos, stories, or reviews anytime — just reply to this email or call us at ` +
+      `<strong>${escape(BRAND.phone)}</strong>. We truly love hearing how things are going.`
+    );
+
+  return {
+    subject: `Welcome home — ${args.puppyName} pickup complete`,
+    html: wrap({
+      previewText: `${args.puppyName} is home — thanks for choosing Dream Puppies!`,
+      bodyHtml: body,
+    }),
+  };
+}
+
 // Suppress unused-import warnings in environments that lint unused symbols.
 export const _unused = { FONT_STACK };

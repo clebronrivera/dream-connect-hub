@@ -164,8 +164,8 @@ export async function markPaymentSent(
   if (error) {
     let detail = error.message || 'Failed to record payment notice';
     try {
-      // @ts-expect-error context is a Response on FunctionsHttpError
-      const ctx: Response | undefined = error.context;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ctx: Response | undefined = (error as any).context;
       if (ctx && typeof ctx.json === 'function') {
         const body = await ctx.json();
         if (body?.error) detail = body.details ? `${body.error}: ${body.details}` : body.error;

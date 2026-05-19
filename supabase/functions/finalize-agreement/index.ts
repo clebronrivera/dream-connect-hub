@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAdminRecipients, sendEmail } from "../_shared/email/send.ts";
 import {
   adminAgreementFinalized,
-  agreementFinalizedBuyer,
+  buyerReservationConfirmed,
 } from "../_shared/email/templates.ts";
 import { verifyAdmin } from "../_shared/auth/verifyAdmin.ts";
 import { generateDepositPdf } from "../_shared/pdf/generateDepositPdf.ts";
@@ -60,12 +60,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  // Verify all three conditions (Build Rule #4)
+  // Verify countersign conditions: buyer signed + admin signed.
+  // Payment confirmation is no longer required at countersign time (PR 4
+  // redesign — buyer pays AFTER the agreement is countersigned, and the
+  // buyerReservationConfirmed email includes their payment instructions).
   const missing: string[] = [];
   if (!agreement.buyer_signed_at) missing.push("buyer_signed_at");
   if (!agreement.admin_signed_at) missing.push("admin_signed_at");
-  if (agreement.deposit_status !== "admin_confirmed")
-    missing.push("deposit_status must be admin_confirmed");
 
   if (missing.length > 0) {
     return new Response(
@@ -112,16 +113,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ? `${PUBLIC_SITE_URL}/agreements/${body.agreement_id}/${pdfResult.buyer_access_token}/download`
       : null;
 
-  // --- Send confirmation email to buyer ---
+  // --- Send countersign confirmation to buyer ---
+  // Includes payment instructions so the buyer knows exactly what to do next.
   if (agreement.buyer_email) {
-    const tpl = agreementFinalizedBuyer({
+    const dashboardUrl =
+      `${PUBLIC_SITE_URL}/payment/${body.agreement_id}/${agreement.buyer_access_token}`;
+    const tpl = buyerReservationConfirmed({
       buyerName: agreement.buyer_name,
       agreementNumber: agreement.agreement_number,
       puppyName: agreement.puppy_name,
       depositAmount: Number(agreement.deposit_amount),
       balanceDue: Number(agreement.balance_due),
-      pickupDate: agreement.confirmed_pickup_date ?? agreement.proposed_pickup_date,
-      downloadUrl: downloadUrl ?? undefined,
+      paymentMethod: agreement.deposit_payment_method ?? "",
+      paymentHandle: null, // TODO(Carlos): fetch from payment_methods_config
+      paymentMemo: agreement.payment_memo ?? "",
+      paymentDashboardUrl: dashboardUrl,
+      downloadUrl: downloadUrl ?? null,
     });
     const r = await sendEmail({
       to: agreement.buyer_email,
