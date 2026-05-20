@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   History,
@@ -94,6 +94,39 @@ export default function Breeds() {
     return [...filteredBreeds].sort((a, b) => rank(a.id) - rank(b.id));
   }, [filteredBreeds]);
 
+  useEffect(() => {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://puppyheavenllc.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Breeds',
+          item: 'https://puppyheavenllc.com/breeds',
+        },
+      ],
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'breadcrumb-jsonld';
+    script.textContent = JSON.stringify(jsonLd);
+
+    document.getElementById('breadcrumb-jsonld')?.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('breadcrumb-jsonld')?.remove();
+    };
+  }, []);
+
   return (
     <Layout>
       <Seo pageId="breeds" />
@@ -109,6 +142,9 @@ export default function Breeds() {
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-inkSoft md:text-xl">
             {t("breedsHeroBody")}
+          </p>
+          <p className="mt-4 max-w-2xl text-base text-inkSoft md:text-lg">
+            {t("breedsIntroDescription")}
           </p>
 
           <div className="mt-10 flex flex-wrap gap-2">
@@ -472,6 +508,37 @@ export default function Breeds() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Static SEO section — breed descriptions for search indexing */}
+        <section aria-label="About our breeds" className="container mt-8 border-t border-white/10 pt-12">
+          <h2 className="mb-6 font-display text-2xl font-semibold text-white md:text-3xl">
+            About the Breeds We Raise
+          </h2>
+          <div className="grid gap-8 md:grid-cols-2">
+            {BREEDS_DATA.map((breed) => (
+              <article key={breed.id} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                <h3 className="font-display text-lg font-semibold text-white">{breed.name}</h3>
+                <p className="mt-1 text-sm text-white/80">{breed.shortDesc}</p>
+                <p className="mt-3 text-sm text-white/80">
+                  <strong className="text-white">Temperament:</strong> {breed.temperament}
+                </p>
+                <p className="mt-1 text-sm text-white/80">
+                  <strong className="text-white">History:</strong> {breed.history}
+                </p>
+                <p className="mt-1 text-sm text-white/80">
+                  <strong className="text-white">Fun fact:</strong> {breed.coolFact}
+                </p>
+                <p className="mt-1 text-sm text-white/80">
+                  <strong className="text-white">Ideal for:</strong> {breed.idealFor.join(", ")}
+                </p>
+                <p className="mt-2 text-xs text-white/60">
+                  {breed.size} · {breed.weight} · Lifespan: {breed.lifespan}
+                  {breed.hypoallergenic ? " · Hypoallergenic" : ""}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
 
         {/* Footer CTA */}
         <section className="container py-12 pb-20">

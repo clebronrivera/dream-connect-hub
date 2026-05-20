@@ -310,6 +310,17 @@ export default function Essentials() {
         </div>
       </section>
 
+      {/* Intro Section */}
+      <section className="bg-muted/20 py-10">
+        <div className="container">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
+              From premium puppy food and cozy bedding to training supplies and grooming essentials, we've curated everything you need to help your new family member settle in and thrive. All products are carefully selected for quality, safety, and value. Choose individual items or explore our complete starter kits designed for puppies at every life stage. Available to families in Orlando, FL and Raeford, NC.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Categories */}
       <section className="container py-12">
         <h2 className="text-3xl font-bold text-center text-foreground mb-10">Shop by Category</h2>

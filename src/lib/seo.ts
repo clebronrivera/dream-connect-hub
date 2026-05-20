@@ -16,6 +16,10 @@ export type SeoPageId =
   | "contact"
   | "upcomingLitters"
   | "breeds"
+  | "faq"
+  | "dreamyReviews"
+  | "trainingPlan"
+  | "about"
   | "admin"
   | "adminLogin"
   | "notFound";
@@ -32,51 +36,79 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   home: {
     pageId: "home",
     path: "/",
-    title: SITE_NAME,
+    title: "Family-Raised Puppies for Sale in Orlando, FL",
     description:
-      "Family-operated puppy placement, pet support, and essentials for families in Florida and North Carolina.",
+      "Family-raised puppies for sale in Orlando, FL and Raeford, NC. Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, and more. Reserve yours today — call (321) 697-8864.",
   },
   puppies: {
     pageId: "puppies",
     path: "/puppies",
-    title: "Available Puppies",
+    title: "Available Puppies for Sale in Florida",
     description:
-      "Browse available puppies with current photos, breed details, and availability information.",
+      "Browse available puppies from Dream Puppies — Goldendoodles, French Bulldogs, Shih Tzus, and more. Family-raised in Orlando, FL. Photos, prices, and pickup info included.",
   },
   consultation: {
     pageId: "consultation",
     path: "/consultation",
-    title: "Virtual Pet Consultation",
+    title: "Virtual Puppy Consultation | Dream Puppies Orlando, FL",
     description:
-      "Book one-on-one puppy and pet consultations for starter help, readiness, and behavior support.",
+      "Book a free virtual consultation with Dream Puppies. We help Florida and North Carolina families find the perfect breed for their home and lifestyle.",
   },
   essentials: {
     pageId: "essentials",
     path: "/essentials",
-    title: "Pet Essentials",
+    title: "Puppy Starter Kits & Essentials",
     description:
-      "Shop starter kits and pet essentials for feeding, comfort, grooming, training, and play.",
+      "Shop puppy starter kits and essentials recommended by Dream Puppies. Everything your new family member needs from day one.",
   },
   contact: {
     pageId: "contact",
     path: "/contact",
-    title: "Contact Dream Puppies",
+    title: "Contact Dream Puppies | Orlando, FL (321) 697-8864",
     description:
-      "Contact Dream Puppies about puppy availability, upcoming litters, consultations, or general questions.",
+      "Contact Dream Puppies in Orlando, FL or Raeford, NC. Call or text (321) 697-8864, email Dreampuppies22@gmail.com, or fill out our inquiry form.",
   },
   upcomingLitters: {
     pageId: "upcomingLitters",
     path: "/upcoming-litters",
-    title: "Upcoming Litters",
+    title: "Upcoming Puppy Litters in Florida",
     description:
-      "Explore upcoming litters, join the waitlist, and inquire about deposits and timing.",
+      "See upcoming Goldendoodle, Labradoodle, and French Bulldog litters from Dream Puppies in Orlando, FL. Reserve your spot before the litter arrives.",
   },
   breeds: {
     pageId: "breeds",
     path: "/breeds",
-    title: "Dog Breeds",
+    title: "Dog Breeds We Raise | Dream Puppies Orlando, FL",
     description:
-      "Compare breeds by size, temperament, grooming needs, and family fit.",
+      "Explore the breeds raised by Dream Puppies: Mini Goldendoodles, French Bulldogs, Shih Tzus, Toy Poodles, and more. Compare temperament, size, and care needs.",
+  },
+  faq: {
+    pageId: "faq",
+    path: "/faq",
+    title: "FAQ — Deposits, Pickup, Health & Care",
+    description:
+      "Frequently asked questions about Dream Puppies: deposits, pricing, pickup process, health guarantees, vaccinations, and puppy care.",
+  },
+  dreamyReviews: {
+    pageId: "dreamyReviews",
+    path: "/dreamy-reviews",
+    title: "Customer Reviews | Dream Puppies Orlando, FL",
+    description:
+      "Read reviews from Dream Puppies families. Real stories from happy puppy owners in Florida and North Carolina.",
+  },
+  trainingPlan: {
+    pageId: "trainingPlan",
+    path: "/training-plan",
+    title: "Free Puppy Training Plan",
+    description:
+      "Get a free customized puppy training plan from Dream Puppies. Address common puppy problems with step-by-step guidance.",
+  },
+  about: {
+    pageId: "about",
+    path: "/about",
+    title: "About Dream Puppies | Family Breeder in Orlando, FL",
+    description:
+      "Dream Puppies is a family-operated puppy breeder in Orlando, FL. Home-raised Goldendoodles, French Bulldogs, Shih Tzus, and more. Health-checked, vaccinated, and loved from birth.",
   },
   admin: {
     pageId: "admin",
@@ -109,6 +141,10 @@ export const PUBLIC_ROUTE_PAGE_IDS = [
   "contact",
   "upcomingLitters",
   "breeds",
+  "faq",
+  "dreamyReviews",
+  "trainingPlan",
+  "about",
 ] as const satisfies readonly SeoPageId[];
 
 export const PUBLIC_SEO_ROUTES = PUBLIC_ROUTE_PAGE_IDS.map((pageId) => SEO_ROUTE_CONFIG[pageId]);

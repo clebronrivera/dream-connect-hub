@@ -300,11 +300,7 @@ export default function DreamyReviews() {
 
   return (
     <Layout bare>
-      <Seo
-        title="Dreamy Reviews — Dream Puppies"
-        description="See what our happy puppy families are saying! Real stories and photos from Dream Puppies owners across Florida and North Carolina."
-        canonicalPath="/dreamy-reviews"
-      />
+      <Seo pageId="dreamyReviews" />
       <div className={pageShellClass}>
         <GalacticHomeNav />
 

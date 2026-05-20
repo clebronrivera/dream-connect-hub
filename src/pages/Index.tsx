@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
@@ -54,9 +55,52 @@ export default function Index() {
   const { t } = useLanguage();
   const locationsLabel = BUSINESS.locations.map((l) => `${l.city}, ${l.state}`).join(" · ");
 
+  useEffect(() => {
+    // Address objects intentionally omit streetAddress and postalCode — we do not
+    // publish a precise storefront address. addressLocality + addressRegion +
+    // addressCountry is the minimum valid PostalAddress for a city/region-level
+    // local business. Verify with Google Rich Results before claiming compliance.
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      '@id': 'https://puppyheavenllc.com/#business',
+      name: BUSINESS.primaryBrand,
+      type: ['LocalBusiness', 'PetStore'],
+      url: 'https://puppyheavenllc.com',
+      telephone: BUSINESS.phone,
+      email: BUSINESS.email,
+      address: BUSINESS.locations.map((loc) => ({
+        '@type': 'PostalAddress',
+        addressLocality: loc.city,
+        addressRegion: loc.state,
+        addressCountry: 'US',
+      })),
+      image: 'https://puppyheavenllc.com/dream-puppies-logo.png',
+      description: 'Family-raised puppies in Orlando, FL and Raeford, NC.',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'Customer Service',
+        telephone: BUSINESS.phone,
+        email: BUSINESS.email,
+      },
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'business-jsonld';
+    script.textContent = JSON.stringify(jsonLd);
+
+    document.getElementById('business-jsonld')?.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('business-jsonld')?.remove();
+    };
+  }, []);
+
   return (
     <Layout bare>
-      <Seo pageId="home" />
+      <Seo pageId="home" imageUrl="https://puppyheavenllc.com/dream-puppies-logo.png" />
       <div className="flex min-h-screen flex-col bg-[#0f041b] text-white">
         <GalacticHomeNav />
 

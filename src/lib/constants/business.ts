@@ -13,7 +13,7 @@ export const BUSINESS = {
   phoneRaw: '3216978864',
   tagline: 'Where every pup gets a dream start.',
   programType: 'Hobby Breeding Program',
-  footerLine: 'Dream Enterprises LLC — DBA Dream Puppies / Puppy Heaven · Florida',
+  footerLine: 'Dream Enterprises LLC — DBA Dream Puppies · Orlando, FL & Raeford, NC',
   state: 'Florida',
   locations: [
     { city: 'Orlando', state: 'Florida', isPrimary: true },
