@@ -1,29 +1,25 @@
 // /breeder — Yolanda's home screen.
 //
-// Two top-level tabs: "Litters" (the existing card list from
-// breeder_litter_summary) and "Puppies" (a flat list of every puppy across
-// litters, with quick-add). Phone-first single-column layout.
+// Shows the litter list (breeder_litter_summary). Navigation between
+// Litters / Puppies / Parents is handled by the persistent bottom nav
+// in BreederLayout — no tabs needed here.
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, PawPrint, RefreshCw, Users } from "lucide-react";
+import { Loader2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LitterCard } from "@/components/breeder/LitterCard";
-import { BreederPuppiesPanel } from "@/components/breeder/BreederPuppiesPanel";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import { loadBreederHome } from "@/lib/breeder/api";
 
 const HOME_QK = ["breeder", "home"] as const;
 const TICK_MS = 60_000;
-type TabValue = "litters" | "puppies";
 
 export default function BreederHome() {
   const { session, signOut } = useBreederAuth();
   const navigate = useNavigate();
   const [now, setNow] = useState<number>(() => Date.now());
-  const [tab, setTab] = useState<TabValue>("litters");
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), TICK_MS);
@@ -49,104 +45,76 @@ export default function BreederHome() {
 
   return (
     <div className="mx-auto max-w-screen-sm space-y-4 px-4 py-6">
-      <header className="flex items-baseline justify-between">
+      {/* ── Page header ── */}
+      <header className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">Dream Puppies</h1>
+          <h1 className="text-2xl font-bold">Your Litters</h1>
           <p className="text-sm text-muted-foreground">
-            Manage your litters or jump straight to a single puppy.
+            Tap a litter to manage it.
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          aria-label="Refresh"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => void refetch()}
+            disabled={isRefetching}
+            aria-label="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/breeder/upcoming-litters/new">
+              <Plus className="mr-1 h-4 w-4" />
+              Add litter
+            </Link>
+          </Button>
+        </div>
       </header>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="litters" className="gap-2">
-            <Users className="h-4 w-4" aria-hidden />
-            Litters
-          </TabsTrigger>
-          <TabsTrigger value="puppies" className="gap-2">
-            <PawPrint className="h-4 w-4" aria-hidden />
-            Puppies
-          </TabsTrigger>
-        </TabsList>
+      {/* ── Loading ── */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      )}
 
-        <TabsContent value="litters" className="mt-4 space-y-3">
-          <div className="flex justify-end">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/breeder/upcoming-litters/new">
-                <PawPrint className="mr-1 h-4 w-4" />
-                Add upcoming litter
-              </Link>
-            </Button>
-          </div>
-          {isLoading && (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          )}
+      {/* ── Error ── */}
+      {error && !isLoading && (
+        <div
+          className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+          role="alert"
+        >
+          {error instanceof Error ? error.message : "Failed to load litters"}
+        </div>
+      )}
 
-          {error && !isLoading && (
-            <div
-              className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
-              role="alert"
-            >
-              {error instanceof Error
-                ? error.message
-                : "Failed to load litters"}
-            </div>
-          )}
+      {/* ── Empty state ── */}
+      {!isLoading && data && data.length === 0 && (
+        <div className="flex flex-col items-center gap-3 rounded-xl border bg-muted/40 p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No litters yet. Tap{" "}
+            <strong className="text-foreground">Add litter</strong> to
+            pre-register an upcoming breeding.
+          </p>
+        </div>
+      )}
 
-          {!isLoading && data && data.length === 0 && (
-            <div className="rounded-md border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-              No litters set up yet. Add one in /admin/upcoming-litters and
-              it'll appear here.
-            </div>
-          )}
-
-          {!isLoading && data && data.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {data.map((row) => (
-                <LitterCard
-                  key={row.upcoming_litter_id}
-                  row={row}
-                  now={now}
-                  onClick={() =>
-                    navigate(`/breeder/litters/${row.upcoming_litter_id}`)
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="puppies" className="mt-4">
-          {!isLoading && data ? (
-            <BreederPuppiesPanel home={data} />
-          ) : (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <div className="pt-4">
-        <Button asChild variant="outline" className="w-full">
-          <Link to="/breeder/parents">
-            <Users className="mr-2 h-4 w-4" />
-            Manage Mom &amp; Dad dogs
-          </Link>
-        </Button>
-      </div>
+      {/* ── Litter cards ── */}
+      {!isLoading && data && data.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {data.map((row) => (
+            <LitterCard
+              key={row.upcoming_litter_id}
+              row={row}
+              now={now}
+              onClick={() =>
+                navigate(`/breeder/litters/${row.upcoming_litter_id}`)
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

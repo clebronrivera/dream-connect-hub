@@ -1,10 +1,20 @@
-// Mobile-first layout chrome for /breeder/*. A header with a back affordance
-// + a sign-out menu, then an Outlet for the page content.
+// Mobile-first layout chrome for /breeder/*. A sticky top header with a
+// back / home affordance, a persistent bottom navigation bar (Litters →
+// Puppies → Parents), and an Outlet for the page content.
+//
+// Bottom nav lets Yolanda jump between sections from any sub-page — no
+// need to go Home first to reach the Puppies tab.
 
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { ArrowLeft, Home, LogOut } from "lucide-react";
+import { useNavigate, Outlet, useLocation, NavLink } from "react-router-dom";
+import { ArrowLeft, LogOut, Users, PawPrint, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
+
+const NAV_ITEMS = [
+  { to: "/breeder",         label: "Litters",  Icon: Heart,    exact: true },
+  { to: "/breeder/puppies", label: "Puppies",  Icon: PawPrint, exact: false },
+  { to: "/breeder/parents", label: "Parents",  Icon: Users,    exact: false },
+] as const;
 
 export function BreederLayout() {
   const navigate = useNavigate();
@@ -20,6 +30,7 @@ export function BreederLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      {/* ── Top header ── */}
       <header
         className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
@@ -36,36 +47,51 @@ export function BreederLayout() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Dream Puppies · Breeder
-          </h1>
+          </span>
         </div>
-        <div className="flex items-center gap-1">
-          {!isHome && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/breeder")}
-              aria-label="Home"
-            >
-              <Home className="h-5 w-5" />
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            aria-label="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={handleSignOut}
+          aria-label="Sign out"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
       </header>
-      <main className="flex-1">
+
+      {/* ── Page content — extra bottom padding so nav bar never overlaps ── */}
+      <main className="flex-1 pb-24">
         <Outlet />
       </main>
+
+      {/* ── Persistent bottom navigation ── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-10 flex border-t bg-background/95 backdrop-blur"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        aria-label="Main navigation"
+      >
+        {NAV_ITEMS.map(({ to, label, Icon, exact }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={exact}
+            className={({ isActive }) =>
+              `flex flex-1 flex-col items-center gap-0.5 py-3 text-[11px] font-medium transition-colors ${
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`
+            }
+            aria-label={label}
+          >
+            <Icon className="h-5 w-5" aria-hidden />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }
