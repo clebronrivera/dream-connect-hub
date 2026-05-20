@@ -44,6 +44,7 @@ async function main() {
 
   const { AppProviders, AppRoutes } = await import("../src/App");
   const { createAppQueryClient } = await import("../src/lib/query-client");
+  const { PROBLEM_TYPES } = await import("../src/lib/constants/trainingPlan");
   const template = await fs.readFile(distIndexPath, "utf8");
 
   for (const route of PUBLIC_SEO_ROUTES) {
@@ -60,7 +61,33 @@ async function main() {
     await writeRouteHtml(route.path, html);
   }
 
-  await fs.writeFile(path.join(distDir, "sitemap.xml"), buildSitemap(siteUrl, PUBLIC_SEO_ROUTES), "utf8");
+  // Prerender each /training-plan/:slug page with its problem-specific SEO.
+  // The TrainingPlanPage component overrides title/description from PROBLEM_TYPES;
+  // we mirror that override here so static HTML matches the client-side metadata.
+  const extraPaths: string[] = [];
+  for (const problem of PROBLEM_TYPES) {
+    const routePath = `/training-plan/${problem.slug}`;
+    const metadata = resolveSeoMetadata({
+      pageId: "trainingPlan",
+      title: problem.seoTitle,
+      description: problem.seoDescription,
+      canonicalPath: routePath,
+      currentOrigin: siteUrl,
+    });
+    const html = renderRouteHtml(template, routePath, renderStaticSeoTags(metadata), {
+      AppProviders,
+      AppRoutes,
+      createAppQueryClient,
+    });
+    await writeRouteHtml(routePath, html);
+    extraPaths.push(routePath);
+  }
+
+  const sitemapRoutes = [
+    ...PUBLIC_SEO_ROUTES.map((r) => ({ path: r.path })),
+    ...extraPaths.map((p) => ({ path: p })),
+  ];
+  await fs.writeFile(path.join(distDir, "sitemap.xml"), buildSitemap(siteUrl, sitemapRoutes), "utf8");
   await fs.writeFile(path.join(distDir, "robots.txt"), buildRobots(siteUrl), "utf8");
 }
 

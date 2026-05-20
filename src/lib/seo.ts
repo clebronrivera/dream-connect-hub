@@ -36,14 +36,14 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   home: {
     pageId: "home",
     path: "/",
-    title: "Family-Raised Puppies for Sale in Orlando, FL | Dream Puppies",
+    title: "Family-Raised Puppies for Sale in Orlando, FL",
     description:
       "Family-raised puppies for sale in Orlando, FL and Raeford, NC. Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, and more. Reserve yours today — call (321) 697-8864.",
   },
   puppies: {
     pageId: "puppies",
     path: "/puppies",
-    title: "Available Puppies for Sale in Florida | Dream Puppies",
+    title: "Available Puppies for Sale in Florida",
     description:
       "Browse available puppies from Dream Puppies — Goldendoodles, French Bulldogs, Shih Tzus, and more. Family-raised in Orlando, FL. Photos, prices, and pickup info included.",
   },
@@ -57,7 +57,7 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   essentials: {
     pageId: "essentials",
     path: "/essentials",
-    title: "Puppy Starter Kits & Essentials | Dream Puppies",
+    title: "Puppy Starter Kits & Essentials",
     description:
       "Shop puppy starter kits and essentials recommended by Dream Puppies. Everything your new family member needs from day one.",
   },
@@ -71,7 +71,7 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   upcomingLitters: {
     pageId: "upcomingLitters",
     path: "/upcoming-litters",
-    title: "Upcoming Puppy Litters in Florida | Dream Puppies",
+    title: "Upcoming Puppy Litters in Florida",
     description:
       "See upcoming Goldendoodle, Labradoodle, and French Bulldog litters from Dream Puppies in Orlando, FL. Reserve your spot before the litter arrives.",
   },
@@ -85,7 +85,7 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   faq: {
     pageId: "faq",
     path: "/faq",
-    title: "FAQ — Deposits, Pickup, Health & Care | Dream Puppies",
+    title: "FAQ — Deposits, Pickup, Health & Care",
     description:
       "Frequently asked questions about Dream Puppies: deposits, pricing, pickup process, health guarantees, vaccinations, and puppy care.",
   },
@@ -99,7 +99,7 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   trainingPlan: {
     pageId: "trainingPlan",
     path: "/training-plan",
-    title: "Free Puppy Training Plan | Dream Puppies",
+    title: "Free Puppy Training Plan",
     description:
       "Get a free customized puppy training plan from Dream Puppies. Address common puppy problems with step-by-step guidance.",
   },
