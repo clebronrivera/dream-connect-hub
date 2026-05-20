@@ -5,7 +5,9 @@ export const SITE_AUTHOR = "Dream Enterprises LLC — Dream Puppies";
 export const DEFAULT_ROBOTS = "index,follow";
 export const NOINDEX_ROBOTS = "noindex,nofollow";
 export const DEFAULT_OG_TYPE = "website";
-export const DEFAULT_TWITTER_CARD = "summary_large_image";
+// "summary" is correct for our square 1024×1024 logo; "summary_large_image"
+// expects a wide (≥2:1) banner and would crop/distort the logo.
+export const DEFAULT_TWITTER_CARD = "summary";
 export const DEFAULT_SOCIAL_IMAGE_PATH = "/dream-puppies-logo.png";
 
 export type SeoPageId =
@@ -295,7 +297,12 @@ export function renderStaticSeoTags(metadata: ResolvedSeoMetadata): string {
 
   if (metadata.socialImage) {
     tags.push(`<meta property="og:image" content="${escapeHtml(metadata.socialImage)}" />`);
+    tags.push(`<meta property="og:image:type" content="image/png" />`);
+    tags.push(`<meta property="og:image:width" content="1024" />`);
+    tags.push(`<meta property="og:image:height" content="1024" />`);
+    tags.push(`<meta property="og:image:alt" content="Dream Puppies logo" />`);
     tags.push(`<meta name="twitter:image" content="${escapeHtml(metadata.socialImage)}" />`);
+    tags.push(`<meta name="twitter:image:alt" content="Dream Puppies logo" />`);
   }
 
   return tags.join("");

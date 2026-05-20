@@ -42,10 +42,20 @@ export function Seo({ pageId, title, description, canonicalPath, robots, imageUr
 
     if (metadata.socialImage) {
       upsertMetaTag("property", "og:image", metadata.socialImage);
+      upsertMetaTag("property", "og:image:type", "image/png");
+      upsertMetaTag("property", "og:image:width", "1024");
+      upsertMetaTag("property", "og:image:height", "1024");
+      upsertMetaTag("property", "og:image:alt", "Dream Puppies logo");
       upsertMetaTag("name", "twitter:image", metadata.socialImage);
+      upsertMetaTag("name", "twitter:image:alt", "Dream Puppies logo");
     } else {
       removeTag(`meta[property="og:image"]`);
+      removeTag(`meta[property="og:image:type"]`);
+      removeTag(`meta[property="og:image:width"]`);
+      removeTag(`meta[property="og:image:height"]`);
+      removeTag(`meta[property="og:image:alt"]`);
       removeTag(`meta[name="twitter:image"]`);
+      removeTag(`meta[name="twitter:image:alt"]`);
     }
   }, [canonicalPath, description, imageUrl, location.pathname, pageId, robots, title]);
 

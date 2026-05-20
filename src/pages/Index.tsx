@@ -75,6 +75,15 @@ export default function Index() {
         addressRegion: loc.state,
         addressCountry: 'US',
       })),
+      // Google uses `logo` (not `image`) to identify the brand mark for search
+      // result thumbnails and the Knowledge Panel. ImageObject with dimensions
+      // is the recommended format per schema.org/logo.
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://puppyheavenllc.com/dream-puppies-logo.png',
+        width: 1024,
+        height: 1024,
+      },
       image: 'https://puppyheavenllc.com/dream-puppies-logo.png',
       description: 'Family-raised puppies in Orlando, FL and Raeford, NC.',
       contactPoint: {
