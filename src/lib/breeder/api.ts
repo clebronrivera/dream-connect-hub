@@ -350,6 +350,35 @@ export function updateBreederParent(
   return callBreederWrite<BreederParentRow>(token, "updateParent", { dogId, fields });
 }
 
+export interface CreateUpcomingLitterPayload {
+  displayBreed: string;
+  damId: string | null;
+  sireId: string | null;
+  breedingDate?: string | null;
+  expectedWhelpingDate?: string | null;
+  priceLabel?: string | null;
+  dueLabel?: string | null;
+  minExpectedPuppies?: number | null;
+  maxExpectedPuppies?: number | null;
+  isActive?: boolean;
+}
+
+export interface CreateUpcomingLitterResult {
+  id: string;
+  display_breed: string;
+  dam_name: string | null;
+  sire_name: string | null;
+  expected_whelping_date: string | null;
+  lifecycle_status: string;
+}
+
+export function createUpcomingLitter(
+  token: string,
+  payload: CreateUpcomingLitterPayload,
+): Promise<BreederWriteResult<CreateUpcomingLitterResult>> {
+  return callBreederWrite<CreateUpcomingLitterResult>(token, "createUpcomingLitter", payload);
+}
+
 export interface UploadPhotoResult {
   path: string;
   publicUrl: string;
