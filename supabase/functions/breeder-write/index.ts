@@ -85,6 +85,8 @@ export async function handler(
       return await createParent(supabase, body.payload, json);
     case "updateParent":
       return await updateParent(supabase, body.payload, json);
+    case "createUpcomingLitter":
+      return await createUpcomingLitter(supabase, body.payload, json);
     default:
       return json(400, { ok: false, error: `Unknown op: ${body.op ?? "(none)"}` });
   }
@@ -722,6 +724,107 @@ async function updateParent(
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update parent", details: error?.message });
+  return json(200, { ok: true, data });
+}
+
+// ---------------------------------------------------------------------------
+// createUpcomingLitter
+// Lets the breeder pre-register an upcoming litter from the breeder portal.
+// Minimal payload — the lifecycle starts at pre_birth and the operator comes
+// back to confirm dates / counts once the puppies arrive (via confirmLitterBorn).
+// ---------------------------------------------------------------------------
+
+interface CreateUpcomingLitterPayload {
+  displayBreed?: string;
+  damId?: string | null;
+  sireId?: string | null;
+  breedingDate?: string | null;       // YYYY-MM-DD (optional)
+  expectedWhelpingDate?: string | null; // YYYY-MM-DD (optional)
+  priceLabel?: string | null;
+  dueLabel?: string | null;
+  minExpectedPuppies?: number | null;
+  maxExpectedPuppies?: number | null;
+  isActive?: boolean;
+}
+
+async function createUpcomingLitter(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as CreateUpcomingLitterPayload;
+
+  if (!p.displayBreed || typeof p.displayBreed !== "string" || p.displayBreed.trim().length === 0) {
+    return json(400, { ok: false, error: "displayBreed is required" });
+  }
+  if (p.damId != null && !isUuid(p.damId)) {
+    return json(400, { ok: false, error: "damId must be a UUID or null" });
+  }
+  if (p.sireId != null && !isUuid(p.sireId)) {
+    return json(400, { ok: false, error: "sireId must be a UUID or null" });
+  }
+  if (p.breedingDate != null && p.breedingDate !== "" && !isIsoDate(p.breedingDate)) {
+    return json(400, { ok: false, error: "breedingDate must be YYYY-MM-DD" });
+  }
+  if (p.expectedWhelpingDate != null && p.expectedWhelpingDate !== "" && !isIsoDate(p.expectedWhelpingDate)) {
+    return json(400, { ok: false, error: "expectedWhelpingDate must be YYYY-MM-DD" });
+  }
+
+  // Look up parent dogs so we can denormalize name/breed/photo onto the litter.
+  // upcoming_litter cards on the public site read these fallbacks when the join
+  // cannot be resolved client-side.
+  let damRow: { id: string; name: string; breed: string; photo_path: string | null } | null = null;
+  let sireRow: { id: string; name: string; breed: string; photo_path: string | null } | null = null;
+  if (p.damId) {
+    const { data, error } = await supabase
+      .from("breeding_dogs")
+      .select("id, name, breed, photo_path")
+      .eq("id", p.damId)
+      .maybeSingle();
+    if (error) return json(500, { ok: false, error: "Failed to read dam", details: error.message });
+    if (!data) return json(400, { ok: false, error: "damId does not exist" });
+    damRow = data as typeof damRow;
+  }
+  if (p.sireId) {
+    const { data, error } = await supabase
+      .from("breeding_dogs")
+      .select("id, name, breed, photo_path")
+      .eq("id", p.sireId)
+      .maybeSingle();
+    if (error) return json(500, { ok: false, error: "Failed to read sire", details: error.message });
+    if (!data) return json(400, { ok: false, error: "sireId does not exist" });
+    sireRow = data as typeof sireRow;
+  }
+
+  const insertable: Record<string, unknown> = {
+    breed: p.displayBreed.trim(),
+    display_breed: p.displayBreed.trim(),
+    dam_id: p.damId ?? null,
+    sire_id: p.sireId ?? null,
+    dam_name: damRow?.name ?? null,
+    dam_breed: damRow?.breed ?? null,
+    dam_photo_path: damRow?.photo_path ?? null,
+    sire_name: sireRow?.name ?? null,
+    sire_breed: sireRow?.breed ?? null,
+    sire_photo_path: sireRow?.photo_path ?? null,
+    breeding_date: p.breedingDate?.trim() || null,
+    expected_whelping_date: p.expectedWhelpingDate?.trim() || null,
+    due_label: p.dueLabel?.trim() || null,
+    price_label: p.priceLabel?.trim() || null,
+    min_expected_puppies: typeof p.minExpectedPuppies === "number" ? p.minExpectedPuppies : null,
+    max_expected_puppies: typeof p.maxExpectedPuppies === "number" ? p.maxExpectedPuppies : null,
+    is_active: p.isActive ?? true,
+    lifecycle_status: "pre_birth",
+  };
+
+  const { data, error } = await supabase
+    .from("upcoming_litters")
+    .insert(insertable)
+    .select("id, display_breed, dam_name, sire_name, expected_whelping_date, lifecycle_status")
+    .single();
+  if (error || !data) {
+    return json(500, { ok: false, error: "Failed to create upcoming litter", details: error?.message });
+  }
   return json(200, { ok: true, data });
 }
 

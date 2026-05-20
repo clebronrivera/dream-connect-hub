@@ -80,6 +80,14 @@ export default function BreederHome() {
         </TabsList>
 
         <TabsContent value="litters" className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/breeder/upcoming-litters/new">
+                <PawPrint className="mr-1 h-4 w-4" />
+                Add upcoming litter
+              </Link>
+            </Button>
+          </div>
           {isLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />

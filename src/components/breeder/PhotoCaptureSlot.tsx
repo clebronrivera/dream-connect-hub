@@ -112,6 +112,8 @@ export function PhotoCaptureSlot({
         accept="image/jpeg,image/png,image/webp"
         capture="environment"
         className="hidden"
+        aria-hidden
+        tabIndex={-1}
         onChange={(e) => handleFiles(e.target.files)}
       />
 

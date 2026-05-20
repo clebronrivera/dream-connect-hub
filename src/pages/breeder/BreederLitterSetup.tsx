@@ -15,9 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { confirmLitterBorn, loadBreederHome } from "@/lib/breeder/api";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
+import { MAIN_BREEDS, OTHER_BREED_OPTION } from "@/lib/breed-utils";
 import type { BreederLitterSummary } from "@/types/breeder";
 
 const HOME_QK = ["breeder", "home"] as const;
@@ -77,7 +85,23 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
   const { session } = useBreederAuth();
 
   const [stepIdx, setStepIdx] = useState(0);
-  const [breed, setBreed] = useState(row.breed ?? "");
+
+  // Breed selection: dropdown of MAIN_BREEDS + an "Other / Custom" option. If the
+  // pre-filled value (from upcoming_litters.breed) doesn't match a MAIN_BREED, we
+  // route the operator into the Other path so the original text isn't lost (the
+  // free-text input pattern below covers crosses like "F1B Goldendoodle x Mini Poodle").
+  const initialBreed = row.breed ?? "";
+  const isStandardBreed = (MAIN_BREEDS as readonly string[]).includes(initialBreed);
+  const [breedSelect, setBreedSelect] = useState<string>(
+    initialBreed === ""
+      ? ""
+      : isStandardBreed
+        ? initialBreed
+        : OTHER_BREED_OPTION,
+  );
+  const [otherBreed, setOtherBreed] = useState<string>(isStandardBreed ? "" : initialBreed);
+  const breed =
+    breedSelect === OTHER_BREED_OPTION ? otherBreed.trim() : breedSelect.trim();
   const [dob, setDob] = useState(isoToday());
   const [ready, setReady] = useState(addDays(isoToday(), PUPPY_GO_HOME_AGE_DAYS));
   const [male, setMale] = useState(0);
@@ -169,17 +193,44 @@ function SetupForm({ row, litterId }: { row: BreederLitterSummary; litterId: str
           <>
             <h2 className="text-lg font-semibold">Confirm the breed</h2>
             <p className="text-sm text-muted-foreground">
-              Pre-filled from the upcoming-litter slot. Edit if needed.
+              Pre-filled from the upcoming-litter slot. Pick from the list, or choose
+              "{OTHER_BREED_OPTION}" for crosses like "F1B Goldendoodle x Mini Poodle".
             </p>
-            <div>
-              <Label htmlFor="breed">Breed</Label>
-              <Input
-                id="breed"
-                value={breed}
-                onChange={(e) => setBreed(e.target.value)}
-                className="mt-1"
-                placeholder="e.g. F1B Goldendoodle x Mini Poodle"
-              />
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="breed">Breed</Label>
+                <Select
+                  value={breedSelect}
+                  onValueChange={(v) => {
+                    setBreedSelect(v);
+                    if (v !== OTHER_BREED_OPTION) setOtherBreed("");
+                  }}
+                >
+                  <SelectTrigger id="breed" className="mt-1">
+                    <SelectValue placeholder="Select a breed" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MAIN_BREEDS.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {breedSelect === OTHER_BREED_OPTION && (
+                <div>
+                  <Label htmlFor="other-breed">Custom breed</Label>
+                  <Input
+                    id="other-breed"
+                    value={otherBreed}
+                    onChange={(e) => setOtherBreed(e.target.value)}
+                    className="mt-1"
+                    placeholder="e.g. F1B Goldendoodle x Mini Poodle"
+                  />
+                </div>
+              )}
             </div>
           </>
         )}
@@ -348,7 +399,15 @@ function Counter({
           variant="ghost"
           size="icon"
           className="h-12 w-12"
-          onClick={() => setValue((v) => Math.min(20, v + 1))}
+          onClick={() =>
+            setValue((v) => {
+              if (v >= 20) {
+                toast.info("Max 20 per category for one litter");
+                return 20;
+              }
+              return v + 1;
+            })
+          }
           aria-label={`Increase ${label}`}
         >
           <Plus className="h-5 w-5" />
@@ -361,8 +420,8 @@ function Counter({
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value || "—"}</dd>
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium">{value || "—"}</dd>
     </div>
   );
 }

@@ -71,6 +71,15 @@ export function AdminLayout() {
 
   const sidebarFooter = (
     <div className="p-6 border-t border-line space-y-2">
+      <a
+        href="/breeder"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md border border-amber-200 transition-colors"
+      >
+        <Dog className="h-4 w-4" />
+        Breeder Portal
+      </a>
       <Link
         to="/"
         className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-foreground bg-muted/60 hover:bg-muted rounded-md border border-line transition-colors"
