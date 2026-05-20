@@ -32,6 +32,7 @@ const galacticNavLinks: { to: string; label: TranslationKey; end?: boolean }[] =
   { to: "/training-plan", label: "navShortTraining" },
   { to: "/dreamy-reviews", label: "navShortReviews" },
   { to: "/faq", label: "navShortFaq" },
+  { to: "/about", label: "navAbout" },
   { to: "/contact", label: "navShortContact" },
 ];
 

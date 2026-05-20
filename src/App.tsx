@@ -66,6 +66,7 @@ const BreederPuppyCapture = lazyWithRetry(() => import("./pages/breeder/BreederP
 const BreederLitterDates = lazyWithRetry(() => import("./pages/breeder/BreederLitterDates"));
 const BreederParents = lazyWithRetry(() => import("./pages/breeder/BreederParents"));
 const BreederParentEdit = lazyWithRetry(() => import("./pages/breeder/BreederParentEdit"));
+const About = lazyWithRetry(() => import("./pages/About"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -115,6 +116,7 @@ export function AppRoutes() {
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />
         <Route path="/training-plan" element={<TrainingPlanPage />} />
         <Route path="/training-plan/:problemType" element={<TrainingPlanPage />} />
+        <Route path="/about" element={<About />} />
 
         {/* Dev / design mockups (URL-only; not linked from public nav) */}
         <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
