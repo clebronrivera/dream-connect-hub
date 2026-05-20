@@ -27,6 +27,7 @@ import * as React from 'react';
 import { puppySchema, type PuppyFormValues } from './puppy-form-schema';
 import { getPuppyFormDefaults, puppyToFormValues } from './puppy-form-defaults';
 import { PuppyFormPhotoSection } from './PuppyFormPhotoSection';
+import { BreederBadge } from './BreederBadge';
 import { PuppyLitterSection } from './PuppyLitterSection';
 import { AddLittermateDialog } from './AddLittermateDialog';
 import { GenerateLittermatesDialog } from './GenerateLittermatesDialog';
@@ -171,19 +172,42 @@ export default function PuppyForm() {
     },
   });
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload into one of the four breeder-aligned slots (0=face, 1=back, 2=top, 3=paw).
+  // Mirrors the breeder side (BreederPuppyCapture.tsx:338-349): the stored `photos`
+  // array is dense (filters out empty slots), and slot 0 also writes primary_photo.
+  const handleSlotPhotoUpload = async (slotIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingPhoto(true);
     try {
       const { url } = await uploadPuppyPhoto(file);
-      form.setValue('primary_photo', url);
-      form.setValue('photos', [...(form.getValues('photos') || []), url]);
+
+      // Reconstruct positional 4-slot view from current dense photos + primary_photo.
+      const currentPhotos = form.getValues('photos') ?? [];
+      const currentPrimary = form.getValues('primary_photo');
+      const slotView: (string | undefined)[] = [
+        typeof currentPrimary === 'string' && currentPrimary.trim() ? currentPrimary : currentPhotos[0],
+        currentPhotos[1],
+        currentPhotos[2],
+        currentPhotos[3],
+      ];
+
+      // Update the chosen slot, then collapse back to a dense array for storage.
+      slotView[slotIndex] = url;
+      const denseNext = slotView.filter((u): u is string => typeof u === 'string' && u.length > 0);
+
+      form.setValue('photos', denseNext, { shouldDirty: true });
+      if (slotIndex === 0) {
+        form.setValue('primary_photo', url, { shouldDirty: true });
+      }
+
       toast({ title: 'Photo uploaded', description: 'The photo has been uploaded successfully.' });
     } catch (error: unknown) {
       toast({ title: 'Upload failed', description: error instanceof Error ? error.message : 'Failed to upload photo.', variant: 'destructive' });
     } finally {
       setUploadingPhoto(false);
+      // Reset the input so re-selecting the same file refires onChange.
+      e.target.value = '';
     }
   };
 
@@ -218,7 +242,7 @@ export default function PuppyForm() {
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between gap-2">
-                    <FormLabel>Name *</FormLabel>
+                    <FormLabel>Name * <BreederBadge /></FormLabel>
                     {!isEdit && (
                       gender === 'Male' || gender === 'Female' ? (
                         <Button
@@ -329,7 +353,7 @@ export default function PuppyForm() {
                   : value || undefined;
                 return (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
+                    <FormLabel>Gender <BreederBadge /></FormLabel>
                     <Select
                       value={selectValue}
                       onValueChange={(v) => {
@@ -376,7 +400,7 @@ export default function PuppyForm() {
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>Color <BreederBadge /></FormLabel>
                   <FormControl><Input {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -388,7 +412,7 @@ export default function PuppyForm() {
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>Status <BreederBadge /></FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -433,7 +457,7 @@ export default function PuppyForm() {
                     <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Show on public site</FormLabel>
+                    <FormLabel>Show on public site <BreederBadge /></FormLabel>
                   </div>
                 </FormItem>
               )}
@@ -459,7 +483,7 @@ export default function PuppyForm() {
               name="date_of_birth"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Date of Birth</FormLabel>
+                  <FormLabel>Date of Birth <BreederBadge /></FormLabel>
                   <FormControl><Input type="date" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -502,7 +526,7 @@ export default function PuppyForm() {
               name="ready_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ready Date</FormLabel>
+                  <FormLabel>Ready Date <BreederBadge /></FormLabel>
                   <FormControl><Input type="date" {...field} /></FormControl>
                   <p className="text-xs text-muted-foreground">Auto-calculated as 8 weeks after date of birth; you can change it.</p>
                   <FormMessage />
@@ -515,7 +539,7 @@ export default function PuppyForm() {
               name="base_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Base Price</FormLabel>
+                  <FormLabel>Base Price <BreederBadge /></FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
                   </FormControl>
@@ -640,7 +664,7 @@ export default function PuppyForm() {
               return (
                 <FormItem>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description <BreederBadge /></FormLabel>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={handleGenerate} disabled={!canGenerate}>
                         <Sparkles className="h-4 w-4 mr-1" />Generate description
@@ -675,9 +699,10 @@ export default function PuppyForm() {
           />
 
           <PuppyFormPhotoSection
+            photos={form.watch('photos') ?? []}
             primaryPhotoUrl={form.watch('primary_photo')}
             uploadingPhoto={uploadingPhoto}
-            onFileSelect={handlePhotoUpload}
+            onSlotFileSelect={handleSlotPhotoUpload}
           />
 
           <div className="flex gap-4">
