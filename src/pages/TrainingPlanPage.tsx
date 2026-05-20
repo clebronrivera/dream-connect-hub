@@ -27,13 +27,14 @@ export default function TrainingPlanPage() {
   const problemType = slug ? getProblemTypeBySlug(slug) : null;
   const [plan, setPlan] = useState<PlanResult | null>(null);
 
-  const seoTitle = problemType?.seoTitle ?? 'Free Personalized Training Plan — Dream Puppies';
-  const seoDescription = problemType?.seoDescription
-    ?? 'Get a free AI-powered training plan personalized for your dog. Step-by-step guidance from Dream Puppies.';
-
   return (
     <Layout bare>
-      <Seo title={seoTitle} description={seoDescription} canonicalPath={slug ? `/training-plan/${slug}` : '/training-plan'} />
+      <Seo
+        pageId="trainingPlan"
+        title={problemType?.seoTitle}
+        description={problemType?.seoDescription}
+        canonicalPath={slug ? `/training-plan/${slug}` : '/training-plan'}
+      />
       <div className={pageShellClass}>
         <GalacticHomeNav />
 

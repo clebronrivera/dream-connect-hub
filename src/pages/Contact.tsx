@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
@@ -134,6 +134,39 @@ export default function Contact() {
     }
   };
 
+  useEffect(() => {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://puppyheavenllc.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Contact',
+          item: 'https://puppyheavenllc.com/contact',
+        },
+      ],
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'breadcrumb-jsonld';
+    script.textContent = JSON.stringify(jsonLd);
+
+    document.getElementById('breadcrumb-jsonld')?.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('breadcrumb-jsonld')?.remove();
+    };
+  }, []);
+
   return (
     <Layout bare>
       <Seo pageId="contact" />
@@ -150,10 +183,18 @@ export default function Contact() {
         <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-[#0f041b]/60 via-transparent to-[#0f041b]/80" />
         <div className={`relative z-20 text-center ${containerClass}`}>
           <Mail className="h-12 w-12 mx-auto mb-4 text-white" />
-          <h1 className="mb-4 font-display text-5xl uppercase tracking-tight text-white md:text-7xl">Contact Us</h1>
+          <h1 className="mb-4 font-display text-5xl uppercase tracking-tight text-white md:text-7xl">Contact Dream Puppies</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/80 md:text-xl">
             Have questions? We'd love to hear from you. Reach out and we'll respond as soon as we can.
           </p>
+          {/* NAP Block */}
+          <div className="mt-8 mx-auto max-w-2xl text-sm text-white/70 space-y-2">
+            <p className="font-semibold text-white">Dream Enterprises LLC (DBA Dream Puppies)</p>
+            <p>Orlando, FL | Raeford, NC</p>
+            <a href={`tel:${BUSINESS.phoneRaw}`} className="inline-block hover:text-white transition-colors">
+              {BUSINESS.phone}
+            </a>
+          </div>
         </div>
       </section>
 
@@ -208,8 +249,8 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Service Areas</h3>
-                    <p className="text-white/75">Florida</p>
-                    <p className="text-white/75">North Carolina</p>
+                    <p className="text-white/75">Orlando, FL</p>
+                    <p className="text-white/75">Raeford, NC</p>
                   </div>
                 </div>
               </CardContent>
@@ -352,6 +393,50 @@ export default function Contact() {
         </div>
         </div>
       </section>
+
+      {/* How We Help Section */}
+      <section className="border-t border-white/10 bg-[#0a0214] py-14 md:py-16">
+        <div className={containerClass}>
+          <div className="mb-10 text-center">
+            <h2 className="font-display text-3xl font-black tracking-tight md:text-4xl">How We Help</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className={sectionCardClass}>
+              <CardHeader>
+                <CardTitle className="text-xl text-white">Virtual Consultations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/70">
+                  Schedule a free consultation to discuss breed compatibility, lifestyle fit, and answer all your questions about bringing home your Dream Puppy.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className={sectionCardClass}>
+              <CardHeader>
+                <CardTitle className="text-xl text-white">Health & Care Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/70">
+                  We provide detailed puppy care guides, vaccination records, and ongoing health support to ensure your new family member thrives.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className={sectionCardClass}>
+              <CardHeader>
+                <CardTitle className="text-xl text-white">Lifetime Guidance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-white/70">
+                  Questions about training, behavior, or care? We're here for you every step of the way with lifetime support and expert advice.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       <section className="py-10">
         <div className={`${containerClass} text-center`}>
           <p className="mb-4 text-white/75">Prefer quick contact? Text or call us directly.</p>

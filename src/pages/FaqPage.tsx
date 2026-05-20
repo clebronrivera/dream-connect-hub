@@ -81,11 +81,7 @@ export default function FaqPage() {
 
   return (
     <Layout bare>
-      <Seo
-        title="FAQ — Dream Puppies"
-        description="Frequently asked questions about deposits, pricing, pickup, health, and care from Dream Puppies — a family hobby breeding program in Florida and North Carolina."
-        canonicalPath="/faq"
-      />
+      <Seo pageId="faq" />
       <div className={pageShellClass}>
         <GalacticHomeNav />
 

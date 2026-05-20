@@ -12,6 +12,7 @@ export const translations = {
     navAvailablePuppies: "Available Puppies",
     navUpcomingLitters: "Upcoming Litters",
     navOurBreeds: "Our Breeds",
+    navAbout: "About",
     navContact: "Contact",
     menuToggle: "Toggle menu",
     topBarServiceAreas: "Serving Florida & North Carolina • Hand delivery service available.",
@@ -29,6 +30,8 @@ export const translations = {
     breedsHeroTitleLine2: "The breeds.",
     breedsHeroBody:
       "We focus on Mini Goldendoodles, Labradoodles, Mini Poodles, and Shih Tzus—plus a few favorites our family has loved over the years. Here’s a quick look at the personalities behind the coats.",
+    breedsIntroDescription:
+      "Learn about the breeds we specialize in—each with unique personalities, care requirements, and why we chose them. From the playful Labradoodle to the gentle Mini Poodle, find the perfect fit for your family in Orlando, FL and Raeford, NC.",
     breedsFooterTitle: "Ready to meet your match?",
     breedsFooterBody: "Browse available puppies or reach out about upcoming litters.",
     breedsFooterBrowse: "Browse puppies",
@@ -38,7 +41,7 @@ export const translations = {
     indexHeroTitleAccent: "gets a dream",
     indexHeroTitlePart2: "start.",
     indexHeroDescription:
-      "Mini Goldendoodles, Labradoodles, Mini Poodles, and Shih Tzus—raised with love on our porch in Florida and Raeford, NC. Health-first care, honest timelines, and humans who pick up the phone.",
+      "Mini Goldendoodles, Labradoodles, Mini Poodles, and Shih Tzus—raised with love on our porch in Orlando, FL and Raeford, NC. Health-first care, honest timelines, and humans who pick up the phone.",
     indexHeroBrowseCta: "Browse puppies",
     indexHeroTextUsCta: "Text us now",
     indexHeroViewAvailablePuppiesCta: "View puppies",
@@ -189,6 +192,8 @@ export const translations = {
     upcomingHeroTitle: "Upcoming Litters",
     upcomingHeroDescription:
       "Reserve your pick from our upcoming litters. Place a deposit to secure your spot in line.",
+    upcomingLittersDescription:
+      "Get ahead with our upcoming litter announcements. Reserve your puppy with a deposit and secure your place in our family-raised experience serving Orlando, FL and Raeford, NC.",
     upcomingLoadError: "Unable to load upcoming litters. Please try again later.",
     upcomingEmptyPrefix: "No upcoming litters at the moment. Check back soon or",
     upcomingContactUs: "contact us",
@@ -246,6 +251,7 @@ export const translations = {
     navAvailablePuppies: "Cachorros Disponibles",
     navUpcomingLitters: "Próximas Camadas",
     navOurBreeds: "Nuestras Razas",
+    navAbout: "Nosotros",
     navContact: "Contacto",
     menuToggle: "Abrir menú",
     topBarServiceAreas: "Atendemos Florida y Carolina del Norte • Servicio de entrega disponible.",
@@ -263,6 +269,8 @@ export const translations = {
     breedsHeroTitleLine2: "Las razas.",
     breedsHeroBody:
       "Nos enfocamos en Mini Goldendoodles, Labradoodles, Mini Poodles y Shih Tzus—más algunos favoritos que nuestra familia ha amado con los años. Aquí tienes un vistazo rápido a las personalidades detrás del pelaje.",
+    breedsIntroDescription:
+      "Conoce las razas en las que nos especializamos—cada una con personalidades únicas, necesidades de cuidado y por qué las elegimos. Desde el juguetón Labradoodle hasta el suave Mini Poodle, encuentra la combinación perfecta para tu familia en Orlando, FL y Raeford, NC.",
     breedsFooterTitle: "¿Listo para conocer a tu match?",
     breedsFooterBody: "Explora cachorros disponibles o escríbenos sobre próximas camadas.",
     breedsFooterBrowse: "Ver cachorros",
@@ -423,6 +431,8 @@ export const translations = {
     upcomingHeroTitle: "Próximas Camadas",
     upcomingHeroDescription:
       "Reserva tu lugar en nuestras próximas camadas. Haz un depósito para asegurar tu turno de elección.",
+    upcomingLittersDescription:
+      "Mantente al día con los anuncios de nuestras próximas camadas y los próximos pasos para reservar tu lugar con nuestra familia en Orlando, FL y Raeford, NC.",
     upcomingLoadError: "No se pueden cargar las próximas camadas. Inténtalo más tarde.",
     upcomingEmptyPrefix: "No hay próximas camadas por ahora. Vuelve pronto o",
     upcomingContactUs: "contáctanos",
@@ -483,6 +493,7 @@ export const translations = {
     navAvailablePuppies: "Filhotes Disponíveis",
     navUpcomingLitters: "Próximas Ninhadas",
     navOurBreeds: "Nossas Raças",
+    navAbout: "Sobre",
     navContact: "Contato",
     menuToggle: "Abrir menu",
     topBarServiceAreas: "Atendendo Flórida e Carolina do Norte • Entrega disponível.",
@@ -500,6 +511,8 @@ export const translations = {
     breedsHeroTitleLine2: "As raças.",
     breedsHeroBody:
       "Focamos em Mini Goldendoodles, Labradoodles, Mini Poodles e Shih Tzus—mais alguns favoritos que a nossa família amou ao longo dos anos. Um vislumbre das personalidades por trás dos pelos.",
+    breedsIntroDescription:
+      "Conheça as raças nas quais nos especializamos—cada uma com personalidades únicas, requisitos de cuidados e por que as escolhemos. Do brincalhão Labradoodle ao gentil Mini Poodle, encontre o ajuste perfeito para sua família em Orlando, FL e Raeford, NC.",
     breedsFooterTitle: "Pronto para encontrar seu match?",
     breedsFooterBody: "Veja filhotes disponíveis ou fale sobre próximas ninhadas.",
     breedsFooterBrowse: "Ver filhotes",
@@ -660,6 +673,8 @@ export const translations = {
     upcomingHeroTitle: "Próximas Ninhadas",
     upcomingHeroDescription:
       "Reserve sua escolha entre nossas próximas ninhadas. Faça um depósito para garantir sua posição na fila.",
+    upcomingLittersDescription:
+      "Acompanhe os anúncios das nossas próximas ninhadas e os próximos passos para reservar seu lugar com nossa família em Orlando, FL e Raeford, NC.",
     upcomingLoadError: "Não foi possível carregar as próximas ninhadas. Tente novamente mais tarde.",
     upcomingEmptyPrefix: "Não há próximas ninhadas no momento. Volte em breve ou",
     upcomingContactUs: "fale conosco",

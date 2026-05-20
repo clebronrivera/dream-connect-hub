@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { MessageCircle, Phone } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
@@ -6,6 +7,7 @@ import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from 
 import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
 import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
 import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const pageShellClass = "min-h-screen bg-[#0f041b] text-white";
 const containerClass = "mx-auto max-w-screen-2xl px-6 md:px-8";
@@ -17,6 +19,41 @@ const violetStickerClass =
   `${glossyStickerBaseClass} bg-[#5b21b6] text-white shadow-[0_6px_0_#7c3aed,0_14px_30px_rgba(124,58,237,0.45)] hover:bg-[#7c3aed] hover:shadow-[0_6px_0_#a78bfa,0_16px_34px_rgba(167,139,250,0.5)]`;
 
 export default function UpcomingLitters() {
+  const { t } = useLanguage();
+
+  useEffect(() => {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://puppyheavenllc.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Upcoming Litters',
+          item: 'https://puppyheavenllc.com/upcoming-litters',
+        },
+      ],
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'breadcrumb-jsonld';
+    script.textContent = JSON.stringify(jsonLd);
+
+    document.getElementById('breadcrumb-jsonld')?.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('breadcrumb-jsonld')?.remove();
+    };
+  }, []);
+
   return (
     <Layout bare>
       <Seo pageId="upcomingLitters" />
@@ -38,6 +75,9 @@ export default function UpcomingLitters() {
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-base leading-relaxed text-white/80 md:text-xl">
               Text us to pre-reserve and get your first pick at the litter. No slot clutter, just clear timing and direct communication.
+            </p>
+            <p className="mx-auto mb-10 max-w-2xl text-sm leading-relaxed text-white/70 md:text-base">
+              {t("upcomingLittersDescription")}
             </p>
 
             <div className="flex flex-col justify-center gap-4 sm:flex-row">

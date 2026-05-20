@@ -55,11 +55,11 @@ export function GalacticHomeMiniFooter() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <MapPin className="h-4 w-4" />
-                Florida
+                Orlando, FL
               </div>
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <MapPin className="h-4 w-4" />
-                North Carolina
+                Raeford, NC
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
@@ -104,6 +104,74 @@ export default function Puppies() {
       ? detailPuppy
       : null;
 
+  // BreadcrumbList JSON-LD
+  useEffect(() => {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://puppyheavenllc.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Available Puppies',
+          item: 'https://puppyheavenllc.com/puppies',
+        },
+      ],
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'breadcrumb-jsonld';
+    script.textContent = JSON.stringify(jsonLd);
+
+    document.getElementById('breadcrumb-jsonld')?.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('breadcrumb-jsonld')?.remove();
+    };
+  }, []);
+
+  // ItemList (Product) JSON-LD for available puppies
+  useEffect(() => {
+    if (!puppies || puppies.length === 0) return;
+
+    const itemListElement = puppies.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Product',
+        name: p.name ?? 'Available Puppy',
+        description: `${p.breed} puppy${p.gender ? ` • ${p.gender}` : ''}`,
+        image: getPuppyImage(p) ?? undefined,
+      },
+    }));
+
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      itemListElement,
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'itemlist-jsonld';
+    script.textContent = JSON.stringify(jsonLd);
+
+    document.getElementById('itemlist-jsonld')?.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      document.getElementById('itemlist-jsonld')?.remove();
+    };
+  }, [puppies]);
+
   return (
     <Layout>
       <Seo
@@ -144,6 +212,15 @@ export default function Puppies() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Intro paragraph for SEO */}
+      <section className="border-b border-white/10 bg-[#0a0214] py-8 md:py-10">
+        <div className={puppiesPageContainerClass}>
+          <p className="mx-auto max-w-2xl text-center text-base leading-relaxed text-white/80 md:text-lg">
+            Browse our available puppies — Goldendoodles, Labradoodles, French Bulldogs, Shih Tzus, and more. Family-raised in Orlando, FL and Raeford, NC. Each puppy is health-checked, socialized, and ready to bring joy to your family. See pricing, photos, and reserve your perfect match today.
+          </p>
         </div>
       </section>
 
