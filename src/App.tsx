@@ -68,6 +68,7 @@ const BreederParents = lazyWithRetry(() => import("./pages/breeder/BreederParent
 const BreederParentEdit = lazyWithRetry(() => import("./pages/breeder/BreederParentEdit"));
 const BreederUpcomingLitterNew = lazyWithRetry(() => import("./pages/breeder/BreederUpcomingLitterNew"));
 const BreederPuppiesPage = lazyWithRetry(() => import("./pages/breeder/BreederPuppiesPage"));
+const BreederLittersPage = lazyWithRetry(() => import("./pages/breeder/BreederLittersPage"));
 const About = lazyWithRetry(() => import("./pages/About"));
 
 type AppProvidersProps = {
@@ -129,6 +130,7 @@ export function AppRoutes() {
         <Route path="/breeder" element={<BreederRoute />}>
           <Route element={<BreederLayout />}>
             <Route index element={<BreederHome />} />
+            <Route path="litters" element={<BreederLittersPage />} />
             <Route path="puppies" element={<BreederPuppiesPage />} />
             <Route path="litters/:litterId" element={<BreederLitter />} />
             <Route path="litters/:litterId/setup" element={<BreederLitterSetup />} />
