@@ -328,6 +328,8 @@ export function VideoCaptureSlot({
         accept="video/mp4,video/webm,video/quicktime"
         capture="environment"
         className="hidden"
+        aria-hidden
+        tabIndex={-1}
         onChange={(e) => handleFilePicked(e.target.files)}
       />
 

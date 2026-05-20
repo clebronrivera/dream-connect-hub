@@ -348,7 +348,15 @@ function Counter({
           variant="ghost"
           size="icon"
           className="h-12 w-12"
-          onClick={() => setValue((v) => Math.min(20, v + 1))}
+          onClick={() =>
+            setValue((v) => {
+              if (v >= 20) {
+                toast.info("Max 20 per category for one litter");
+                return 20;
+              }
+              return v + 1;
+            })
+          }
           aria-label={`Increase ${label}`}
         >
           <Plus className="h-5 w-5" />
@@ -361,8 +369,8 @@ function Counter({
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value || "—"}</dd>
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-right font-medium">{value || "—"}</dd>
     </div>
   );
 }
