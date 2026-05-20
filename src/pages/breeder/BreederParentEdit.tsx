@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { PhotoCaptureSlot } from "@/components/breeder/PhotoCaptureSlot";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
+import { MAIN_BREEDS, OTHER_BREED_OPTION } from "@/lib/breed-utils";
 import {
   createBreederParent,
   listBreederParents,
@@ -82,7 +83,35 @@ function Form({ initial }: { initial?: BreederParentRow }) {
 
   const [name, setName] = useState(initial?.name ?? "");
   const [role, setRole] = useState<"Sire" | "Dam">(initial?.role ?? "Dam");
-  const [breed, setBreed] = useState(initial?.breed ?? "");
+  // Breed: dropdown of MAIN_BREEDS + "Other / Custom" with a free-text fallback.
+  // Preserves any pre-existing custom value (e.g., "F1B Goldendoodle") by routing
+  // it into the Other path.
+  const initialBreedValue = initial?.breed ?? "";
+  const initialBreedIsStandard = (MAIN_BREEDS as readonly string[]).includes(initialBreedValue);
+  const [breedSelect, setBreedSelect] = useState<string>(
+    initialBreedValue === ""
+      ? ""
+      : initialBreedIsStandard
+        ? initialBreedValue
+        : OTHER_BREED_OPTION,
+  );
+  const [otherBreed, setOtherBreed] = useState<string>(
+    initialBreedIsStandard ? "" : initialBreedValue,
+  );
+  const breed =
+    breedSelect === OTHER_BREED_OPTION ? otherBreed.trim() : breedSelect.trim();
+  const setBreed = (next: string) => {
+    if ((MAIN_BREEDS as readonly string[]).includes(next)) {
+      setBreedSelect(next);
+      setOtherBreed("");
+    } else {
+      setBreedSelect(OTHER_BREED_OPTION);
+      setOtherBreed(next);
+    }
+  };
+  // Suppress unused-var lint until setBreed has another caller; the setter is
+  // kept around in case a future flow needs to programmatically set the value.
+  void setBreed;
   const [composition, setComposition] = useState(initial?.composition ?? "");
   const [color, setColor] = useState(initial?.color ?? "");
   const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
@@ -170,13 +199,34 @@ function Form({ initial }: { initial?: BreederParentRow }) {
         </div>
         <div>
           <Label htmlFor="breed">Breed</Label>
-          <Input
-            id="breed"
-            value={breed}
-            onChange={(e) => setBreed(e.target.value)}
-            className="mt-1"
-            placeholder="F1B Goldendoodle"
-          />
+          <Select
+            value={breedSelect}
+            onValueChange={(v) => {
+              setBreedSelect(v);
+              if (v !== OTHER_BREED_OPTION) setOtherBreed("");
+            }}
+          >
+            <SelectTrigger id="breed" className="mt-1">
+              <SelectValue placeholder="Select a breed" />
+            </SelectTrigger>
+            <SelectContent>
+              {MAIN_BREEDS.map((b) => (
+                <SelectItem key={b} value={b}>
+                  {b}
+                </SelectItem>
+              ))}
+              <SelectItem value={OTHER_BREED_OPTION}>{OTHER_BREED_OPTION}</SelectItem>
+            </SelectContent>
+          </Select>
+          {breedSelect === OTHER_BREED_OPTION && (
+            <Input
+              value={otherBreed}
+              onChange={(e) => setOtherBreed(e.target.value)}
+              className="mt-2"
+              placeholder="e.g. F1B Goldendoodle"
+              aria-label="Custom breed"
+            />
+          )}
         </div>
         <div>
           <Label htmlFor="composition">Composition</Label>
