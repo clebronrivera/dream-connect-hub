@@ -24,7 +24,11 @@ async function main() {
     renderRouteBodyFallback,
     renderLocalBusinessJsonLd,
     renderBreadcrumbJsonLd,
+    getBreedSeoMetadata,
+    renderBreedBodyFallback,
+    renderBreedJsonLd,
   } = await import("../src/lib/seo");
+  const { BREEDS_DATA } = await import("../src/data/breeds-content");
   const { appEnv } = await import("../src/lib/env");
 
   // requireSiteUrlForBuild now falls back to https://puppyheavenllc.com when
@@ -105,9 +109,38 @@ async function main() {
     extraPaths.push(routePath);
   }
 
+  // Per-breed pages — one prerendered HTML + sitemap entry per breed in
+  // src/data/breeds-content.ts. Each breed gets a unique title, description,
+  // canonical, noscript body, BreadcrumbList, and Article JSON-LD.
+  const breedPaths: string[] = [];
+  for (const breed of BREEDS_DATA) {
+    const breedMeta = getBreedSeoMetadata(breed);
+    const metadata = resolveSeoMetadata({
+      pageId: "breeds",
+      title: breedMeta.title,
+      description: breedMeta.description,
+      canonicalPath: breedMeta.path,
+      currentOrigin: siteUrl,
+    });
+    const seoTags = renderStaticSeoTags(metadata);
+    const bodyFallback = renderBreedBodyFallback(breed, breedMeta, siteUrl);
+    const jsonLdBlocks = [
+      renderBreadcrumbJsonLd(siteUrl, [
+        { name: "Home", path: "/" },
+        { name: "Breeds", path: "/breeds" },
+        { name: breed.name, path: breedMeta.path },
+      ]),
+      renderBreedJsonLd(breed, breedMeta, siteUrl),
+    ];
+    const html = renderRouteHtml(template, breedMeta.path, seoTags, bodyFallback, jsonLdBlocks, renderModules);
+    await writeRouteHtml(breedMeta.path, html);
+    breedPaths.push(breedMeta.path);
+  }
+
   const sitemapRoutes = [
     ...PUBLIC_SEO_ROUTES.map((r) => ({ path: r.path })),
     ...extraPaths.map((p) => ({ path: p })),
+    ...breedPaths.map((p) => ({ path: p })),
   ];
   await fs.writeFile(path.join(distDir, "sitemap.xml"), buildSitemap(siteUrl, sitemapRoutes), "utf8");
   await fs.writeFile(path.join(distDir, "robots.txt"), buildRobots(siteUrl), "utf8");

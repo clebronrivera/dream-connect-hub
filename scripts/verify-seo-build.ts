@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PUBLIC_SEO_ROUTES } from "../src/lib/seo";
+import { PUBLIC_SEO_ROUTES, getBreedSeoMetadata } from "../src/lib/seo";
+import { BREEDS_DATA } from "../src/data/breeds-content";
 import { PROBLEM_TYPES } from "../src/lib/constants/trainingPlan";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +18,15 @@ const trainingPlanProblemRoutes = PROBLEM_TYPES.map((p) => ({
   description: p.seoDescription,
 }));
 
+const breedRoutes = BREEDS_DATA.map((breed) => {
+  const meta = getBreedSeoMetadata(breed);
+  return {
+    path: meta.path,
+    title: meta.title,
+    description: meta.description,
+  };
+});
+
 async function main() {
   const allRoutes = [
     ...PUBLIC_SEO_ROUTES.map((r) => ({
@@ -25,6 +35,7 @@ async function main() {
       description: r.description,
     })),
     ...trainingPlanProblemRoutes,
+    ...breedRoutes,
   ];
 
   for (const route of allRoutes) {

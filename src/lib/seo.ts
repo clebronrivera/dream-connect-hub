@@ -310,6 +310,109 @@ export function renderStaticSeoTags(metadata: ResolvedSeoMetadata): string {
 
 export const DEFAULT_SITE_URL = "https://puppyheavenllc.com";
 
+export type BreedSeoSource = {
+  id: string;
+  name: string;
+  shortDesc: string;
+  temperament: string;
+  hypoallergenic: boolean;
+  size: string;
+  weight: string;
+  lifespan: string;
+};
+
+export type BreedSeoMetadata = {
+  slug: string;
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+};
+
+export function getBreedSeoMetadata(breed: BreedSeoSource): BreedSeoMetadata {
+  const slug = breed.id;
+  const hypoNote = breed.hypoallergenic ? "hypoallergenic, " : "";
+  const description =
+    `Family-raised ${breed.name} puppies from Dream Puppies — ${breed.shortDesc.toLowerCase()}, ${hypoNote}` +
+    `vet-checked, and ready for their forever home in Orlando, FL and Raeford, NC. ` +
+    `Call (321) 697-8864 to reserve.`;
+  return {
+    slug,
+    path: `/breeds/${slug}`,
+    title: `${breed.name} Puppies for Sale in Orlando, FL & Raeford, NC`,
+    description,
+    h1: `${breed.name} Puppies — Family-Raised in Orlando, FL & Raeford, NC`,
+  };
+}
+
+export function renderBreedBodyFallback(
+  breed: BreedSeoSource,
+  meta: BreedSeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const traits = [
+    `Size: ${breed.size}`,
+    `Weight: ${breed.weight}`,
+    `Lifespan: ${breed.lifespan}`,
+    `Temperament: ${breed.temperament}`,
+    breed.hypoallergenic ? "Hypoallergenic" : null,
+  ].filter(Boolean) as string[];
+
+  const traitsHtml = traits.map((t) => `<li>${escapeHtml(t)}</li>`).join("");
+  return `<noscript>
+  <header>
+    <h1>${escapeHtml(meta.h1)}</h1>
+    <p>${escapeHtml(meta.description)}</p>
+  </header>
+  <h2>About the ${escapeHtml(breed.name)}</h2>
+  <p>${escapeHtml(breed.shortDesc)}.</p>
+  <ul>${traitsHtml}</ul>
+  <p><a href="${base}/puppies">View available ${escapeHtml(breed.name)} puppies</a></p>
+  <p><a href="${base}/upcoming-litters">See upcoming ${escapeHtml(breed.name)} litters</a></p>
+  <nav aria-label="Site"><ul>
+    <li><a href="${base}/">Dream Puppies home</a></li>
+    <li><a href="${base}/breeds">All breeds</a></li>
+    <li><a href="${base}/about">About us</a></li>
+    <li><a href="${base}/contact">Contact</a></li>
+    <li><a href="${base}/faq">FAQ</a></li>
+  </ul></nav>
+  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+</noscript>`;
+}
+
+export function renderBreedJsonLd(
+  breed: BreedSeoSource,
+  meta: BreedSeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: meta.h1,
+    description: meta.description,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${base}${meta.path}`,
+    },
+    about: {
+      "@type": "Thing",
+      name: `${breed.name} dog breed`,
+      description: breed.shortDesc,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Dream Puppies",
+      logo: {
+        "@type": "ImageObject",
+        url: `${base}/dream-puppies-logo.png`,
+      },
+    },
+  };
+  return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
+}
+
 export function requireSiteUrlForBuild(env: SeoEnvOverrides = appEnv): string {
   const siteUrl = env.siteUrl?.trim();
   if (!siteUrl) {
@@ -361,12 +464,13 @@ const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
     intro:
       "Compare the breeds raised by Dream Puppies — temperament, size, grooming needs, and lifestyle fit. Learn which family-raised puppy is right for your home.",
     bullets: [
-      "Goldendoodle (Standard and Mini)",
-      "Labradoodle",
-      "French Bulldog",
-      "Shih Tzu",
-      "Toy Poodle and Standard Poodle",
-      "Pomeranian and Maltese",
+      "Goldendoodle (Standard and Mini) — see /breeds/goldendoodle",
+      "Labradoodle — see /breeds/labradoodle",
+      "Toy Poodle — see /breeds/toy-poodle",
+      "Standard Poodle — see /breeds/standard-poodle",
+      "Shih Tzu — see /breeds/shih-tzu",
+      "Pomeranian — see /breeds/pomeranian",
+      "Maltese — see /breeds/maltese",
     ],
   },
   about: {

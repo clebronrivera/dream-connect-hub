@@ -5,10 +5,13 @@ import {
   PUBLIC_SEO_ROUTES,
   SEO_ROUTE_CONFIG,
   buildCanonicalUrl,
+  getBreedSeoMetadata,
   getPageTitle,
   normalizeCanonicalPath,
   normalizePublicAssetUrl,
   renderBreadcrumbJsonLd,
+  renderBreedBodyFallback,
+  renderBreedJsonLd,
   renderLocalBusinessJsonLd,
   renderRouteBodyFallback,
   requireSiteUrlForBuild,
@@ -145,5 +148,57 @@ describe("seo build helpers", () => {
     expect(html).toContain('"position":1');
     expect(html).toContain('"position":2');
     expect(html).toContain('"item":"https://puppyheavenllc.com/breeds"');
+  });
+});
+
+describe("breed seo helpers", () => {
+  const sampleBreed = {
+    id: "goldendoodle",
+    name: "Goldendoodle",
+    shortDesc: "Sweet, Loyal, Family-Oriented",
+    temperament: "Gentle, Patient, Social, Affectionate",
+    hypoallergenic: true,
+    size: "Medium-Large",
+    weight: "30-70 lbs",
+    lifespan: "10-15 years",
+  };
+
+  it("builds canonical breed metadata from a breed record", () => {
+    const meta = getBreedSeoMetadata(sampleBreed);
+    expect(meta.slug).toBe("goldendoodle");
+    expect(meta.path).toBe("/breeds/goldendoodle");
+    expect(meta.title).toContain("Goldendoodle Puppies for Sale");
+    expect(meta.title).toContain("Orlando");
+    expect(meta.description).toContain("Goldendoodle puppies");
+    expect(meta.description).toContain("hypoallergenic");
+    expect(meta.description).toContain("(321) 697-8864");
+    expect(meta.h1).toContain("Goldendoodle Puppies");
+  });
+
+  it("omits the hypoallergenic note for non-hypoallergenic breeds", () => {
+    const meta = getBreedSeoMetadata({ ...sampleBreed, hypoallergenic: false });
+    expect(meta.description).not.toContain("hypoallergenic");
+  });
+
+  it("emits a breed noscript fallback with cross-links and traits", () => {
+    const meta = getBreedSeoMetadata(sampleBreed);
+    const html = renderBreedBodyFallback(sampleBreed, meta, "https://puppyheavenllc.com");
+    expect(html).toContain("<noscript>");
+    // h1 contains "&", which is HTML-escaped to "&amp;" in the rendered output.
+    expect(html).toContain("Goldendoodle Puppies");
+    expect(html).toContain("Family-Raised in Orlando, FL &amp; Raeford, NC");
+    expect(html).toContain("View available Goldendoodle puppies");
+    expect(html).toContain("Hypoallergenic");
+    expect(html).toContain("/upcoming-litters");
+    expect(html).toContain("(321) 697-8864");
+  });
+
+  it("emits Article JSON-LD pointing at the canonical breed URL", () => {
+    const meta = getBreedSeoMetadata(sampleBreed);
+    const html = renderBreedJsonLd(sampleBreed, meta, "https://puppyheavenllc.com");
+    expect(html).toContain("application/ld+json");
+    expect(html).toContain('"@type":"Article"');
+    expect(html).toContain('"@id":"https://puppyheavenllc.com/breeds/goldendoodle"');
+    expect(html).toContain("Goldendoodle dog breed");
   });
 });

@@ -215,6 +215,13 @@ export default function Breeds() {
                       <p className="mt-2 text-sm leading-relaxed text-inkSoft">
                         {breed.parityCard.tagline}
                       </p>
+                      <Link
+                        to={`/breeds/${breed.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-3 inline-block text-xs font-bold uppercase tracking-wide text-primaryDeep underline-offset-4 hover:underline"
+                      >
+                        Read full {breed.name} guide →
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -268,6 +275,13 @@ export default function Breeds() {
                       <span>•</span>
                       <span>{breed.weight}</span>
                     </div>
+                    <Link
+                      to={`/breeds/${breed.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-2 inline-block text-xs font-bold uppercase tracking-wide text-primaryDeep underline-offset-4 hover:underline"
+                    >
+                      Read full {breed.name} guide →
+                    </Link>
                   </div>
                 </div>
               )
@@ -494,6 +508,18 @@ export default function Breeds() {
                           </Button>
                           <Button
                             variant="outline"
+                            className="w-full"
+                            asChild
+                          >
+                            <Link
+                              to={`/breeds/${selectedBreed.id}`}
+                              onClick={() => setSelectedBreed(null)}
+                            >
+                              Read full {selectedBreed.name} guide
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
                             className="w-full"
                             onClick={() => setSelectedBreed(null)}
                           >

@@ -21,6 +21,41 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://puppyheavenllc.com/breeds/goldendoodle</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://puppyheavenllc.com/breeds/labradoodle</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://puppyheavenllc.com/breeds/toy-poodle</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://puppyheavenllc.com/breeds/standard-poodle</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://puppyheavenllc.com/breeds/shih-tzu</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://puppyheavenllc.com/breeds/pomeranian</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://puppyheavenllc.com/breeds/maltese</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://puppyheavenllc.com/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
