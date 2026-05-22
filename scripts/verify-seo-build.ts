@@ -58,6 +58,16 @@ async function main() {
       `<link rel="canonical" href="`,
       `${route.path} canonical`
     );
+    assertIncludes(
+      html,
+      `<noscript>`,
+      `${route.path} noscript body fallback`
+    );
+    assertIncludes(
+      html,
+      `application/ld+json`,
+      `${route.path} JSON-LD block`
+    );
     // Check og:title (allowing for HTML entity encoding)
     const ogTitleMatch = html.match(/<meta property="og:title" content="(.+?)"/);
     if (!ogTitleMatch) {

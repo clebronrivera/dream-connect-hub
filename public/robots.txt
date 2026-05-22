@@ -1,14 +1,13 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /breeder
+Disallow: /breeder/
+Disallow: /payment/
+Disallow: /agreements/
+Disallow: /deposit
+Disallow: /request-deposit
+Disallow: /__mockup/
+
+Sitemap: https://puppyheavenllc.com/sitemap.xml

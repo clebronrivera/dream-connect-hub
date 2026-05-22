@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_SITE_URL,
   NOINDEX_ROBOTS,
   PUBLIC_SEO_ROUTES,
   SEO_ROUTE_CONFIG,
@@ -7,6 +8,10 @@ import {
   getPageTitle,
   normalizeCanonicalPath,
   normalizePublicAssetUrl,
+  renderBreadcrumbJsonLd,
+  renderLocalBusinessJsonLd,
+  renderRouteBodyFallback,
+  requireSiteUrlForBuild,
   resolveSocialImageUrl,
 } from "@/lib/seo";
 
@@ -93,5 +98,52 @@ describe("seo route config", () => {
     expect(SEO_ROUTE_CONFIG.admin.robots).toBe(NOINDEX_ROBOTS);
     expect(SEO_ROUTE_CONFIG.adminLogin.robots).toBe(NOINDEX_ROBOTS);
     expect(SEO_ROUTE_CONFIG.notFound.robots).toBe(NOINDEX_ROBOTS);
+  });
+});
+
+describe("seo build helpers", () => {
+  it("defaults site url to puppyheavenllc.com when env is missing", () => {
+    expect(requireSiteUrlForBuild({ siteUrl: undefined })).toBe(DEFAULT_SITE_URL);
+    expect(requireSiteUrlForBuild({ siteUrl: "" })).toBe(DEFAULT_SITE_URL);
+  });
+
+  it("strips a trailing slash from the build site url", () => {
+    expect(requireSiteUrlForBuild({ siteUrl: "https://example.com/" })).toBe(
+      "https://example.com"
+    );
+  });
+
+  it("emits a noscript body fallback containing the route h1", () => {
+    const html = renderRouteBodyFallback("puppies", "https://puppyheavenllc.com");
+    expect(html).toContain("<noscript>");
+    expect(html).toContain("Available Puppies for Sale");
+    expect(html).toContain("/upcoming-litters");
+    expect(html).toContain("(321) 697-8864");
+  });
+
+  it("emits a generic noscript fallback when the page id is unknown", () => {
+    const html = renderRouteBodyFallback(undefined, "https://puppyheavenllc.com");
+    expect(html).toContain("<noscript>");
+    expect(html).toContain("Dream Puppies");
+  });
+
+  it("emits LocalBusiness JSON-LD with the configured site url", () => {
+    const html = renderLocalBusinessJsonLd("https://puppyheavenllc.com");
+    expect(html).toContain("application/ld+json");
+    expect(html).toContain('"@type":"LocalBusiness"');
+    expect(html).toContain("https://puppyheavenllc.com/#business");
+    expect(html).toContain("Orlando");
+    expect(html).toContain("Raeford");
+  });
+
+  it("emits BreadcrumbList JSON-LD with sequential positions", () => {
+    const html = renderBreadcrumbJsonLd("https://puppyheavenllc.com", [
+      { name: "Home", path: "/" },
+      { name: "Breeds", path: "/breeds" },
+    ]);
+    expect(html).toContain('"@type":"BreadcrumbList"');
+    expect(html).toContain('"position":1');
+    expect(html).toContain('"position":2');
+    expect(html).toContain('"item":"https://puppyheavenllc.com/breeds"');
   });
 });

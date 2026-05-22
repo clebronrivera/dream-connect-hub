@@ -16,36 +16,44 @@ loadDotEnv({ path: path.join(projectRoot, ".env.local"), override: false });
 loadDotEnv({ path: path.join(projectRoot, ".env"), override: false });
 
 async function main() {
-  // Load only env + seo first so we can skip without pulling in App (and thus Supabase).
   const {
     PUBLIC_SEO_ROUTES,
     renderStaticSeoTags,
     requireSiteUrlForBuild,
     resolveSeoMetadata,
+    renderRouteBodyFallback,
+    renderLocalBusinessJsonLd,
+    renderBreadcrumbJsonLd,
   } = await import("../src/lib/seo");
   const { appEnv } = await import("../src/lib/env");
 
-  let siteUrl: string;
-  try {
-    siteUrl = requireSiteUrlForBuild();
-  } catch (error) {
-    console.warn("Skipping SEO postbuild.");
-    console.warn((error as Error).message);
-    return;
-  }
+  // requireSiteUrlForBuild now falls back to https://puppyheavenllc.com when
+  // VITE_SITE_URL is not set, so the SEO output is always produced. The
+  // postbuild MUST emit per-route HTML + sitemap.xml + robots.txt on every
+  // deploy — silent skip = crawlers see empty body = zero indexed pages.
+  const siteUrl = requireSiteUrlForBuild();
 
-  if (!appEnv.supabaseUrl?.trim() || !appEnv.supabaseAnonKey?.trim()) {
-    console.warn("Skipping SEO postbuild. Missing Supabase config.");
+  const supabaseConfigured = Boolean(
+    appEnv.supabaseUrl?.trim() && appEnv.supabaseAnonKey?.trim()
+  );
+  if (!supabaseConfigured) {
     console.warn(
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify (and VITE_SITE_URL) to enable pre-render."
+      "[postbuild-seo] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set. " +
+        "Continuing with static HTML emission only — body SSR will be skipped " +
+        "for any route that requires runtime data."
     );
-    return;
   }
 
-  const { AppProviders, AppRoutes } = await import("../src/App");
-  const { createAppQueryClient } = await import("../src/lib/query-client");
   const { PROBLEM_TYPES } = await import("../src/lib/constants/trainingPlan");
   const template = await fs.readFile(distIndexPath, "utf8");
+
+  const renderModules = supabaseConfigured
+    ? {
+        AppProviders: (await import("../src/App")).AppProviders,
+        AppRoutes: (await import("../src/App")).AppRoutes,
+        createAppQueryClient: (await import("../src/lib/query-client")).createAppQueryClient,
+      }
+    : null;
 
   for (const route of PUBLIC_SEO_ROUTES) {
     const metadata = resolveSeoMetadata({
@@ -53,11 +61,20 @@ async function main() {
       canonicalPath: route.path,
       currentOrigin: siteUrl,
     });
-    const html = renderRouteHtml(template, route.path, renderStaticSeoTags(metadata), {
-      AppProviders,
-      AppRoutes,
-      createAppQueryClient,
-    });
+    const seoTags = renderStaticSeoTags(metadata);
+    const bodyFallback = renderRouteBodyFallback(route.pageId, siteUrl);
+    const jsonLdBlocks: string[] = [];
+    if (route.pageId === "home") {
+      jsonLdBlocks.push(renderLocalBusinessJsonLd(siteUrl));
+    } else {
+      jsonLdBlocks.push(
+        renderBreadcrumbJsonLd(siteUrl, [
+          { name: "Home", path: "/" },
+          { name: route.title, path: route.path },
+        ])
+      );
+    }
+    const html = renderRouteHtml(template, route.path, seoTags, bodyFallback, jsonLdBlocks, renderModules);
     await writeRouteHtml(route.path, html);
   }
 
@@ -74,11 +91,16 @@ async function main() {
       canonicalPath: routePath,
       currentOrigin: siteUrl,
     });
-    const html = renderRouteHtml(template, routePath, renderStaticSeoTags(metadata), {
-      AppProviders,
-      AppRoutes,
-      createAppQueryClient,
-    });
+    const seoTags = renderStaticSeoTags(metadata);
+    const bodyFallback = renderRouteBodyFallback("trainingPlan", siteUrl);
+    const jsonLdBlocks = [
+      renderBreadcrumbJsonLd(siteUrl, [
+        { name: "Home", path: "/" },
+        { name: "Training Plan", path: "/training-plan" },
+        { name: problem.seoTitle, path: routePath },
+      ]),
+    ];
+    const html = renderRouteHtml(template, routePath, seoTags, bodyFallback, jsonLdBlocks, renderModules);
     await writeRouteHtml(routePath, html);
     extraPaths.push(routePath);
   }
@@ -101,31 +123,42 @@ function renderRouteHtml(
   template: string,
   routePath: string,
   seoTags: string,
-  modules: RenderModules
+  bodyFallback: string,
+  jsonLdBlocks: ReadonlyArray<string>,
+  modules: RenderModules | null
 ): string {
-  const { AppProviders, AppRoutes, createAppQueryClient } = modules;
-
   let appHtml = "";
-  try {
-    appHtml = renderToString(
-      <AppProviders queryClient={createAppQueryClient()}>
-        <StaticRouter location={routePath}>
-          <AppRoutes />
-        </StaticRouter>
-      </AppProviders>
-    );
-  } catch {
-    // React.lazy components cannot be rendered synchronously via renderToString.
-    // SEO tags (title, meta, og:*) are still injected — that's the critical output.
-    // The client-side React hydration will render the actual page content.
-    console.warn(`  [postbuild] SSR body skipped for ${routePath} (lazy route); SEO tags injected.`);
+  if (modules) {
+    const { AppProviders, AppRoutes, createAppQueryClient } = modules;
+    try {
+      appHtml = renderToString(
+        <AppProviders queryClient={createAppQueryClient()}>
+          <StaticRouter location={routePath}>
+            <AppRoutes />
+          </StaticRouter>
+        </AppProviders>
+      );
+    } catch {
+      // React.lazy components cannot be rendered synchronously via renderToString.
+      // SEO tags + body fallback below carry the crawler payload; the live React
+      // app fully renders on hydration.
+      console.warn(`  [postbuild] SSR body skipped for ${routePath} (lazy route); fallback body injected.`);
+    }
   }
 
   let html = stripManagedHeadTags(template);
+  html = stripExistingNoscript(html);
   if (appHtml) {
     html = html.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
   }
-  html = html.replace("</head>", `${seoTags}</head>`);
+  html = html.replace("</head>", `${seoTags}${jsonLdBlocks.join("")}</head>`);
+  // Inject body fallback right after #root so crawlers without JS see real
+  // content. JS-enabled browsers ignore <noscript> entirely, so there's no
+  // hydration mismatch risk.
+  html = html.replace(
+    /<div id="root">[\s\S]*?<\/div>/,
+    (match) => `${match}\n    ${bodyFallback}`
+  );
 
   return html;
 }
@@ -139,7 +172,12 @@ function stripManagedHeadTags(html: string): string {
     .replace(/<meta[^>]+name="googlebot"[^>]*>\s*/gi, "")
     .replace(/<meta[^>]+name="twitter:[^"]+"[^>]*>\s*/gi, "")
     .replace(/<meta[^>]+property="og:[^"]+"[^>]*>\s*/gi, "")
-    .replace(/<link[^>]+rel="canonical"[^>]*>\s*/gi, "");
+    .replace(/<link[^>]+rel="canonical"[^>]*>\s*/gi, "")
+    .replace(/<script[^>]+type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>\s*/gi, "");
+}
+
+function stripExistingNoscript(html: string): string {
+  return html.replace(/<noscript>[\s\S]*?<\/noscript>\s*/gi, "");
 }
 
 async function writeRouteHtml(routePath: string, html: string) {
@@ -156,9 +194,13 @@ function buildSitemap(
   siteUrl: string,
   routes: ReadonlyArray<{ path: string }>
 ): string {
-  const urls = routes.map(
-    ({ path: routePath }) => `  <url><loc>${siteUrl}${routePath === "/" ? "/" : routePath}</loc></url>`
-  ).join("\n");
+  const lastmod = new Date().toISOString().slice(0, 10);
+  const urls = routes
+    .map(({ path: routePath }) => {
+      const loc = `${siteUrl}${routePath === "/" ? "/" : routePath}`;
+      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
+    })
+    .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -168,35 +210,23 @@ ${urls}
 }
 
 function buildRobots(siteUrl: string): string {
-  return `User-agent: Googlebot
+  return `User-agent: *
 Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
-Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /breeder
+Disallow: /breeder/
+Disallow: /payment/
+Disallow: /agreements/
+Disallow: /deposit
+Disallow: /request-deposit
+Disallow: /__mockup/
 
 Sitemap: ${siteUrl}/sitemap.xml
 `;
 }
 
 main().catch((error) => {
-  const msg = (error && (error as Error).message) || String(error);
-  if (msg.includes("Missing Supabase config") || msg.includes("VITE_SUPABASE")) {
-    console.warn("Skipping SEO postbuild. Missing Supabase config.");
-    console.warn(
-      "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify (and VITE_SITE_URL) to enable pre-render."
-    );
-    process.exitCode = 0;
-    return;
-  }
   console.error("SEO postbuild failed.");
   console.error(error);
   process.exitCode = 1;
