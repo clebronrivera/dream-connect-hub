@@ -24,6 +24,7 @@ const Essentials = lazyWithRetry(() => import("./pages/Essentials"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
 const UpcomingLitters = lazyWithRetry(() => import("./pages/UpcomingLitters"));
 const Breeds = lazyWithRetry(() => import("./pages/Breeds"));
+const BreedDetail = lazyWithRetry(() => import("./pages/BreedDetail"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const Login = lazyWithRetry(() => import("./pages/admin/Login"));
 const Dashboard = lazyWithRetry(() => import("./pages/admin/Dashboard"));
@@ -111,6 +112,7 @@ export function AppRoutes() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/upcoming-litters" element={<UpcomingLitters />} />
         <Route path="/breeds" element={<Breeds />} />
+        <Route path="/breeds/:slug" element={<BreedDetail />} />
         <Route path="/deposit" element={<DepositAgreement />} />
         <Route path="/payment/:agreementId/:buyerToken" element={<PaymentDashboard />} />
         <Route path="/agreements/:agreementId/:buyerToken/download" element={<AgreementDownload />} />

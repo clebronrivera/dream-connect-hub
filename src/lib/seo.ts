@@ -5,10 +5,8 @@ export const SITE_AUTHOR = "Dream Enterprises LLC — Dream Puppies";
 export const DEFAULT_ROBOTS = "index,follow";
 export const NOINDEX_ROBOTS = "noindex,nofollow";
 export const DEFAULT_OG_TYPE = "website";
-// "summary" is correct for our square 1024×1024 logo; "summary_large_image"
-// expects a wide (≥2:1) banner and would crop/distort the logo.
-export const DEFAULT_TWITTER_CARD = "summary";
-export const DEFAULT_SOCIAL_IMAGE_PATH = "/dream-puppies-logo.png";
+export const DEFAULT_TWITTER_CARD = "summary_large_image";
+export const DEFAULT_SOCIAL_IMAGE_PATH = "/og-image.jpg";
 
 export type SeoPageId =
   | "home"
@@ -297,26 +295,323 @@ export function renderStaticSeoTags(metadata: ResolvedSeoMetadata): string {
 
   if (metadata.socialImage) {
     tags.push(`<meta property="og:image" content="${escapeHtml(metadata.socialImage)}" />`);
-    tags.push(`<meta property="og:image:type" content="image/png" />`);
-    tags.push(`<meta property="og:image:width" content="1024" />`);
-    tags.push(`<meta property="og:image:height" content="1024" />`);
-    tags.push(`<meta property="og:image:alt" content="Dream Puppies logo" />`);
+    tags.push(`<meta property="og:image:type" content="image/jpeg" />`);
+    tags.push(`<meta property="og:image:width" content="1200" />`);
+    tags.push(`<meta property="og:image:height" content="630" />`);
+    tags.push(`<meta property="og:image:alt" content="Dream Puppies — family-raised puppies in Orlando, FL and Raeford, NC" />`);
     tags.push(`<meta name="twitter:image" content="${escapeHtml(metadata.socialImage)}" />`);
-    tags.push(`<meta name="twitter:image:alt" content="Dream Puppies logo" />`);
+    tags.push(`<meta name="twitter:image:alt" content="Dream Puppies — family-raised puppies in Orlando, FL and Raeford, NC" />`);
   }
 
   return tags.join("");
 }
 
+export const DEFAULT_SITE_URL = "https://puppyheavenllc.com";
+
+export type BreedSeoSource = {
+  id: string;
+  name: string;
+  shortDesc: string;
+  temperament: string;
+  hypoallergenic: boolean;
+  size: string;
+  weight: string;
+  lifespan: string;
+};
+
+export type BreedSeoMetadata = {
+  slug: string;
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+};
+
+export function getBreedSeoMetadata(breed: BreedSeoSource): BreedSeoMetadata {
+  const slug = breed.id;
+  const hypoNote = breed.hypoallergenic ? "hypoallergenic, " : "";
+  const description =
+    `Family-raised ${breed.name} puppies from Dream Puppies — ${breed.shortDesc.toLowerCase()}, ${hypoNote}` +
+    `vet-checked, and ready for their forever home in Orlando, FL and Raeford, NC. ` +
+    `Call (321) 697-8864 to reserve.`;
+  return {
+    slug,
+    path: `/breeds/${slug}`,
+    title: `${breed.name} Puppies for Sale in Orlando, FL & Raeford, NC`,
+    description,
+    h1: `${breed.name} Puppies — Family-Raised in Orlando, FL & Raeford, NC`,
+  };
+}
+
+export function renderBreedBodyFallback(
+  breed: BreedSeoSource,
+  meta: BreedSeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const traits = [
+    `Size: ${breed.size}`,
+    `Weight: ${breed.weight}`,
+    `Lifespan: ${breed.lifespan}`,
+    `Temperament: ${breed.temperament}`,
+    breed.hypoallergenic ? "Hypoallergenic" : null,
+  ].filter(Boolean) as string[];
+
+  const traitsHtml = traits.map((t) => `<li>${escapeHtml(t)}</li>`).join("");
+  return `<noscript>
+  <header>
+    <h1>${escapeHtml(meta.h1)}</h1>
+    <p>${escapeHtml(meta.description)}</p>
+  </header>
+  <h2>About the ${escapeHtml(breed.name)}</h2>
+  <p>${escapeHtml(breed.shortDesc)}.</p>
+  <ul>${traitsHtml}</ul>
+  <p><a href="${base}/puppies">View available ${escapeHtml(breed.name)} puppies</a></p>
+  <p><a href="${base}/upcoming-litters">See upcoming ${escapeHtml(breed.name)} litters</a></p>
+  <nav aria-label="Site"><ul>
+    <li><a href="${base}/">Dream Puppies home</a></li>
+    <li><a href="${base}/breeds">All breeds</a></li>
+    <li><a href="${base}/about">About us</a></li>
+    <li><a href="${base}/contact">Contact</a></li>
+    <li><a href="${base}/faq">FAQ</a></li>
+  </ul></nav>
+  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+</noscript>`;
+}
+
+export function renderBreedJsonLd(
+  breed: BreedSeoSource,
+  meta: BreedSeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: meta.h1,
+    description: meta.description,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${base}${meta.path}`,
+    },
+    about: {
+      "@type": "Thing",
+      name: `${breed.name} dog breed`,
+      description: breed.shortDesc,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Dream Puppies",
+      logo: {
+        "@type": "ImageObject",
+        url: `${base}/dream-puppies-logo.png`,
+      },
+    },
+  };
+  return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
+}
+
 export function requireSiteUrlForBuild(env: SeoEnvOverrides = appEnv): string {
   const siteUrl = env.siteUrl?.trim();
   if (!siteUrl) {
-    throw new Error(
-      "Missing VITE_SITE_URL. Set it in the environment before running the production SEO build."
-    );
+    return DEFAULT_SITE_URL;
   }
 
   return siteUrl.replace(/\/$/, "");
+}
+
+type RouteFallbackContent = {
+  h1: string;
+  intro: string;
+  bullets?: ReadonlyArray<string>;
+  extra?: string;
+};
+
+const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
+  home: {
+    h1: "Dream Puppies — Family-Raised Puppies for Sale in Orlando, FL & Raeford, NC",
+    intro:
+      "Dream Puppies is a family-operated breeder placing healthy, home-raised puppies with families across Florida and North Carolina. Call or text (321) 697-8864 to reserve.",
+    bullets: [
+      "Goldendoodle & Mini Goldendoodle puppies",
+      "French Bulldog puppies",
+      "Shih Tzu puppies",
+      "Toy Poodle & Standard Poodle puppies",
+      "Labradoodle, Pomeranian, and Maltese puppies",
+    ],
+    extra: "Locations served: Orlando, Florida and Raeford, North Carolina.",
+  },
+  puppies: {
+    h1: "Available Puppies for Sale — Dream Puppies (Orlando, FL & Raeford, NC)",
+    intro:
+      "Browse the puppies currently available from Dream Puppies. Every puppy is family-raised, vet-checked, and ready for pickup or shipping arrangements. Call (321) 697-8864 to reserve.",
+    bullets: [
+      "Goldendoodle, Mini Goldendoodle, and Labradoodle puppies",
+      "French Bulldog puppies",
+      "Shih Tzu, Toy Poodle, Pomeranian, and Maltese puppies",
+      "Photos, age, weight, and price displayed per puppy",
+    ],
+  },
+  upcomingLitters: {
+    h1: "Upcoming Puppy Litters — Dream Puppies",
+    intro:
+      "See upcoming Goldendoodle, Labradoodle, French Bulldog, and small-breed litters from Dream Puppies in Orlando, FL. Reserve your spot before puppies are announced publicly.",
+  },
+  breeds: {
+    h1: "Dog Breeds We Raise at Dream Puppies",
+    intro:
+      "Compare the breeds raised by Dream Puppies — temperament, size, grooming needs, and lifestyle fit. Learn which family-raised puppy is right for your home.",
+    bullets: [
+      "Goldendoodle (Standard and Mini) — see /breeds/goldendoodle",
+      "Labradoodle — see /breeds/labradoodle",
+      "Toy Poodle — see /breeds/toy-poodle",
+      "Standard Poodle — see /breeds/standard-poodle",
+      "Shih Tzu — see /breeds/shih-tzu",
+      "Pomeranian — see /breeds/pomeranian",
+      "Maltese — see /breeds/maltese",
+    ],
+  },
+  about: {
+    h1: "About Dream Puppies — A Family Breeder in Orlando, FL",
+    intro:
+      "Dream Puppies (Dream Enterprises LLC) is a family-operated hobby breeding program based in Orlando, Florida with a second location in Raeford, North Carolina. We raise puppies in our home with daily handling, early socialization, and veterinarian-supervised care.",
+  },
+  contact: {
+    h1: "Contact Dream Puppies",
+    intro:
+      "Reach Dream Puppies by phone, text, or email. We respond to most inquiries within 24 hours.",
+    extra:
+      "Phone & text: (321) 697-8864. Email: Dreampuppies22@gmail.com. Locations: Orlando, FL and Raeford, NC.",
+  },
+  consultation: {
+    h1: "Free Virtual Puppy Consultation",
+    intro:
+      "Not sure which breed is right for your family? Book a free virtual consultation with Dream Puppies. We help Florida and North Carolina families find the right breed for their home, kids, and lifestyle.",
+  },
+  essentials: {
+    h1: "Puppy Starter Kits & Essentials",
+    intro:
+      "Shop curated puppy starter kits and essentials recommended by Dream Puppies — food, crates, training tools, and grooming supplies for new owners.",
+  },
+  faq: {
+    h1: "Frequently Asked Questions — Dream Puppies",
+    intro:
+      "Answers to common questions about Dream Puppies: deposits, pricing, pickup, shipping, vaccinations, health guarantees, and care for your new puppy.",
+  },
+  dreamyReviews: {
+    h1: "Customer Reviews — Dream Puppies",
+    intro:
+      "Read reviews from Dream Puppies families across Florida and North Carolina. Real stories from happy puppy owners.",
+  },
+  trainingPlan: {
+    h1: "Free Puppy Training Plan",
+    intro:
+      "Get a free, customized puppy training plan from Dream Puppies. Step-by-step guidance for common puppy challenges — biting, potty training, leash manners, and more.",
+  },
+};
+
+function escapeHtmlPublic(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function renderRouteBodyFallback(pageId: SeoPageId | undefined, siteUrl: string): string {
+  const content = pageId ? ROUTE_FALLBACKS[pageId] : undefined;
+  const base = siteUrl.replace(/\/$/, "");
+  const navLinks = `<nav aria-label="Site"><ul>
+    <li><a href="${base}/puppies">Available puppies</a></li>
+    <li><a href="${base}/upcoming-litters">Upcoming litters</a></li>
+    <li><a href="${base}/breeds">Breeds we raise</a></li>
+    <li><a href="${base}/about">About</a></li>
+    <li><a href="${base}/contact">Contact</a></li>
+    <li><a href="${base}/faq">FAQ</a></li>
+  </ul></nav>`;
+
+  if (!content) {
+    return `<noscript>
+  <h1>Dream Puppies</h1>
+  <p>Family-operated puppy breeder in Orlando, FL and Raeford, NC. Call (321) 697-8864.</p>
+  ${navLinks}
+</noscript>`;
+  }
+
+  const bulletsHtml = content.bullets?.length
+    ? `<ul>${content.bullets.map((b) => `<li>${escapeHtmlPublic(b)}</li>`).join("")}</ul>`
+    : "";
+  const extraHtml = content.extra ? `<p>${escapeHtmlPublic(content.extra)}</p>` : "";
+
+  return `<noscript>
+  <header>
+    <h1>${escapeHtmlPublic(content.h1)}</h1>
+    <p>${escapeHtmlPublic(content.intro)}</p>
+    ${extraHtml}
+  </header>
+  ${bulletsHtml}
+  ${navLinks}
+  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+</noscript>`;
+}
+
+export function renderLocalBusinessJsonLd(siteUrl: string): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": `${base}/#business`,
+    additionalType: "https://schema.org/PetStore",
+    name: "Dream Puppies",
+    legalName: "Dream Enterprises LLC",
+    url: base,
+    telephone: "+1-321-697-8864",
+    email: "Dreampuppies22@gmail.com",
+    description:
+      "Family-operated puppy breeder placing Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, Toy Poodles, and more in Orlando, FL and Raeford, NC.",
+    logo: {
+      "@type": "ImageObject",
+      url: `${base}/dream-puppies-logo.png`,
+      width: 1024,
+      height: 1024,
+    },
+    image: `${base}/dream-puppies-logo.png`,
+    address: [
+      { "@type": "PostalAddress", addressLocality: "Orlando", addressRegion: "FL", addressCountry: "US" },
+      { "@type": "PostalAddress", addressLocality: "Raeford", addressRegion: "NC", addressCountry: "US" },
+    ],
+    areaServed: [
+      { "@type": "State", name: "Florida" },
+      { "@type": "State", name: "North Carolina" },
+    ],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "Customer Service",
+      telephone: "+1-321-697-8864",
+      email: "Dreampuppies22@gmail.com",
+      areaServed: ["US"],
+      availableLanguage: ["English", "Spanish"],
+    },
+  };
+  return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
+}
+
+export function renderBreadcrumbJsonLd(
+  siteUrl: string,
+  trail: ReadonlyArray<{ name: string; path: string }>
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((entry, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: entry.name,
+      item: `${base}${entry.path === "/" ? "/" : entry.path}`,
+    })),
+  };
+  return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
 }
 
 function escapeHtml(value: string): string {
