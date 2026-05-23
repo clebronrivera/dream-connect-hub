@@ -42,12 +42,12 @@ export function Seo({ pageId, title, description, canonicalPath, robots, imageUr
 
     if (metadata.socialImage) {
       upsertMetaTag("property", "og:image", metadata.socialImage);
-      upsertMetaTag("property", "og:image:type", "image/png");
-      upsertMetaTag("property", "og:image:width", "1024");
-      upsertMetaTag("property", "og:image:height", "1024");
-      upsertMetaTag("property", "og:image:alt", "Dream Puppies logo");
+      upsertMetaTag("property", "og:image:type", "image/jpeg");
+      upsertMetaTag("property", "og:image:width", "1200");
+      upsertMetaTag("property", "og:image:height", "630");
+      upsertMetaTag("property", "og:image:alt", "Dream Puppies — family-raised puppies in Orlando, FL and Raeford, NC");
       upsertMetaTag("name", "twitter:image", metadata.socialImage);
-      upsertMetaTag("name", "twitter:image:alt", "Dream Puppies logo");
+      upsertMetaTag("name", "twitter:image:alt", "Dream Puppies — family-raised puppies in Orlando, FL and Raeford, NC");
     } else {
       removeTag(`meta[property="og:image"]`);
       removeTag(`meta[property="og:image:type"]`);

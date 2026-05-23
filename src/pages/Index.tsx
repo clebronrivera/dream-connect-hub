@@ -109,7 +109,7 @@ export default function Index() {
 
   return (
     <Layout bare>
-      <Seo pageId="home" imageUrl="https://puppyheavenllc.com/dream-puppies-logo.png" />
+      <Seo pageId="home" />
       <div className="flex min-h-screen flex-col bg-[#0f041b] text-white">
         <GalacticHomeNav />
 

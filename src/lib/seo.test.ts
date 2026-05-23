@@ -47,14 +47,14 @@ describe("seo helpers", () => {
     ).toBe("https://cdn.example.com/social/banner.png");
   });
 
-  it("falls back to the local logo image when no explicit banner is configured", () => {
+  it("falls back to the local og-image when no explicit banner is configured", () => {
     expect(
       resolveSocialImageUrl({
         siteUrl: "https://puppyheaven.example/",
         supabaseUrl: "https://project.supabase.co/",
       })
     ).toBe(
-      "https://puppyheaven.example/dream-puppies-logo.png"
+      "https://puppyheaven.example/og-image.jpg"
     );
   });
 
