@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarHeart, Heart, Share2 } from 'lucide-react';
+import { CalendarHeart, Check, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
@@ -130,37 +130,29 @@ export function PuppyDetailModal({
                 {puppy.description && (
                   <p className="text-muted-foreground">{puppy.description}</p>
                 )}
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Health Certificate</span>
-                    <span>Yes</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full bg-primaryDeep transition-all duration-700 ease-out"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Vaccinations</span>
-                    <span>First round included</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full bg-primaryDeep transition-all duration-700 ease-out"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Microchipped</span>
-                    <span>{puppy.microchipped ? 'Yes' : 'No'}</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full bg-primaryDeep transition-all duration-700 ease-out"
-                      style={{ width: puppy.microchipped ? '100%' : '0%' }}
-                    />
-                  </div>
+                <div className="rounded-lg border border-primaryDeep/15 bg-primaryDeep/5 p-4">
+                  <p className="text-sm font-semibold text-foreground">
+                    Included with every puppy
+                  </p>
+                  <ul className="mt-3 space-y-2.5">
+                    {[
+                      'Veterinarian health certificate',
+                      'Age-appropriate vaccinations',
+                      'Microchip',
+                      'Puppy guide & resources',
+                    ].map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-center gap-2.5 text-sm text-foreground"
+                      >
+                        <Check
+                          className="h-4 w-4 shrink-0 text-primaryDeep"
+                          aria-hidden
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div className="pt-4">
                   {getDisplayPrice(puppy) != null ? (
