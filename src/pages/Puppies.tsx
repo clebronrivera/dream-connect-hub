@@ -17,7 +17,7 @@ import { Dog, Loader2, Info, Heart } from "lucide-react";
 import type { Puppy } from "@/lib/supabase";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
-import { getPuppyImage } from "@/lib/puppy-display-utils";
+import { formatReadyWeekOf, getPuppyImage } from "@/lib/puppy-display-utils";
 import { normalizeBreedToCanonical } from "@/lib/breed-utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -386,8 +386,8 @@ export default function Puppies() {
                         </DialogTitle>
                         <DialogDescription>
                           {prePuppy.breed}
-                          {prePuppy.ready_date &&
-                            ` • Ready ${prePuppy.ready_date}`}
+                          {formatReadyWeekOf(prePuppy.ready_date) &&
+                            ` • Ready the week of ${formatReadyWeekOf(prePuppy.ready_date)}`}
                           {getDisplayAgeWeeks(prePuppy) != null &&
                             ` • ${getDisplayAgeWeeks(prePuppy)} weeks`}
                         </DialogDescription>
