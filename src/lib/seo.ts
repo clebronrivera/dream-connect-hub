@@ -6,7 +6,7 @@ export const DEFAULT_ROBOTS = "index,follow";
 export const NOINDEX_ROBOTS = "noindex,nofollow";
 export const DEFAULT_OG_TYPE = "website";
 export const DEFAULT_TWITTER_CARD = "summary_large_image";
-export const DEFAULT_SOCIAL_IMAGE_PATH = "/og-image.jpg";
+export const DEFAULT_SOCIAL_IMAGE_PATH = "/og-image.jpg?v=2";
 
 export type SeoPageId =
   | "home"

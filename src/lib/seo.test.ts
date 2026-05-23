@@ -54,7 +54,7 @@ describe("seo helpers", () => {
         supabaseUrl: "https://project.supabase.co/",
       })
     ).toBe(
-      "https://puppyheaven.example/og-image.jpg"
+      "https://puppyheaven.example/og-image.jpg?v=2"
     );
   });
 
