@@ -22,6 +22,7 @@ import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 const FALLBACK_IMAGE_SRC =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='18' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'%3ENo photo%3C/text%3E%3C/svg%3E";
@@ -33,13 +34,6 @@ function getDisplayBreed(litter: UpcomingLitter): string {
 function photoPathOrNull(path: string | null | undefined): string | null {
   const s = typeof path === "string" ? path.trim() : "";
   return s || null;
-}
-
-function buildReserveSmsHref(litter: UpcomingLitter): string {
-  const damName = litter.dam_name?.trim() || "Dam";
-  const sireName = litter.sire_name?.trim() || "Sire";
-  const message = `Hi ${BUSINESS.primaryBrand}, I would like to reserve the puppies of ${damName} and ${sireName}.`;
-  return `sms:+1${BUSINESS.phoneRaw}?body=${encodeURIComponent(message)}`;
 }
 
 function compactBreedLabel(label: string): string {
@@ -62,7 +56,15 @@ type ParentDogModalState = {
 
 export function UpcomingLittersSection({ embedded = false }: UpcomingLittersSectionProps) {
   const { t } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
   const [parentModal, setParentModal] = useState<ParentDogModalState | null>(null);
+
+  const buildReserveSmsHref = (litter: UpcomingLitter): string => {
+    const damName = litter.dam_name?.trim() || "Dam";
+    const sireName = litter.sire_name?.trim() || "Sire";
+    const message = `Hi ${BUSINESS.primaryBrand}, I would like to reserve the puppies of ${damName} and ${sireName}.`;
+    return `sms:+1${businessInfo.phoneRaw}?body=${encodeURIComponent(message)}`;
+  };
 
   const { data: litters, isLoading, error } = useQuery({
     queryKey: UPCOMING_LITTERS_ACTIVE_QUERY_KEY,

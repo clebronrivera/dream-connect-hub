@@ -2,9 +2,11 @@ import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 export function Footer() {
   const { t } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
 
   return (
     <footer className="border-t border-line bg-paper">
@@ -39,18 +41,18 @@ export function Footer() {
             <h4 className="font-semibold text-foreground">{t("footerContactUs")}</h4>
             <div className="flex flex-col gap-3">
               <a
-                href={`tel:${BUSINESS.phoneRaw}`}
+                href={`tel:${businessInfo.phoneRaw}`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Phone className="h-4 w-4" />
-                {BUSINESS.phone}
+                {businessInfo.phone}
               </a>
               <a
-                href={`mailto:${BUSINESS.email}`}
+                href={`mailto:${businessInfo.email}`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Mail className="h-4 w-4" />
-                {BUSINESS.email}
+                {businessInfo.email}
               </a>
             </div>
           </div>
@@ -77,7 +79,7 @@ export function Footer() {
             {BUSINESS.footerLine}
           </p>
           <p className="text-center text-xs text-muted-foreground/70">
-            {BUSINESS.phone} · {BUSINESS.website} · {BUSINESS.tagline}
+            {businessInfo.phone} · {BUSINESS.website} · {BUSINESS.tagline}
           </p>
           <p className="text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} {BUSINESS.legalName}. {t("footerCopyrightSuffix")}

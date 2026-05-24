@@ -9,7 +9,7 @@ import { DepositRequestForm } from "@/components/DepositRequestForm";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
 import { insertDepositRequest, depositRequestPayloadToRow, type DepositRequestPayload } from "@/lib/deposit-requests";
 import { useState } from "react";
-import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 export default function RequestDeposit() {
   const [searchParams] = useSearchParams();
@@ -18,6 +18,7 @@ export default function RequestDeposit() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const businessInfo = useBusinessInfoOrDefaults();
 
   const { data: litters = [], isLoading } = useQuery({
     queryKey: UPCOMING_LITTERS_ACTIVE_QUERY_KEY,
@@ -56,7 +57,7 @@ export default function RequestDeposit() {
             a deposit agreement link via email within 24–48 hours.
           </p>
           <p className="text-sm text-muted-foreground">
-            Want to expedite? Call us at <strong>{BUSINESS.phone}</strong>
+            Want to expedite? Call us at <strong>{businessInfo.phone}</strong>
           </p>
         </div>
       </div>

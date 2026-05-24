@@ -17,11 +17,12 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from "@/components/home/GalacticHomeNav";
+import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { GalacticHeroPuppiesMarquee } from "@/components/home/GalacticHeroPuppiesMarquee";
 import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
 import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 import type { TranslationKey } from "@/i18n/translations";
 
 const space = "#0f041b";
@@ -53,7 +54,12 @@ const PROMISE_CARDS: { icon: typeof Eye; titleKey: TranslationKey; bodyKey: Tran
 
 export default function Index() {
   const { t } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
   const locationsLabel = BUSINESS.locations.map((l) => `${l.city}, ${l.state}`).join(" · ");
+
+  const smsPrefillBody = `Hi ${BUSINESS.primaryBrand}, I'm interested in learning more about your available puppies. Can you send me more information?`;
+  const smsHref = `sms:+1${businessInfo.phoneRaw}?body=${encodeURIComponent(smsPrefillBody)}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
 
   useEffect(() => {
     // Address objects intentionally omit streetAddress and postalCode — we do not
@@ -67,8 +73,8 @@ export default function Index() {
       name: BUSINESS.primaryBrand,
       type: ['LocalBusiness', 'PetStore'],
       url: 'https://puppyheavenllc.com',
-      telephone: BUSINESS.phone,
-      email: BUSINESS.email,
+      telephone: businessInfo.phone,
+      email: businessInfo.email,
       address: BUSINESS.locations.map((loc) => ({
         '@type': 'PostalAddress',
         addressLocality: loc.city,
@@ -89,8 +95,8 @@ export default function Index() {
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'Customer Service',
-        telephone: BUSINESS.phone,
-        email: BUSINESS.email,
+        telephone: businessInfo.phone,
+        email: businessInfo.email,
       },
     };
 
@@ -145,7 +151,7 @@ export default function Index() {
                 className={`${heroStickerCtaBaseClass} bg-[#ff3399] text-white shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]`}
                 asChild
               >
-                <a href={GALACTIC_HOME_SMS_HREF} className="flex items-center justify-center gap-x-3">
+                <a href={smsHref} className="flex items-center justify-center gap-x-3">
                   <MessageCircle className="size-6 shrink-0" aria-hidden />
                   <span>{t("indexHeroTextUsCta")}</span>
                   <ArrowRight className="size-5 shrink-0 transition group-active:translate-x-1" aria-hidden />
@@ -168,10 +174,10 @@ export default function Index() {
             <p className="mb-10 text-center text-sm text-white/55">
               {t("mockupV3PreferCall")}{" "}
               <a
-                href={GALACTIC_HOME_TEL_HREF}
+                href={telHref}
                 className="font-medium text-white underline-offset-4 hover:text-[#ff3399] hover:underline"
               >
-                {BUSINESS.phone}
+                {businessInfo.phone}
               </a>
             </p>
 
@@ -243,7 +249,7 @@ export default function Index() {
                 className={`${finalStickerCtaBaseClass} bg-[#ff3399] text-white shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]`}
                 asChild
               >
-                <a href={GALACTIC_HOME_SMS_HREF} className="flex items-center justify-center gap-x-3">
+                <a href={smsHref} className="flex items-center justify-center gap-x-3">
                   <MessageCircle className="size-5 shrink-0" aria-hidden />
                   <span>{t("indexHeroTextUsCta")}</span>
                   <ArrowRight className="size-5 shrink-0 transition group-active:translate-x-1" aria-hidden />
@@ -254,15 +260,15 @@ export default function Index() {
                 className={`${finalStickerCtaBaseClass} bg-[#5b21b6] text-white shadow-[0_6px_0_#7c3aed,0_14px_30px_rgba(124,58,237,0.45)] hover:bg-[#7c3aed] hover:shadow-[0_6px_0_#a78bfa,0_16px_34px_rgba(167,139,250,0.5)]`}
                 asChild
               >
-                <a href={GALACTIC_HOME_TEL_HREF} className="flex items-center justify-center gap-x-3">
+                <a href={telHref} className="flex items-center justify-center gap-x-3">
                   <Phone className="size-5 shrink-0" aria-hidden />
-                  <span>{BUSINESS.phone}</span>
+                  <span>{businessInfo.phone}</span>
                   <ArrowRight className="size-5 shrink-0 transition group-active:translate-x-1" aria-hidden />
                 </a>
               </StickerButton>
             </div>
             <p className="mt-8 text-xs text-white/50">
-              {t("mockupV3FooterRegions")} · {BUSINESS.phone}
+              {t("mockupV3FooterRegions")} · {businessInfo.phone}
             </p>
           </div>
         </section>

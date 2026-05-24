@@ -13,8 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageCircle } from 'lucide-react';
 import { StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { GalacticHomeMiniFooter } from '@/components/home/GalacticHomeMiniFooter';
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF } from '@/components/home/GalacticHomeNav';
+import { GalacticHomeNav } from '@/components/home/GalacticHomeNav';
 import { GalacticPawCanvas } from '@/components/GalacticPawCanvas';
+import { useBusinessInfoOrDefaults } from '@/lib/hooks/useBusinessInfo';
 
 const SECTION_ICONS: Record<string, string> = {
   deposits: '\uD83D\uDCB0',
@@ -41,6 +42,9 @@ const pinkStickerClass =
   `${glossyStickerBaseClass} bg-[#ff3399] text-white shadow-[0_6px_0_#ff66b3,0_14px_30px_rgba(255,102,179,0.45)] hover:bg-[#ff1a8c] hover:shadow-[0_6px_0_#ff85c2,0_16px_34px_rgba(255,133,194,0.5)]`;
 
 export default function FaqPage() {
+  const businessInfo = useBusinessInfoOrDefaults();
+  const smsHref = `sms:+1${businessInfo.phoneRaw}`;
+
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['faq-items'],
     queryFn: fetchActiveFaqItems,
@@ -138,7 +142,7 @@ export default function FaqPage() {
                   <p className="mb-2 font-semibold text-white">Still have questions?</p>
                   <p className="mb-3 text-sm text-white/70">We're happy to help.</p>
                   <StickerButton size="lg" className={pinkStickerClass} asChild>
-                    <a href={GALACTIC_HOME_SMS_HREF} className="inline-flex items-center gap-2">
+                    <a href={smsHref} className="inline-flex items-center gap-2">
                       <MessageCircle className="h-4 w-4" />
                       Text us now
                     </a>

@@ -5,11 +5,11 @@ import { Seo } from '@/components/seo/Seo';
 import { TrainingPlanForm, type TrainingPlanResult as PlanResult } from '@/components/trainingPlan/TrainingPlanForm';
 import { TrainingPlanResult } from '@/components/trainingPlan/TrainingPlanResult';
 import { getProblemTypeBySlug } from '@/lib/constants/trainingPlan';
-import { BUSINESS } from '@/lib/constants/business';
+import { useBusinessInfoOrDefaults } from '@/lib/hooks/useBusinessInfo';
 import { GraduationCap, MessageCircle, Phone } from 'lucide-react';
 import { StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { GalacticHomeMiniFooter } from '@/components/home/GalacticHomeMiniFooter';
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from '@/components/home/GalacticHomeNav';
+import { GalacticHomeNav } from '@/components/home/GalacticHomeNav';
 import { GalacticPawCanvas } from '@/components/GalacticPawCanvas';
 
 const pageShellClass = 'min-h-screen bg-[#0f041b] text-white';
@@ -26,6 +26,10 @@ export default function TrainingPlanPage() {
   const { problemType: slug } = useParams<{ problemType?: string }>();
   const problemType = slug ? getProblemTypeBySlug(slug) : null;
   const [plan, setPlan] = useState<PlanResult | null>(null);
+  const businessInfo = useBusinessInfoOrDefaults();
+
+  const smsHref = `sms:+1${businessInfo.phoneRaw}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
 
   return (
     <Layout bare>
@@ -81,15 +85,15 @@ export default function TrainingPlanPage() {
             <p className="mb-4 text-white/75">Questions about training or our puppies?</p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <StickerButton size="lg" className={pinkStickerClass} asChild>
-                <a href={GALACTIC_HOME_SMS_HREF} className="inline-flex items-center gap-2">
+                <a href={smsHref} className="inline-flex items-center gap-2">
                   <MessageCircle className="h-5 w-5" />
                   Text us now
                 </a>
               </StickerButton>
               <StickerButton size="lg" className={violetStickerClass} asChild>
-                <a href={GALACTIC_HOME_TEL_HREF} className="inline-flex items-center gap-2">
+                <a href={telHref} className="inline-flex items-center gap-2">
                   <Phone className="h-5 w-5" />
-                  {BUSINESS.phone}
+                  {businessInfo.phone}
                 </a>
               </StickerButton>
               <StickerButton size="lg" className={violetStickerClass} asChild>

@@ -4,12 +4,13 @@ import { Seo } from "@/components/seo/Seo";
 import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
 import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
-import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 const pageShellClass = "min-h-screen bg-[#0f041b] text-white";
 const containerClass = "mx-auto max-w-screen-2xl px-6 md:px-8";
 
 export default function About() {
+  const businessInfo = useBusinessInfoOrDefaults();
 
   useEffect(() => {
     const jsonLd = {
@@ -96,7 +97,7 @@ export default function About() {
               <div className="space-y-4">
                 <h2 className="font-display text-2xl font-bold md:text-3xl">Your Questions, Our Answers</h2>
                 <p className="text-base leading-relaxed text-white/80">
-                  Ready to learn more about a puppy? Call us at <a href={`tel:${BUSINESS.phoneRaw}`} className="text-white font-semibold hover:text-white/80 transition-colors">{BUSINESS.phone}</a> or explore our available puppies and upcoming litters. We're here to answer every question and ensure you find the perfect Dream Puppy for your family.
+                  Ready to learn more about a puppy? Call us at <a href={`tel:+1${businessInfo.phoneRaw}`} className="text-white font-semibold hover:text-white/80 transition-colors">{businessInfo.phone}</a> or explore our available puppies and upcoming litters. We're here to answer every question and ensure you find the perfect Dream Puppy for your family.
                 </p>
               </div>
             </div>

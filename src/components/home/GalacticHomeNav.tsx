@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 import { PUBLIC_SHOW_SHOP_AND_BREEDS_NAV } from "@/lib/public-site-features";
 import { cn } from "@/lib/utils";
 
@@ -36,16 +37,16 @@ const galacticNavLinks: { to: string; label: TranslationKey; end?: boolean }[] =
   { to: "/contact", label: "navShortContact" },
 ];
 
-const SMS_PREFILL_BODY = `Hi ${BUSINESS.primaryBrand}, I'm interested in learning more about your available puppies. Can you send me more information?`;
-
-export const GALACTIC_HOME_SMS_HREF = `sms:+1${BUSINESS.phoneRaw}?body=${encodeURIComponent(SMS_PREFILL_BODY)}`;
-export const GALACTIC_HOME_TEL_HREF = `tel:+1${BUSINESS.phoneRaw}`;
-
 /** Sticky galactic header: logo, pill tabs, 📞 / 💬 actions, live hint, language, mobile sheet. */
 export function GalacticHomeNav() {
   const { t, language, setLanguage } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
   const [sheetOpen, setSheetOpen] = useState(false);
   const liveLabel = t("indexHeroEyebrow").replace(/^[●•]\s*/u, "").trim();
+
+  const smsPrefillBody = `Hi ${BUSINESS.primaryBrand}, I'm interested in learning more about your available puppies. Can you send me more information?`;
+  const smsHref = `sms:+1${businessInfo.phoneRaw}?body=${encodeURIComponent(smsPrefillBody)}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
   const iconPillClass =
     "inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-lg leading-none text-white transition hover:bg-white/10";
 
@@ -88,14 +89,14 @@ export function GalacticHomeNav() {
           {/* Tablet+: phone / message emoji actions + live pill */}
           <div className="hidden items-center gap-1.5 md:flex md:gap-2">
             <a
-              href={GALACTIC_HOME_TEL_HREF}
+              href={telHref}
               className={iconPillClass}
               aria-label={t("mockupV3NavCall")}
             >
               <span aria-hidden>📞</span>
             </a>
             <a
-              href={GALACTIC_HOME_SMS_HREF}
+              href={smsHref}
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ff3399] text-lg leading-none text-white shadow-[0_0_18px_rgba(255,51,153,0.45)] transition hover:bg-[#ff1a8c]"
               aria-label={t("indexHeroTextUsCta")}
             >
@@ -162,14 +163,14 @@ export function GalacticHomeNav() {
                 </nav>
                 <div className="mt-6 flex gap-2 border-t border-white/10 pt-6">
                   <a
-                    href={GALACTIC_HOME_TEL_HREF}
+                    href={telHref}
                     className="flex flex-1 items-center justify-center rounded-2xl border border-white/25 py-4 text-2xl leading-none text-white transition hover:bg-white/5"
                     aria-label={t("mockupV3NavCall")}
                   >
                     <span aria-hidden>📞</span>
                   </a>
                   <a
-                    href={GALACTIC_HOME_SMS_HREF}
+                    href={smsHref}
                     className="flex flex-1 items-center justify-center rounded-2xl bg-[#ff3399] py-4 text-2xl leading-none text-white transition hover:bg-[#ff1a8c]"
                     aria-label={t("indexHeroTextUsCta")}
                   >

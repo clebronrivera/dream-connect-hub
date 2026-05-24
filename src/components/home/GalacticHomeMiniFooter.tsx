@@ -2,9 +2,11 @@ import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 export function GalacticHomeMiniFooter() {
   const { t } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
 
   return (
     <footer className="border-t border-white/10 bg-black py-12 text-white/80">
@@ -34,18 +36,18 @@ export function GalacticHomeMiniFooter() {
             <h4 className="font-semibold text-white">{t("footerContactUs")}</h4>
             <div className="flex flex-col gap-3">
               <a
-                href={`tel:${BUSINESS.phoneRaw}`}
+                href={`tel:${businessInfo.phoneRaw}`}
                 className="flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
               >
                 <Phone className="h-4 w-4" />
-                {BUSINESS.phone}
+                {businessInfo.phone}
               </a>
               <a
-                href={`mailto:${BUSINESS.email}`}
+                href={`mailto:${businessInfo.email}`}
                 className="flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
               >
                 <Mail className="h-4 w-4" />
-                {BUSINESS.email}
+                {businessInfo.email}
               </a>
             </div>
           </div>
@@ -68,7 +70,7 @@ export function GalacticHomeMiniFooter() {
         <div className="mt-8 flex flex-col items-center gap-2 border-t border-white/10 pt-8">
           <p className="text-center text-sm text-white/70">{BUSINESS.footerLine}</p>
           <p className="text-center text-xs text-white/55">
-            {BUSINESS.phone} · {BUSINESS.website}
+            {businessInfo.phone} · {BUSINESS.website}
           </p>
           <p className="text-center text-sm text-white/70">
             © {new Date().getFullYear()} {BUSINESS.legalName}. {t("footerCopyrightSuffix")}

@@ -30,9 +30,10 @@ import { US_STATES, resolveStateLabel } from '@/data/statesData';
 import { StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { TurnstileWidget } from '@/components/turnstile/TurnstileWidget';
 import { GalacticHomeMiniFooter } from '@/components/home/GalacticHomeMiniFooter';
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from '@/components/home/GalacticHomeNav';
+import { GalacticHomeNav } from '@/components/home/GalacticHomeNav';
 import { GalacticPawCanvas } from '@/components/GalacticPawCanvas';
 import { MessageCircle, Phone } from 'lucide-react';
+import { useBusinessInfoOrDefaults } from '@/lib/hooks/useBusinessInfo';
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
   | string
@@ -293,6 +294,10 @@ function SubmitDialog() {
 }
 
 export default function DreamyReviews() {
+  const businessInfo = useBusinessInfoOrDefaults();
+  const smsHref = `sms:+1${businessInfo.phoneRaw}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
+
   const { data: testimonials = [], isLoading } = useQuery({
     queryKey: ['testimonials'],
     queryFn: fetchApprovedTestimonials,
@@ -357,13 +362,13 @@ export default function DreamyReviews() {
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <SubmitDialog />
             <StickerButton size="lg" className={pinkStickerClass} asChild>
-              <a href={GALACTIC_HOME_SMS_HREF} className="inline-flex items-center gap-2">
+              <a href={smsHref} className="inline-flex items-center gap-2">
                 <MessageCircle className="h-4 w-4" />
                 Text us now
               </a>
             </StickerButton>
             <StickerButton size="lg" className={violetStickerClass} asChild>
-              <a href={GALACTIC_HOME_TEL_HREF} className="inline-flex items-center gap-2">
+              <a href={telHref} className="inline-flex items-center gap-2">
                 <Phone className="h-4 w-4" />
                 Call
               </a>

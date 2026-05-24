@@ -13,7 +13,7 @@ import { useParams } from "react-router-dom";
 import { Loader2, FileDown, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
-import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 type State =
   | { status: "loading" }
@@ -25,6 +25,7 @@ export default function AgreementDownload() {
     agreementId: string;
     buyerToken: string;
   }>();
+  const businessInfo = useBusinessInfoOrDefaults();
 
   // Lazy initializer — if the URL params are missing on mount, start in
   // the error state instead of dispatching setState from an effect.
@@ -129,10 +130,10 @@ export default function AgreementDownload() {
               <p className="text-xs text-muted-foreground">
                 Need help?{" "}
                 <a
-                  href={`tel:${BUSINESS.phone}`}
+                  href={`tel:+1${businessInfo.phoneRaw}`}
                   className="underline hover:text-primary"
                 >
-                  Call us at {BUSINESS.phone}
+                  Call us at {businessInfo.phone}
                 </a>
               </p>
             </div>

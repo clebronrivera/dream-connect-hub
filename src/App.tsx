@@ -51,6 +51,7 @@ const FaqManager = lazyWithRetry(() => import("./pages/admin/FaqManager"));
 const DreamyReviews = lazyWithRetry(() => import("./pages/DreamyReviews"));
 const TestimonialsList = lazyWithRetry(() => import("./pages/admin/TestimonialsList"));
 const Newsletter = lazyWithRetry(() => import("./pages/admin/Newsletter"));
+const BusinessInfoPage = lazyWithRetry(() => import("./pages/admin/BusinessInfoPage"));
 const TrainingPlanPage = lazyWithRetry(() => import("./pages/TrainingPlanPage"));
 const DepositRequests = lazyWithRetry(() => import("./pages/admin/DepositRequests"));
 const RequestDeposit = lazyWithRetry(() => import("./pages/RequestDeposit"));
@@ -179,6 +180,7 @@ export function AppRoutes() {
             <Route path="faq" element={<FaqManager />} />
             <Route path="testimonials" element={<TestimonialsList />} />
             <Route path="newsletter" element={<Newsletter />} />
+            <Route path="settings/business-info" element={<BusinessInfoPage />} />
           </Route>
         </Route>
 

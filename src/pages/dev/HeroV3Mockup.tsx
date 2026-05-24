@@ -17,11 +17,9 @@ import {
 import { BUSINESS } from "@/lib/constants/business";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from "@/components/home/GalacticHomeNav";
+import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { GalacticHeroPuppiesMarquee } from "@/components/home/GalacticHeroPuppiesMarquee";
-
-const SMS_HREF = GALACTIC_HOME_SMS_HREF;
-const TEL_HREF = GALACTIC_HOME_TEL_HREF;
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 type Paw = {
   x: number;
@@ -139,8 +137,11 @@ export default function HeroV3Mockup() {
   const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useGalacticPawCanvas(canvasRef);
+  const businessInfo = useBusinessInfoOrDefaults();
 
-  const locationsLabel = BUSINESS.locations.map((l) => `${l.city}, ${l.state}`).join(" · ");
+  const locationsLabel = businessInfo.locations.map((l) => `${l.city}, ${l.state}`).join(" · ");
+  const smsHref = `sms:+1${businessInfo.phoneRaw}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
 
   return (
     <div className="overflow-x-hidden bg-[#0f041b] text-white">
@@ -179,7 +180,7 @@ export default function HeroV3Mockup() {
 
           <div className="mb-12 flex flex-col justify-center gap-4 sm:flex-row">
             <a
-              href={SMS_HREF}
+              href={smsHref}
               className="group flex items-center justify-center gap-x-3 rounded-3xl bg-[#ff3399] px-10 py-5 text-lg font-bold text-white shadow-[0_0_40px_rgba(255,51,153,0.5)] transition duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-0.5 hover:bg-[#ff1a8c] hover:shadow-[0_20px_25px_-5px_rgb(255_51_153/0.4)] sm:px-12 sm:text-xl"
             >
               <MessageCircle className="size-6 shrink-0" aria-hidden />
@@ -198,10 +199,10 @@ export default function HeroV3Mockup() {
           <p className="mb-10 text-center text-sm text-white/55">
             {t("mockupV3PreferCall")}{" "}
             <a
-              href={TEL_HREF}
+              href={telHref}
               className="font-medium text-white underline-offset-4 hover:text-[#ff3399] hover:underline"
             >
-              {BUSINESS.phone}
+              {businessInfo.phone}
             </a>
           </p>
 
@@ -278,22 +279,22 @@ export default function HeroV3Mockup() {
           <p className="mb-10 text-xl text-white/70">{t("mockupV3FinalSub")}</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <a
-              href={SMS_HREF}
+              href={smsHref}
               className="flex items-center justify-center gap-x-3 rounded-3xl bg-[#ff3399] px-10 py-4 text-lg font-bold text-white shadow-[0_0_24px_rgba(255,51,153,0.45)] transition hover:bg-[#ff1a8c]"
             >
               <MessageCircle className="size-5 shrink-0" aria-hidden />
               {t("indexHeroTextUsCta")}
             </a>
             <a
-              href={TEL_HREF}
+              href={telHref}
               className="flex items-center justify-center gap-x-3 rounded-3xl border border-white/30 px-8 py-4 text-lg font-semibold text-white transition hover:bg-white/5"
             >
               <Phone className="size-5 shrink-0" aria-hidden />
-              {BUSINESS.phone}
+              {businessInfo.phone}
             </a>
           </div>
           <p className="mt-8 text-xs text-white/50">
-            {t("mockupV3FooterRegions")} · {BUSINESS.phone}
+            {t("mockupV3FooterRegions")} · {businessInfo.phone}
           </p>
         </div>
       </section>

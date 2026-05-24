@@ -22,12 +22,12 @@ import {
   insertContactMessage,
   upcomingLitterPayloadToRow,
 } from "@/lib/contact-messages";
-import { BUSINESS } from "@/lib/constants/business";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
 import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from "@/components/home/GalacticHomeNav";
+import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
 
 const pageShellClass = "min-h-screen bg-[#0f041b] text-white";
@@ -57,6 +57,11 @@ export default function Contact() {
   const [subject, setSubject] = useState("");
   const [upcomingLitterId, setUpcomingLitterId] = useState<string | null>(null);
   const [generalFormToken, setGeneralFormToken] = useState<string | null>(null);
+  const businessInfo = useBusinessInfoOrDefaults();
+
+  const smsHref = `sms:+1${businessInfo.phoneRaw}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
+
   const captchaSatisfiedGeneral =
     !captchaRequired || Boolean(generalFormToken);
   const { data: puppies } = useQuery({
@@ -191,8 +196,8 @@ export default function Contact() {
           <div className="mt-8 mx-auto max-w-2xl text-sm text-white/70 space-y-2">
             <p className="font-semibold text-white">Dream Enterprises LLC (DBA Dream Puppies)</p>
             <p>Orlando, FL | Raeford, NC</p>
-            <a href={`tel:${BUSINESS.phoneRaw}`} className="inline-block hover:text-white transition-colors">
-              {BUSINESS.phone}
+            <a href={telHref} className="inline-block hover:text-white transition-colors">
+              {businessInfo.phone}
             </a>
           </div>
         </div>
@@ -211,11 +216,11 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Phone</h3>
-                    <a 
-                      href={`tel:${BUSINESS.phoneRaw}`} 
+                    <a
+                      href={telHref}
                       className="text-white/75 hover:text-white transition-colors"
                     >
-                      {BUSINESS.phone}
+                      {businessInfo.phone}
                     </a>
                   </div>
                 </div>
@@ -230,11 +235,11 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Email</h3>
-                    <a 
-                      href={`mailto:${BUSINESS.email}`} 
+                    <a
+                      href={`mailto:${businessInfo.email}`}
                       className="text-white/75 hover:text-white transition-colors break-all"
                     >
-                      {BUSINESS.email}
+                      {businessInfo.email}
                     </a>
                   </div>
                 </div>
@@ -442,15 +447,15 @@ export default function Contact() {
           <p className="mb-4 text-white/75">Prefer quick contact? Text or call us directly.</p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <StickerButton size="lg" className={pinkStickerClass} asChild>
-              <a href={GALACTIC_HOME_SMS_HREF} className="inline-flex items-center gap-2">
+              <a href={smsHref} className="inline-flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Text us now
               </a>
             </StickerButton>
             <StickerButton size="lg" className={violetStickerClass} asChild>
-              <a href={GALACTIC_HOME_TEL_HREF} className="inline-flex items-center gap-2">
+              <a href={telHref} className="inline-flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                {BUSINESS.phone}
+                {businessInfo.phone}
               </a>
             </StickerButton>
           </div>

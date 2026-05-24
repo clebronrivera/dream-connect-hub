@@ -14,10 +14,11 @@ import {
 import { Calendar, Phone, Dog, CalendarHeart } from "lucide-react";
 import type { UpcomingLitter, UpcomingLitterPuppyPlaceholder } from "@/lib/supabase";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 import { pickDepositLabel } from "@/lib/upcoming-pick-labels";
 import { formatBirthWindow, formatGoHomeWindow } from "@/lib/litter-timeline";
 import { US_STATES } from "@/data/statesData";
-import { BUSINESS, AUTHORIZED_SELLERS } from "@/lib/constants/business";
+import { AUTHORIZED_SELLERS } from "@/lib/constants/business";
 import { PAYMENT_METHODS } from "@/lib/constants/deposit";
 import { HOW_HEARD_OPTIONS, HOW_HEARD_REFERRAL_VALUES, type HowHeardValue } from "@/lib/constants/how-heard";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
@@ -77,6 +78,7 @@ export function DepositRequestForm({
   isSubmitting,
 }: DepositRequestFormProps) {
   const { t } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
 
   // --- Interest type ---
   const [interestType, setInterestType] = useState<InterestType>(
@@ -483,7 +485,7 @@ export function DepositRequestForm({
         </p>
         <p className="text-muted-foreground flex items-center gap-1.5 pt-1">
           <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-          Want to expedite? Call us at <strong>{BUSINESS.phone}</strong>
+          Want to expedite? Call us at <strong>{businessInfo.phone}</strong>
         </p>
       </div>
 

@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BUSINESS } from '@/lib/constants/business';
+import { useBusinessInfoOrDefaults } from '@/lib/hooks/useBusinessInfo';
 import { Clock, Target, AlertTriangle, Heart, Dog, RotateCcw, MessageCircle } from 'lucide-react';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function TrainingPlanResult({ plan, onReset }: Props) {
+  const businessInfo = useBusinessInfoOrDefaults();
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
@@ -138,7 +140,7 @@ export function TrainingPlanResult({ plan, onReset }: Props) {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {BUSINESS.phone} · {BUSINESS.website} · {BUSINESS.tagline}
+          {businessInfo.phone} · {BUSINESS.website} · {BUSINESS.tagline}
         </p>
       </div>
     </div>

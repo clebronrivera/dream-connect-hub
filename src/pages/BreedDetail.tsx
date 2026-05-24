@@ -19,8 +19,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { BREEDS_DATA, type BreedStats } from "@/data/breeds-content";
-import { BUSINESS } from "@/lib/constants/business";
 import { getBreedSeoMetadata } from "@/lib/seo";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 import NotFound from "@/pages/NotFound";
 
 function formatStatKey(key: string): string {
@@ -29,6 +29,7 @@ function formatStatKey(key: string): string {
 
 export default function BreedDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const businessInfo = useBusinessInfoOrDefaults();
   const breed = useMemo(() => BREEDS_DATA.find((b) => b.id === slug), [slug]);
   const seo = breed ? getBreedSeoMetadata(breed) : null;
 
@@ -292,9 +293,9 @@ export default function BreedDetail() {
                 className="rounded-pill border-white/50 text-white hover:bg-white/10"
                 asChild
               >
-                <a href={`tel:+1${BUSINESS.phoneRaw}`}>
+                <a href={`tel:+1${businessInfo.phoneRaw}`}>
                   <Phone className="mr-2 h-4 w-4" />
-                  Call {BUSINESS.phone}
+                  Call {businessInfo.phone}
                 </a>
               </Button>
               <Button
@@ -303,7 +304,7 @@ export default function BreedDetail() {
                 className="rounded-pill border-white/50 text-white hover:bg-white/10"
                 asChild
               >
-                <a href={`sms:+1${BUSINESS.phoneRaw}`}>
+                <a href={`sms:+1${businessInfo.phoneRaw}`}>
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Text us
                 </a>

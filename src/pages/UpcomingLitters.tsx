@@ -3,11 +3,12 @@ import { MessageCircle, Phone } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { UpcomingLittersSection } from "@/components/upcoming/UpcomingLittersSection";
-import { GalacticHomeNav, GALACTIC_HOME_SMS_HREF, GALACTIC_HOME_TEL_HREF } from "@/components/home/GalacticHomeNav";
+import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
 import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
 import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 const pageShellClass = "min-h-screen bg-[#0f041b] text-white";
 const containerClass = "mx-auto max-w-screen-2xl px-6 md:px-8";
@@ -20,6 +21,9 @@ const violetStickerClass =
 
 export default function UpcomingLitters() {
   const { t } = useLanguage();
+  const businessInfo = useBusinessInfoOrDefaults();
+  const smsHref = `sms:+1${businessInfo.phoneRaw}`;
+  const telHref = `tel:+1${businessInfo.phoneRaw}`;
 
   useEffect(() => {
     const jsonLd = {
@@ -82,13 +86,13 @@ export default function UpcomingLitters() {
 
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <StickerButton size="lg" className={pinkStickerClass} asChild>
-                <a href={GALACTIC_HOME_SMS_HREF} className="flex items-center justify-center gap-x-3">
+                <a href={smsHref} className="flex items-center justify-center gap-x-3">
                   <MessageCircle className="size-6 shrink-0" aria-hidden />
                   <span>Text us for updates</span>
                 </a>
               </StickerButton>
               <StickerButton size="lg" className={violetStickerClass} asChild>
-                <a href={GALACTIC_HOME_TEL_HREF} className="flex items-center justify-center gap-x-3">
+                <a href={telHref} className="flex items-center justify-center gap-x-3">
                   <Phone className="size-6 shrink-0" aria-hidden />
                   <span>Call our team</span>
                 </a>
