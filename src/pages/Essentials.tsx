@@ -37,7 +37,7 @@ const categories = [
 const faqs = [
   {
     question: "How do I place an order?",
-    answer: "Contact us via phone (321-697-8864) or email (Dreampuppies22@gmail.com) to place your order. We'll help you select the perfect items for your pet's needs.",
+    answer: "Contact us via phone (321-418-1796) or email (Dreampuppies22@gmail.com) to place your order. We'll help you select the perfect items for your pet's needs.",
   },
   {
     question: "What are the shipping options?",
@@ -469,9 +469,9 @@ export default function Essentials() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button size="lg" asChild>
-            <a href="tel:321-697-8864">
+            <a href="tel:321-418-1796">
               <Phone className="h-4 w-4 mr-2" />
-              Call 321-697-8864
+              Call 321-418-1796
             </a>
           </Button>
           <Button size="lg" variant="outline" asChild>

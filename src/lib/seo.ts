@@ -38,7 +38,7 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
     path: "/",
     title: "Family-Raised Puppies for Sale in Orlando, FL",
     description:
-      "Family-raised puppies for sale in Orlando, FL and Raeford, NC. Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, and more. Reserve yours today — call (321) 697-8864.",
+      "Family-raised puppies for sale in Orlando, FL and Raeford, NC. Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, and more. Reserve yours today — call (321) 418-1796.",
   },
   puppies: {
     pageId: "puppies",
@@ -64,9 +64,9 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
   contact: {
     pageId: "contact",
     path: "/contact",
-    title: "Contact Dream Puppies | Orlando, FL (321) 697-8864",
+    title: "Contact Dream Puppies | Orlando, FL (321) 418-1796",
     description:
-      "Contact Dream Puppies in Orlando, FL or Raeford, NC. Call or text (321) 697-8864, email Dreampuppies22@gmail.com, or fill out our inquiry form.",
+      "Contact Dream Puppies in Orlando, FL or Raeford, NC. Call or text (321) 418-1796, email Dreampuppies22@gmail.com, or fill out our inquiry form.",
   },
   upcomingLitters: {
     pageId: "upcomingLitters",
@@ -333,7 +333,7 @@ export function getBreedSeoMetadata(breed: BreedSeoSource): BreedSeoMetadata {
   const description =
     `Family-raised ${breed.name} puppies from Dream Puppies — ${breed.shortDesc.toLowerCase()}, ${hypoNote}` +
     `vet-checked, and ready for their forever home in Orlando, FL and Raeford, NC. ` +
-    `Call (321) 697-8864 to reserve.`;
+    `Call (321) 418-1796 to reserve.`;
   return {
     slug,
     path: `/breeds/${slug}`,
@@ -375,7 +375,7 @@ export function renderBreedBodyFallback(
     <li><a href="${base}/contact">Contact</a></li>
     <li><a href="${base}/faq">FAQ</a></li>
   </ul></nav>
-  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+  <p>Call or text <a href="tel:+13214181796">(321) 418-1796</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
 </noscript>`;
 }
 
@@ -431,7 +431,7 @@ const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
   home: {
     h1: "Dream Puppies — Family-Raised Puppies for Sale in Orlando, FL & Raeford, NC",
     intro:
-      "Dream Puppies is a family-operated breeder placing healthy, home-raised puppies with families across Florida and North Carolina. Call or text (321) 697-8864 to reserve.",
+      "Dream Puppies is a family-operated breeder placing healthy, home-raised puppies with families across Florida and North Carolina. Call or text (321) 418-1796 to reserve.",
     bullets: [
       "Goldendoodle & Mini Goldendoodle puppies",
       "French Bulldog puppies",
@@ -444,7 +444,7 @@ const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
   puppies: {
     h1: "Available Puppies for Sale — Dream Puppies (Orlando, FL & Raeford, NC)",
     intro:
-      "Browse the puppies currently available from Dream Puppies. Every puppy is family-raised, vet-checked, and ready for pickup or shipping arrangements. Call (321) 697-8864 to reserve.",
+      "Browse the puppies currently available from Dream Puppies. Every puppy is family-raised, vet-checked, and ready for pickup or shipping arrangements. Call (321) 418-1796 to reserve.",
     bullets: [
       "Goldendoodle, Mini Goldendoodle, and Labradoodle puppies",
       "French Bulldog puppies",
@@ -481,7 +481,7 @@ const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
     intro:
       "Reach Dream Puppies by phone, text, or email. We respond to most inquiries within 24 hours.",
     extra:
-      "Phone & text: (321) 697-8864. Email: Dreampuppies22@gmail.com. Locations: Orlando, FL and Raeford, NC.",
+      "Phone & text: (321) 418-1796. Email: Dreampuppies22@gmail.com. Locations: Orlando, FL and Raeford, NC.",
   },
   consultation: {
     h1: "Free Virtual Puppy Consultation",
@@ -533,7 +533,7 @@ export function renderRouteBodyFallback(pageId: SeoPageId | undefined, siteUrl: 
   if (!content) {
     return `<noscript>
   <h1>Dream Puppies</h1>
-  <p>Family-operated puppy breeder in Orlando, FL and Raeford, NC. Call (321) 697-8864.</p>
+  <p>Family-operated puppy breeder in Orlando, FL and Raeford, NC. Call (321) 418-1796.</p>
   ${navLinks}
 </noscript>`;
   }
@@ -551,7 +551,7 @@ export function renderRouteBodyFallback(pageId: SeoPageId | undefined, siteUrl: 
   </header>
   ${bulletsHtml}
   ${navLinks}
-  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+  <p>Call or text <a href="tel:+13214181796">(321) 418-1796</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
 </noscript>`;
 }
 
@@ -565,7 +565,7 @@ export function renderLocalBusinessJsonLd(siteUrl: string): string {
     name: "Dream Puppies",
     legalName: "Dream Enterprises LLC",
     url: base,
-    telephone: "+1-321-697-8864",
+    telephone: "+1-321-418-1796",
     email: "Dreampuppies22@gmail.com",
     description:
       "Family-operated puppy breeder placing Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, Toy Poodles, and more in Orlando, FL and Raeford, NC.",
@@ -587,7 +587,7 @@ export function renderLocalBusinessJsonLd(siteUrl: string): string {
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "Customer Service",
-      telephone: "+1-321-697-8864",
+      telephone: "+1-321-418-1796",
       email: "Dreampuppies22@gmail.com",
       areaServed: ["US"],
       availableLanguage: ["English", "Spanish"],

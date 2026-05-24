@@ -688,7 +688,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
               <p><strong>6. Electronic Signature.</strong> By typing your name below, you acknowledge that this constitutes a valid electronic signature under Florida law (Fla. Stat. § 668.50).</p>
               <p><strong>7. Payment Authorization.</strong> Buyer authorizes the deposit payment to Dream Enterprises LLC (DBA Dream Puppies) via the selected payment method. The payment handle or account Buyer uses to send the deposit must be in Buyer's legal name.</p>
               <p><strong>8. Identity Attestation.</strong> Buyer confirms that the name, address, phone, and email provided match Buyer's legal identification, and that Buyer will present matching photo ID at pickup.</p>
-              <p><strong>9. Pre-Dispute Contact.</strong> Buyer agrees to contact Dream Puppies at (321) 697-8864 to attempt resolution before initiating any payment dispute, chargeback, or bank reversal. Failure to attempt resolution prior to filing a dispute constitutes breach of this Agreement.</p>
+              <p><strong>9. Pre-Dispute Contact.</strong> Buyer agrees to contact Dream Puppies at (321) 418-1796 to attempt resolution before initiating any payment dispute, chargeback, or bank reversal. Failure to attempt resolution prior to filing a dispute constitutes breach of this Agreement.</p>
               <p><strong>10. Pickup Acceptance.</strong> Signing the pickup handover document at the time of physical delivery constitutes Buyer's final acceptance of the puppy and waives any subsequent claim of non-delivery or non-receipt.</p>
             </div>
           </div>
@@ -721,7 +721,7 @@ export function DepositForm({ puppyId, litterId, requestId }: DepositFormProps) 
                 { key: 'welfare_responsibility', label: "I accept full responsibility for the puppy's welfare and actions after transfer." },
                 { key: 'payment_authorization', label: 'I authorize the deposit payment using a payment account in my own legal name.' },
                 { key: 'identity_attestation', label: 'My contact information matches my legal photo ID, which I will present at pickup.' },
-                { key: 'pre_dispute_contact', label: 'I will contact Dream Puppies at (321) 697-8864 to attempt resolution before filing any payment dispute, chargeback, or bank reversal.' },
+                { key: 'pre_dispute_contact', label: 'I will contact Dream Puppies at (321) 418-1796 to attempt resolution before filing any payment dispute, chargeback, or bank reversal.' },
                 { key: 'pickup_acceptance', label: 'Signing the pickup handover document at delivery is my final acceptance and waives non-delivery claims thereafter.' },
               ].map(({ key, label }) => (
                 <label key={key} className="flex items-start gap-3 cursor-pointer">

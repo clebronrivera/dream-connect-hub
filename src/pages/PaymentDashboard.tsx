@@ -37,7 +37,7 @@ import { generatePaymentMemo, calculateBalanceDue } from '@/lib/utils/depositCal
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
 import type { DepositAgreement } from '@/types/deposit';
 
-const PHONE = '(321) 697-8864';
+const PHONE = '(321) 418-1796';
 
 export default function PaymentDashboard() {
   const { agreementId = '', buyerToken = '' } = useParams<{

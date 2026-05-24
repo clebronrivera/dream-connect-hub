@@ -121,7 +121,7 @@ describe("seo build helpers", () => {
     expect(html).toContain("<noscript>");
     expect(html).toContain("Available Puppies for Sale");
     expect(html).toContain("/upcoming-litters");
-    expect(html).toContain("(321) 697-8864");
+    expect(html).toContain("(321) 418-1796");
   });
 
   it("emits a generic noscript fallback when the page id is unknown", () => {
@@ -171,7 +171,7 @@ describe("breed seo helpers", () => {
     expect(meta.title).toContain("Orlando");
     expect(meta.description).toContain("Goldendoodle puppies");
     expect(meta.description).toContain("hypoallergenic");
-    expect(meta.description).toContain("(321) 697-8864");
+    expect(meta.description).toContain("(321) 418-1796");
     expect(meta.h1).toContain("Goldendoodle Puppies");
   });
 
@@ -190,7 +190,7 @@ describe("breed seo helpers", () => {
     expect(html).toContain("View available Goldendoodle puppies");
     expect(html).toContain("Hypoallergenic");
     expect(html).toContain("/upcoming-litters");
-    expect(html).toContain("(321) 697-8864");
+    expect(html).toContain("(321) 418-1796");
   });
 
   it("emits Article JSON-LD pointing at the canonical breed URL", () => {

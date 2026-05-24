@@ -108,7 +108,7 @@ function GateLanding({ title, body, ctaHref, ctaLabel }: GateLandingProps) {
             </a>
           )}
           <p className="text-xs text-muted-foreground pt-4">
-            Questions? Call (321) 697-8864 — Dream Puppies, Orlando, FL.
+            Questions? Call (321) 418-1796 — Dream Puppies, Orlando, FL.
           </p>
         </CardContent>
       </Card>
