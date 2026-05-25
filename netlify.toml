@@ -28,3 +28,24 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Private buyer flows — not for search indexing (page-level REP; complements <Seo noindex>)
+[[headers]]
+  for = "/deposit"
+  [headers]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/request-deposit"
+  [headers]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/payment/*"
+  [headers]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/agreements/*"
+  [headers]
+    X-Robots-Tag = "noindex, nofollow"

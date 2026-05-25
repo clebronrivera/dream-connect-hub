@@ -23,6 +23,15 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+vi.mock('@/lib/hooks/useBusinessInfo', () => ({
+  useBusinessInfoOrDefaults: () => ({
+    phone: '(321) 697-8864',
+    phoneRaw: '3216978864',
+    email: 'Dreampuppies22@gmail.com',
+    locations: [],
+  }),
+}));
+
 // Static import — safe because vi.mock above is hoisted before any import runs
 import AgreementDownload from './AgreementDownload';
 

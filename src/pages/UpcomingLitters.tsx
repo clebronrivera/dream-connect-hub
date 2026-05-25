@@ -75,7 +75,7 @@ export default function UpcomingLitters() {
 
           <div className={`relative z-20 text-center ${containerClass}`}>
             <h1 className="mx-auto mb-4 max-w-4xl font-display text-4xl font-black uppercase tracking-tight md:text-6xl">
-              What is coming next.
+              Upcoming Puppy Litters
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-base leading-relaxed text-white/80 md:text-xl">
               Text us to pre-reserve and get your first pick at the litter. No slot clutter, just clear timing and direct communication.

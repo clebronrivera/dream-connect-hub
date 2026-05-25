@@ -15,6 +15,7 @@ import { StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { GalacticHomeMiniFooter } from '@/components/home/GalacticHomeMiniFooter';
 import { GalacticHomeNav } from '@/components/home/GalacticHomeNav';
 import { GalacticPawCanvas } from '@/components/GalacticPawCanvas';
+import { buildFaqPageJsonLd } from '@/lib/seo';
 import { useBusinessInfoOrDefaults } from '@/lib/hooks/useBusinessInfo';
 
 const SECTION_ICONS: Record<string, string> = {
@@ -56,18 +57,7 @@ export default function FaqPage() {
   useEffect(() => {
     if (items.length === 0) return;
 
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: items.map((item) => ({
-        '@type': 'Question',
-        name: item.question,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: item.answer.replace(/[*#\n]/g, ' ').trim(),
-        },
-      })),
-    };
+    const jsonLd = buildFaqPageJsonLd(items);
 
     const script = document.createElement('script');
     script.type = 'application/ld+json';

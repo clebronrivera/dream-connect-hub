@@ -219,7 +219,7 @@ export default function Puppies() {
       <section className="border-b border-white/10 bg-[#0a0214] py-8 md:py-10">
         <div className={puppiesPageContainerClass}>
           <p className="mx-auto max-w-2xl text-center text-base leading-relaxed text-white/80 md:text-lg">
-            Browse our available puppies — Goldendoodles, Labradoodles, French Bulldogs, Shih Tzus, and more. Family-raised in Orlando, FL and Raeford, NC. Each puppy is health-checked, socialized, and ready to bring joy to your family. See pricing, photos, and reserve your perfect match today.
+            Browse our available puppies — Goldendoodles, Labradoodles, Shih Tzus, Toy Poodles, Pomeranians, Maltese, and more. Family-raised in Orlando, FL and Raeford, NC. Each puppy is health-checked, socialized, and ready to bring joy to your family. See pricing, photos, and reserve your perfect match today.
           </p>
         </div>
       </section>

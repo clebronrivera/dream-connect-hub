@@ -9,6 +9,7 @@ import { DepositRequestForm } from "@/components/DepositRequestForm";
 import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@/lib/upcoming-litters";
 import { insertDepositRequest, depositRequestPayloadToRow, type DepositRequestPayload } from "@/lib/deposit-requests";
 import { useState } from "react";
+import { PrivatePageSeo } from "@/components/seo/PrivatePageSeo";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 export default function RequestDeposit() {
@@ -48,6 +49,8 @@ export default function RequestDeposit() {
 
   if (submitted) {
     return (
+      <>
+        <PrivatePageSeo canonicalPath="/request-deposit" />
       <div className="min-h-screen bg-paper flex items-center justify-center px-4">
         <div className="max-w-md text-center space-y-4">
           <div className="text-5xl">✓</div>
@@ -61,10 +64,13 @@ export default function RequestDeposit() {
           </p>
         </div>
       </div>
+      </>
     );
   }
 
   return (
+    <>
+      <PrivatePageSeo canonicalPath="/request-deposit" />
     <div className="min-h-screen bg-paper py-8 px-4">
       <div className="max-w-xl mx-auto">
         <div className="text-center mb-6">
@@ -93,5 +99,6 @@ export default function RequestDeposit() {
         )}
       </div>
     </div>
+    </>
   );
 }

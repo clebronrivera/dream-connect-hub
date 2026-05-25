@@ -4,6 +4,56 @@ export const SITE_NAME = "Dream Puppies";
 export const SITE_AUTHOR = "Dream Enterprises LLC — Dream Puppies";
 export const DEFAULT_ROBOTS = "index,follow";
 export const NOINDEX_ROBOTS = "noindex,nofollow";
+
+/** Buyer / deposit / payment pages — must not appear in search results. */
+export const NOINDEX_PRIVATE_SEO = {
+  title: "Private Puppy Reservation",
+  description:
+    "This private page is used for puppy reservation and payment coordination.",
+  robots: NOINDEX_ROBOTS,
+} as const;
+
+export const NOINDEX_PRIVATE_PRERENDER_ROUTES = [
+  { path: "/deposit", ...NOINDEX_PRIVATE_SEO },
+  { path: "/request-deposit", ...NOINDEX_PRIVATE_SEO },
+] as const;
+
+export type FaqJsonLdItem = {
+  question: string;
+  answer: string;
+};
+
+export function buildFaqPageJsonLd(items: ReadonlyArray<FaqJsonLdItem>): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: sanitizeFaqAnswerForJsonLd(item.answer),
+      },
+    })),
+  };
+}
+
+export function sanitizeFaqAnswerForJsonLd(answer: string): string {
+  return answer.replace(/[*#\n]/g, " ").trim();
+}
+
+export function renderFaqPageJsonLd(items: ReadonlyArray<FaqJsonLdItem>): string {
+  if (items.length === 0) return "";
+  return `<script type="application/ld+json">${JSON.stringify(buildFaqPageJsonLd(items))}</script>`;
+}
+
+export function renderPrivateNoindexBodyFallback(): string {
+  return `<noscript>
+  <h1>Private reservation page</h1>
+  <p>This page is not indexed. Use the personalized link we emailed you to continue your reservation.</p>
+</noscript>`;
+}
+
 export const DEFAULT_OG_TYPE = "website";
 export const DEFAULT_TWITTER_CARD = "summary_large_image";
 export const DEFAULT_SOCIAL_IMAGE_PATH = "/og-image.jpg?v=2";
@@ -38,14 +88,14 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
     path: "/",
     title: "Family-Raised Puppies for Sale in Orlando, FL",
     description:
-      "Family-raised puppies for sale in Orlando, FL and Raeford, NC. Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, and more. Reserve yours today — call (321) 697-8864.",
+      "Family-raised puppies for sale in Orlando, FL and Raeford, NC. Goldendoodles, Labradoodles, Shih Tzus, Toy Poodles, Pomeranians, Maltese, and more. Reserve yours today — call (321) 697-8864.",
   },
   puppies: {
     pageId: "puppies",
     path: "/puppies",
     title: "Available Puppies for Sale in Florida",
     description:
-      "Browse available puppies from Dream Puppies — Goldendoodles, French Bulldogs, Shih Tzus, and more. Family-raised in Orlando, FL. Photos, prices, and pickup info included.",
+      "Browse available puppies from Dream Puppies — Goldendoodles, Labradoodles, Shih Tzus, Poodles, and more. Family-raised in Orlando, FL. Photos, prices, and pickup info included.",
   },
   consultation: {
     pageId: "consultation",
@@ -73,14 +123,14 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
     path: "/upcoming-litters",
     title: "Upcoming Puppy Litters in Florida",
     description:
-      "See upcoming Goldendoodle, Labradoodle, and French Bulldog litters from Dream Puppies in Orlando, FL. Reserve your spot before the litter arrives.",
+      "See upcoming Goldendoodle, Labradoodle, and small-breed litters from Dream Puppies in Orlando, FL. Reserve your spot before the litter arrives.",
   },
   breeds: {
     pageId: "breeds",
     path: "/breeds",
     title: "Dog Breeds We Raise | Dream Puppies Orlando, FL",
     description:
-      "Explore the breeds raised by Dream Puppies: Mini Goldendoodles, French Bulldogs, Shih Tzus, Toy Poodles, and more. Compare temperament, size, and care needs.",
+      "Explore the breeds raised by Dream Puppies: Goldendoodles, Labradoodles, Shih Tzus, Toy Poodles, Pomeranians, Maltese, and more. Compare temperament, size, and care needs.",
   },
   faq: {
     pageId: "faq",
@@ -108,7 +158,7 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
     path: "/about",
     title: "About Dream Puppies | Family Breeder in Orlando, FL",
     description:
-      "Dream Puppies is a family-operated puppy breeder in Orlando, FL. Home-raised Goldendoodles, French Bulldogs, Shih Tzus, and more. Health-checked, vaccinated, and loved from birth.",
+      "Dream Puppies is a family-operated puppy breeder in Orlando, FL. Home-raised Goldendoodles, Labradoodles, Shih Tzus, Poodles, and more. Health-checked, vaccinated, and loved from birth.",
   },
   admin: {
     pageId: "admin",
@@ -434,7 +484,7 @@ const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
       "Dream Puppies is a family-operated breeder placing healthy, home-raised puppies with families across Florida and North Carolina. Call or text (321) 697-8864 to reserve.",
     bullets: [
       "Goldendoodle & Mini Goldendoodle puppies",
-      "French Bulldog puppies",
+      "Labradoodle puppies",
       "Shih Tzu puppies",
       "Toy Poodle & Standard Poodle puppies",
       "Labradoodle, Pomeranian, and Maltese puppies",
@@ -447,15 +497,14 @@ const ROUTE_FALLBACKS: Partial<Record<SeoPageId, RouteFallbackContent>> = {
       "Browse the puppies currently available from Dream Puppies. Every puppy is family-raised, vet-checked, and ready for pickup or shipping arrangements. Call (321) 697-8864 to reserve.",
     bullets: [
       "Goldendoodle, Mini Goldendoodle, and Labradoodle puppies",
-      "French Bulldog puppies",
-      "Shih Tzu, Toy Poodle, Pomeranian, and Maltese puppies",
+      "Shih Tzu, Toy Poodle, Standard Poodle, Pomeranian, and Maltese puppies",
       "Photos, age, weight, and price displayed per puppy",
     ],
   },
   upcomingLitters: {
     h1: "Upcoming Puppy Litters — Dream Puppies",
     intro:
-      "See upcoming Goldendoodle, Labradoodle, French Bulldog, and small-breed litters from Dream Puppies in Orlando, FL. Reserve your spot before puppies are announced publicly.",
+      "See upcoming Goldendoodle, Labradoodle, and small-breed litters from Dream Puppies in Orlando, FL. Reserve your spot before puppies are announced publicly.",
   },
   breeds: {
     h1: "Dog Breeds We Raise at Dream Puppies",
@@ -568,7 +617,7 @@ export function renderLocalBusinessJsonLd(siteUrl: string): string {
     telephone: "+1-321-697-8864",
     email: "Dreampuppies22@gmail.com",
     description:
-      "Family-operated puppy breeder placing Goldendoodles, Mini Goldendoodles, French Bulldogs, Shih Tzus, Toy Poodles, and more in Orlando, FL and Raeford, NC.",
+      "Family-operated puppy breeder placing Goldendoodles, Labradoodles, Shih Tzus, Toy Poodles, Pomeranians, Maltese, and more in Orlando, FL and Raeford, NC.",
     logo: {
       "@type": "ImageObject",
       url: `${base}/dream-puppies-logo.png`,

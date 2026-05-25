@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SITE_URL,
+  NOINDEX_PRIVATE_SEO,
   NOINDEX_ROBOTS,
   PUBLIC_SEO_ROUTES,
   SEO_ROUTE_CONFIG,
   buildCanonicalUrl,
+  buildFaqPageJsonLd,
   getBreedSeoMetadata,
   getPageTitle,
   normalizeCanonicalPath,
@@ -12,10 +14,13 @@ import {
   renderBreadcrumbJsonLd,
   renderBreedBodyFallback,
   renderBreedJsonLd,
+  renderFaqPageJsonLd,
   renderLocalBusinessJsonLd,
   renderRouteBodyFallback,
   requireSiteUrlForBuild,
+  resolveSeoMetadata,
   resolveSocialImageUrl,
+  sanitizeFaqAnswerForJsonLd,
 } from "@/lib/seo";
 
 describe("seo helpers", () => {
@@ -101,6 +106,43 @@ describe("seo route config", () => {
     expect(SEO_ROUTE_CONFIG.admin.robots).toBe(NOINDEX_ROBOTS);
     expect(SEO_ROUTE_CONFIG.adminLogin.robots).toBe(NOINDEX_ROBOTS);
     expect(SEO_ROUTE_CONFIG.notFound.robots).toBe(NOINDEX_ROBOTS);
+  });
+
+  it("does not mention French Bulldog in public SEO copy", () => {
+    const serialized = JSON.stringify(SEO_ROUTE_CONFIG);
+    expect(serialized).not.toContain("French Bulldog");
+  });
+});
+
+describe("private page seo", () => {
+  it("exposes noindex metadata for buyer flows", () => {
+    expect(NOINDEX_PRIVATE_SEO.robots).toBe(NOINDEX_ROBOTS);
+    const meta = resolveSeoMetadata({
+      title: NOINDEX_PRIVATE_SEO.title,
+      description: NOINDEX_PRIVATE_SEO.description,
+      robots: NOINDEX_PRIVATE_SEO.robots,
+      canonicalPath: "/deposit",
+      currentOrigin: "https://puppyheavenllc.com",
+    });
+    expect(meta.robots).toBe("noindex,nofollow");
+    expect(meta.title).toContain("Private Puppy Reservation");
+  });
+});
+
+describe("faq json-ld helpers", () => {
+  it("builds FAQPage schema with sanitized answers", () => {
+    const payload = buildFaqPageJsonLd([
+      { question: "How much is the deposit?", answer: "The deposit is **$300**.\nSee FAQ." },
+    ]) as { mainEntity: Array<{ acceptedAnswer: { text: string } }> };
+    expect(payload["@type"]).toBe("FAQPage");
+    expect(payload.mainEntity).toHaveLength(1);
+    expect(payload.mainEntity[0].acceptedAnswer.text).toBe(
+      sanitizeFaqAnswerForJsonLd("The deposit is **$300**.\nSee FAQ.")
+    );
+  });
+
+  it("renders an empty string when there are no FAQ items", () => {
+    expect(renderFaqPageJsonLd([])).toBe("");
   });
 });
 

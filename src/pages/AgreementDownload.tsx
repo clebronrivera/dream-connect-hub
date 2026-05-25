@@ -13,6 +13,7 @@ import { useParams } from "react-router-dom";
 import { Loader2, FileDown, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { PrivatePageSeo } from "@/components/seo/PrivatePageSeo";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 
 type State =
@@ -93,6 +94,8 @@ export default function AgreementDownload() {
   }, [agreementId, buyerToken]);
 
   return (
+    <>
+      <PrivatePageSeo canonicalPath="/agreements" />
     <div className="min-h-screen bg-paper flex items-center justify-center px-4">
       <div className="max-w-sm w-full text-center space-y-5">
         {state.status === "loading" && (
@@ -141,5 +144,6 @@ export default function AgreementDownload() {
         )}
       </div>
     </div>
+    </>
   );
 }

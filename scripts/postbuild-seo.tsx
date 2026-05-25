@@ -27,6 +27,9 @@ async function main() {
     getBreedSeoMetadata,
     renderBreedBodyFallback,
     renderBreedJsonLd,
+    renderFaqPageJsonLd,
+    NOINDEX_PRIVATE_PRERENDER_ROUTES,
+    renderPrivateNoindexBodyFallback,
   } = await import("../src/lib/seo");
   const { BREEDS_DATA } = await import("../src/data/breeds-content");
   const { appEnv } = await import("../src/lib/env");
@@ -78,7 +81,27 @@ async function main() {
         ])
       );
     }
+    if (route.pageId === "faq" && supabaseConfigured) {
+      const { fetchActiveFaqItems } = await import("../src/lib/faq-api");
+      const faqItems = await fetchActiveFaqItems();
+      const faqLd = renderFaqPageJsonLd(faqItems);
+      if (faqLd) jsonLdBlocks.push(faqLd);
+    }
     const html = renderRouteHtml(template, route.path, seoTags, bodyFallback, jsonLdBlocks, renderModules);
+    await writeRouteHtml(route.path, html);
+  }
+
+  for (const route of NOINDEX_PRIVATE_PRERENDER_ROUTES) {
+    const metadata = resolveSeoMetadata({
+      title: route.title,
+      description: route.description,
+      canonicalPath: route.path,
+      robots: route.robots,
+      currentOrigin: siteUrl,
+    });
+    const seoTags = renderStaticSeoTags(metadata);
+    const bodyFallback = renderPrivateNoindexBodyFallback();
+    const html = renderRouteHtml(template, route.path, seoTags, bodyFallback, [], null);
     await writeRouteHtml(route.path, html);
   }
 

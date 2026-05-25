@@ -1,7 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PUBLIC_SEO_ROUTES, getBreedSeoMetadata } from "../src/lib/seo";
+import {
+  NOINDEX_PRIVATE_SEO,
+  PUBLIC_SEO_ROUTES,
+  SEO_ROUTE_CONFIG,
+  getBreedSeoMetadata,
+} from "../src/lib/seo";
 import { BREEDS_DATA } from "../src/data/breeds-content";
 import { PROBLEM_TYPES } from "../src/lib/constants/trainingPlan";
 
@@ -10,8 +15,8 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 const distDir = path.join(projectRoot, "dist");
 
-// Routes that get prerendered with per-problem SEO overrides. Mirrors the loop
-// in scripts/postbuild-seo.tsx — keep in sync.
+const HOME_PUBLIC_TITLE = SEO_ROUTE_CONFIG.home.title;
+
 const trainingPlanProblemRoutes = PROBLEM_TYPES.map((p) => ({
   path: `/training-plan/${p.slug}`,
   title: p.seoTitle,
@@ -26,6 +31,8 @@ const breedRoutes = BREEDS_DATA.map((breed) => {
     description: meta.description,
   };
 });
+
+const NOINDEX_PRIVATE_PATHS = ["/deposit", "/request-deposit"] as const;
 
 async function main() {
   const allRoutes = [
@@ -45,60 +52,99 @@ async function main() {
         : path.join(distDir, route.path.replace(/^\/+/, ""), "index.html");
     const html = await fs.readFile(filePath, "utf8");
 
-    // Check for title tag (allowing for HTML entity encoding like &amp;)
     const titleMatch = html.match(/<title>(.+?)<\/title>/);
     if (!titleMatch) {
       throw new Error(`Missing ${route.path} title tag`);
     }
-    // Decode HTML entities for comparison
-    const decodedActual = titleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const decodedActual = titleMatch[1]
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
     if (!decodedActual.includes(route.title)) {
-      throw new Error(`Incorrect ${route.path} title: expected to contain "${route.title}", got "${decodedActual}"`);
+      throw new Error(
+        `Incorrect ${route.path} title: expected to contain "${route.title}", got "${decodedActual}"`
+      );
     }
-    // Check description (allowing for HTML entity encoding like &quot;)
     const descMatch = html.match(/<meta name="description" content="(.+?)"/);
     if (!descMatch) {
       throw new Error(`Missing ${route.path} description tag`);
     }
-    const decodedDesc = descMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const decodedDesc = descMatch[1]
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
     if (decodedDesc !== route.description) {
-      throw new Error(`Incorrect ${route.path} description: expected "${route.description}", got "${decodedDesc}"`);
+      throw new Error(
+        `Incorrect ${route.path} description: expected "${route.description}", got "${decodedDesc}"`
+      );
     }
-    assertIncludes(
-      html,
-      `<link rel="canonical" href="`,
-      `${route.path} canonical`
-    );
-    assertIncludes(
-      html,
-      `<noscript>`,
-      `${route.path} noscript body fallback`
-    );
-    assertIncludes(
-      html,
-      `application/ld+json`,
-      `${route.path} JSON-LD block`
-    );
-    // Check og:title (allowing for HTML entity encoding)
+    assertIncludes(html, `<link rel="canonical" href="`, `${route.path} canonical`);
+    assertIncludes(html, `<noscript>`, `${route.path} noscript body fallback`);
+    assertIncludes(html, `application/ld+json`, `${route.path} JSON-LD block`);
     const ogTitleMatch = html.match(/<meta property="og:title" content="(.+?)"/);
     if (!ogTitleMatch) {
       throw new Error(`Missing ${route.path} og:title`);
     }
-    const decodedOgTitle = ogTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const decodedOgTitle = ogTitleMatch[1]
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
     if (!decodedOgTitle.includes(route.title)) {
-      throw new Error(`Incorrect ${route.path} og:title: expected to contain "${route.title}", got "${decodedOgTitle}"`);
+      throw new Error(
+        `Incorrect ${route.path} og:title: expected to contain "${route.title}", got "${decodedOgTitle}"`
+      );
     }
-    // Check twitter:description (allowing for HTML entity encoding)
     const twDescMatch = html.match(/<meta name="twitter:description" content="(.+?)"/);
     if (!twDescMatch) {
       throw new Error(`Missing ${route.path} twitter:description`);
     }
-    const decodedTwDesc = twDescMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const decodedTwDesc = twDescMatch[1]
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
     if (decodedTwDesc !== route.description) {
-      throw new Error(`Incorrect ${route.path} twitter:description: expected "${route.description}", got "${decodedTwDesc}"`);
+      throw new Error(
+        `Incorrect ${route.path} twitter:description: expected "${route.description}", got "${decodedTwDesc}"`
+      );
     }
-    // H1 tags are rendered client-side via React hydration, not in static SSR output,
-    // so we skip this check. The critical SEO tags (title, meta, og:*, canonical) are all verified above.
+  }
+
+  for (const routePath of NOINDEX_PRIVATE_PATHS) {
+    const html = await fs.readFile(
+      path.join(distDir, routePath.replace(/^\/+/, ""), "index.html"),
+      "utf8"
+    );
+    assertIncludes(html, "noindex,nofollow", `${routePath} robots noindex`);
+    assertIncludes(
+      html,
+      NOINDEX_PRIVATE_SEO.title,
+      `${routePath} private title`
+    );
+    if (html.includes(HOME_PUBLIC_TITLE)) {
+      throw new Error(
+        `${routePath} must not use the public home title "${HOME_PUBLIC_TITLE}"`
+      );
+    }
+  }
+
+  const faqHtml = await fs.readFile(path.join(distDir, "faq", "index.html"), "utf8");
+  const supabaseConfigured = Boolean(
+    process.env.VITE_SUPABASE_URL?.trim() && process.env.VITE_SUPABASE_ANON_KEY?.trim()
+  );
+  if (supabaseConfigured) {
+    assertIncludes(faqHtml, '"@type":"FAQPage"', "/faq FAQPage JSON-LD");
+  }
+
+  const seoSource = await fs.readFile(path.join(projectRoot, "src/lib/seo.ts"), "utf8");
+  const indexTemplate = await fs.readFile(path.join(projectRoot, "index.html"), "utf8");
+  const puppiesSource = await fs.readFile(
+    path.join(projectRoot, "src/pages/Puppies.tsx"),
+    "utf8"
+  );
+  for (const source of [seoSource, indexTemplate, puppiesSource]) {
+    if (source.includes("French Bulldog")) {
+      throw new Error("French Bulldog must be removed from SEO/static copy sources");
+    }
   }
 
   const sitemap = await fs.readFile(path.join(distDir, "sitemap.xml"), "utf8");

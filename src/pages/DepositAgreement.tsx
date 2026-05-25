@@ -4,20 +4,22 @@
 // No public access without a valid request id; the litter/puppy context is
 // resolved from the request row, not URL params.
 
+import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, MailQuestion } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DepositForm } from '@/components/deposit/DepositForm';
+import { PrivatePageSeo } from '@/components/seo/PrivatePageSeo';
 import { validateDepositRequest } from '@/lib/deposit-service';
 
 export default function DepositAgreement() {
   const [searchParams] = useSearchParams();
   const requestId = searchParams.get('requestId') ?? undefined;
 
-  // No request id → operator-only entry landing.
+  let body: ReactNode;
   if (!requestId) {
-    return (
+    body = (
       <GateLanding
         title="Operator-only entry"
         body="The deposit agreement form is reached via a personalized link sent by Dream Puppies after we accept your deposit request. Please start at the request form."
@@ -25,9 +27,16 @@ export default function DepositAgreement() {
         ctaLabel="Start a deposit request"
       />
     );
+  } else {
+    body = <ValidatedDepositAgreement requestId={requestId} />;
   }
 
-  return <ValidatedDepositAgreement requestId={requestId} />;
+  return (
+    <>
+      <PrivatePageSeo canonicalPath="/deposit" />
+      {body}
+    </>
+  );
 }
 
 function ValidatedDepositAgreement({ requestId }: { requestId: string }) {

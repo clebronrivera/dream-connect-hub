@@ -35,6 +35,7 @@ import {
 import { fetchEnabledPaymentMethods } from '@/lib/deposit-service';
 import { generatePaymentMemo, calculateBalanceDue } from '@/lib/utils/depositCalc';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
+import { PrivatePageSeo } from '@/components/seo/PrivatePageSeo';
 import type { DepositAgreement } from '@/types/deposit';
 
 const PHONE = '(321) 697-8864';
@@ -595,9 +596,12 @@ function H2Form({ agreementId, buyerToken, memoPreview }: H2FormProps) {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
+    <>
+      <PrivatePageSeo canonicalPath="/payment" />
     <div className="min-h-screen bg-paper py-8 px-4">
       <div className="mx-auto max-w-2xl">{children}</div>
     </div>
+    </>
   );
 }
 
