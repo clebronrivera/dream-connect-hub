@@ -30,13 +30,18 @@ export default function Login() {
 
     if (error) {
       toast({
-        title: 'Error',
+        title: 'Sign-in failed',
         description: error.message,
         variant: 'destructive',
       });
+      // Only re-enable the button on failure.
+      // On success the onAuthStateChange → checkAdminStatus cycle will trigger
+      // the useEffect redirect above, which unmounts this component — no need
+      // to reset formLoading and risk the user clicking Sign In a second time
+      // before navigation fires.
+      setFormLoading(false);
     }
-
-    setFormLoading(false);
+    // success: stay in "Signing in…" state until navigation unmounts
   };
 
   return (
