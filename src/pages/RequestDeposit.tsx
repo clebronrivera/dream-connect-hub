@@ -10,8 +10,10 @@ import { fetchActiveUpcomingLitters, UPCOMING_LITTERS_ACTIVE_QUERY_KEY } from "@
 import { insertDepositRequest, depositRequestPayloadToRow, type DepositRequestPayload } from "@/lib/deposit-requests";
 import { useState } from "react";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
+import { useNoIndex } from "@/components/seo/Seo";
 
 export default function RequestDeposit() {
+  useNoIndex();
   const [searchParams] = useSearchParams();
   const puppyId = searchParams.get("puppy") ?? undefined;
   const litterId = searchParams.get("litter") ?? undefined;

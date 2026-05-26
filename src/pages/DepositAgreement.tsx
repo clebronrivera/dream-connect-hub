@@ -10,8 +10,10 @@ import { AlertCircle, MailQuestion } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DepositForm } from '@/components/deposit/DepositForm';
 import { validateDepositRequest } from '@/lib/deposit-service';
+import { useNoIndex } from '@/components/seo/Seo';
 
 export default function DepositAgreement() {
+  useNoIndex();
   const [searchParams] = useSearchParams();
   const requestId = searchParams.get('requestId') ?? undefined;
 

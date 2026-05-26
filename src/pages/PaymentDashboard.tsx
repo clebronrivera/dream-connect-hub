@@ -36,10 +36,12 @@ import { fetchEnabledPaymentMethods } from '@/lib/deposit-service';
 import { generatePaymentMemo, calculateBalanceDue } from '@/lib/utils/depositCalc';
 import type { PaymentMethodKey } from '@/lib/constants/deposit';
 import type { DepositAgreement } from '@/types/deposit';
+import { useNoIndex } from '@/components/seo/Seo';
 
 const PHONE = '(321) 697-8864';
 
 export default function PaymentDashboard() {
+  useNoIndex();
   const { agreementId = '', buyerToken = '' } = useParams<{
     agreementId: string;
     buyerToken: string;

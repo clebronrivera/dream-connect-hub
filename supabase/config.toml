@@ -383,6 +383,92 @@ verify_jwt = false
 [functions.validate-deposit-request]
 verify_jwt = false
 
+# ── verify_jwt posture (audit Phase 3) ───────────────────────────────────────
+# Pinned explicitly so the gateway posture is reproducible and a plain
+# `supabase functions deploy` can't accidentally JWT-block a public function.
+# Rule: false for public/buyer-token/cron callers (no guaranteed Supabase JWT);
+# true for admin-operator and DB-webhook callers (always carry a valid JWT).
+# Every function still enforces its own auth internally (verifyAdmin /
+# verifyBuyerToken / turnstile / cron secret) regardless of this flag.
+
+# Public buyer-token functions (token-in-body; verified by verifyBuyerToken).
+[functions.mark-payment-sent]
+verify_jwt = false
+
+[functions.agreement-download-url]
+verify_jwt = false
+
+[functions.submit-payment-attestation]
+verify_jwt = false
+
+# Public, captcha-gated submit endpoints (Turnstile verified inside).
+[functions.submit-contact-message]
+verify_jwt = false
+
+[functions.submit-puppy-inquiry]
+verify_jwt = false
+
+[functions.submit-testimonial]
+verify_jwt = false
+
+[functions.generate-training-plan]
+verify_jwt = false
+
+# Cron-triggered: authenticated by X-Cron-Secret, not a Supabase JWT.
+[functions.send-pending-reminders]
+verify_jwt = false
+
+# Admin-operator functions (invoked from the admin app with the admin session
+# JWT; each calls verifyAdmin internally).
+[functions.finalize-agreement]
+verify_jwt = true
+
+[functions.finalize-pickup-handover]
+verify_jwt = true
+
+[functions.generate-agreement-pdf]
+verify_jwt = true
+
+[functions.generate-dispute-evidence-packet]
+verify_jwt = true
+
+[functions.send-deposit-link]
+verify_jwt = true
+
+[functions.send-deposit-link-from-inquiry]
+verify_jwt = true
+
+[functions.send-deposit-receipt]
+verify_jwt = true
+
+[functions.send-request-decision]
+verify_jwt = true
+
+[functions.send-testimonial-invite]
+verify_jwt = true
+
+[functions.send-puppy-guide]
+verify_jwt = true
+
+[functions.send-newsletter]
+verify_jwt = true
+
+[functions.breeder-set-passcode]
+verify_jwt = true
+
+# Database webhooks (invoked by Postgres with a service JWT on row events).
+[functions.notify-deposit-request]
+verify_jwt = true
+
+[functions.notify-contact-message]
+verify_jwt = true
+
+[functions.notify-puppy-inquiry]
+verify_jwt = true
+
+[functions.notify-agreement-submitted]
+verify_jwt = true
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
