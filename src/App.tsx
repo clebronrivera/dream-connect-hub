@@ -74,6 +74,7 @@ const BreederUpcomingLitterNew = lazyWithRetry(() => import("./pages/breeder/Bre
 const BreederPuppiesPage = lazyWithRetry(() => import("./pages/breeder/BreederPuppiesPage"));
 const BreederLittersPage = lazyWithRetry(() => import("./pages/breeder/BreederLittersPage"));
 const About = lazyWithRetry(() => import("./pages/About"));
+const OurDogs = lazyWithRetry(() => import("./pages/OurDogs"));
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -114,6 +115,7 @@ export function AppRoutes() {
         <Route path="/essentials" element={<Essentials />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/upcoming-litters" element={<UpcomingLitters />} />
+        <Route path="/our-dogs" element={<OurDogs />} />
         <Route path="/breeds" element={<Breeds />} />
         <Route path="/breeds/:slug" element={<BreedDetail />} />
         <Route path="/deposit" element={<DepositAgreement />} />

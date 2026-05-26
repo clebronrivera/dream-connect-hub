@@ -12,7 +12,8 @@ import { uploadBreedingDogPhoto, getBreedingDogPhotoUrl } from '@/lib/puppy-phot
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
@@ -23,6 +24,10 @@ const schema = z.object({
   breed: z.string().min(1, 'Breed is required'),
   composition: z.string().min(1, 'Composition is required'),
   color: z.string().min(1, 'Color is required'),
+  bio: z.string().max(600, 'Keep it under 600 characters').optional().or(z.literal('')),
+  weight_lbs: z
+    .union([z.coerce.number().positive().max(299), z.literal('')])
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -50,6 +55,8 @@ export default function BreedingDogForm() {
       breed: '',
       composition: '',
       color: '',
+      bio: '',
+      weight_lbs: '',
     },
   });
 
@@ -61,6 +68,9 @@ export default function BreedingDogForm() {
         breed: row.breed,
         composition: row.composition,
         color: row.color,
+        bio: row.bio ?? '',
+        weight_lbs:
+          typeof row.weight_lbs === 'number' ? (row.weight_lbs as unknown as '') : '',
       });
     }
   }, [row, form]);
@@ -86,6 +96,11 @@ export default function BreedingDogForm() {
         breed: data.breed,
         composition: data.composition,
         color: data.color,
+        bio: data.bio?.trim() ? data.bio.trim() : null,
+        weight_lbs:
+          typeof data.weight_lbs === 'number' && !Number.isNaN(data.weight_lbs)
+            ? data.weight_lbs
+            : null,
       });
       if (photoFile && inserted.id) {
         const { path } = await uploadBreedingDogPhoto(photoFile, inserted.id);
@@ -116,6 +131,11 @@ export default function BreedingDogForm() {
         breed: data.breed,
         composition: data.composition,
         color: data.color,
+        bio: data.bio?.trim() ? data.bio.trim() : null,
+        weight_lbs:
+          typeof data.weight_lbs === 'number' && !Number.isNaN(data.weight_lbs)
+            ? data.weight_lbs
+            : null,
         photo_path: photoPath,
       });
     },
@@ -220,6 +240,55 @@ export default function BreedingDogForm() {
                 <FormControl>
                   <Input {...field} placeholder="e.g. Apricot" />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="weight_lbs"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Adult weight (lbs)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.5"
+                    min="0"
+                    placeholder="e.g. 52"
+                    value={field.value ?? ''}
+                    onChange={(e) =>
+                      field.onChange(e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Optional. When blank, /our-dogs shows the breed's typical range instead.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="bio"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Short bio</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    rows={4}
+                    placeholder="e.g. Star is our sweetest mama — loves belly rubs and naps in the sun."
+                  />
+                </FormControl>
+                <FormDescription>
+                  Shown on the public /our-dogs page. Keep it warm and short.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

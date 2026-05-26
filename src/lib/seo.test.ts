@@ -93,6 +93,7 @@ describe("seo route config", () => {
       "/dreamy-reviews",
       "/training-plan",
       "/about",
+      "/our-dogs",
     ]);
 
     for (const route of PUBLIC_SEO_ROUTES) {

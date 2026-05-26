@@ -145,6 +145,8 @@ export interface BreedingDog {
   composition: string;
   color: string;
   photo_path?: string | null;
+  bio?: string | null;
+  weight_lbs?: number | null;
   created_at?: string;
   updated_at?: string;
 }

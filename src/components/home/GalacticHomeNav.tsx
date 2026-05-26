@@ -29,6 +29,7 @@ const galacticNavLinks: { to: string; label: TranslationKey; end?: boolean }[] =
   { to: "/", label: "navHome", end: true },
   { to: "/puppies", label: "navShortAvailable" },
   { to: "/upcoming-litters", label: "navShortUpcoming" },
+  { to: "/our-dogs", label: "navShortOurDogs" },
   ...optionalShopBreedsNav,
   { to: "/training-plan", label: "navShortTraining" },
   { to: "/dreamy-reviews", label: "navShortReviews" },

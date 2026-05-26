@@ -70,6 +70,7 @@ export type SeoPageId =
   | "dreamyReviews"
   | "trainingPlan"
   | "about"
+  | "ourDogs"
   | "admin"
   | "adminLogin"
   | "notFound";
@@ -160,6 +161,13 @@ export const SEO_ROUTE_CONFIG: Record<SeoPageId, SeoRouteConfig> = {
     description:
       "Dream Puppies is a family-operated puppy breeder in Orlando, FL. Home-raised Goldendoodles, Labradoodles, Shih Tzus, Poodles, and more. Health-checked, vaccinated, and loved from birth.",
   },
+  ourDogs: {
+    pageId: "ourDogs",
+    path: "/our-dogs",
+    title: "Our Dogs — Meet the Moms & Dads | Dream Puppies",
+    description:
+      "Meet the moms and dads behind every Dream Puppies litter. Health-checked, family-raised Goldendoodles, Labradoodles, Poodles, and Shih Tzus in Orlando, FL and Raeford, NC.",
+  },
   admin: {
     pageId: "admin",
     path: "/admin",
@@ -195,6 +203,7 @@ export const PUBLIC_ROUTE_PAGE_IDS = [
   "dreamyReviews",
   "trainingPlan",
   "about",
+  "ourDogs",
 ] as const satisfies readonly SeoPageId[];
 
 export const PUBLIC_SEO_ROUTES = PUBLIC_ROUTE_PAGE_IDS.map((pageId) => SEO_ROUTE_CONFIG[pageId]);
