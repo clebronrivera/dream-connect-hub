@@ -377,6 +377,12 @@ verify_jwt = false
 [functions.breeder-write]
 verify_jwt = false
 
+# Public deposit-link validator. The requestId UUID is the capability (emailed
+# to the buyer); the function returns no PII. Auth is the lookup itself, not a
+# gateway JWT.
+[functions.validate-deposit-request]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
