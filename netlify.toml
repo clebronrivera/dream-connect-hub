@@ -9,7 +9,7 @@
 # VITE_* env vars into the bundle, so the secrets scanner would otherwise fail
 # the deploy. Tell Netlify not to treat these keys as secrets in build output.
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_TURNSTILE_SITE_KEY"
 
 # Missing /assets/* must 404 cleanly. Without this rule, the SPA fallback below
