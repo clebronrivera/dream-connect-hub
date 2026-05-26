@@ -56,6 +56,8 @@ const TrainingPlanPage = lazyWithRetry(() => import("./pages/TrainingPlanPage"))
 const DepositRequests = lazyWithRetry(() => import("./pages/admin/DepositRequests"));
 const RequestDeposit = lazyWithRetry(() => import("./pages/RequestDeposit"));
 const AgreementDownload = lazyWithRetry(() => import("./pages/AgreementDownload"));
+const ForgotPassword = lazyWithRetry(() => import("./pages/admin/ForgotPassword"));
+const ResetPassword = lazyWithRetry(() => import("./pages/admin/ResetPassword"));
 const HeroV3Mockup = lazyWithRetry(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazyWithRetry(() => import("./pages/dev/UpcomingLittersV2Mockup"));
 const BreederPasscodeSettings = lazyWithRetry(() => import("./pages/admin/settings/BreederPasscodeSettings"));
@@ -147,8 +149,10 @@ export function AppRoutes() {
           </Route>
         </Route>
 
-        {/* Admin login */}
+        {/* Admin login + password reset */}
         <Route path="/admin/login" element={<Login />} />
+        <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+        <Route path="/admin/reset-password" element={<ResetPassword />} />
 
         {/* Protected admin routes */}
         <Route path="/admin" element={<ProtectedRoute />}>

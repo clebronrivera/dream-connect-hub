@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { Seo } from '@/components/seo/Seo';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,15 @@ export default function Login() {
               <Button type="submit" className="w-full" disabled={formLoading}>
                 {formLoading ? 'Signing in...' : 'Sign In'}
               </Button>
+
+              <div className="text-center">
+                <Link
+                  to="/admin/forgot-password"
+                  className="text-sm text-muted-foreground hover:text-ink underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>
