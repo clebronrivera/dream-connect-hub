@@ -6,6 +6,60 @@ Format: entries are grouped by date (newest first). Each entry lists **Added**, 
 
 ---
 
+## 2026-05-25 — Health audit, login fix, DB perf, SEO + CVE cleanup
+
+### Fixed
+- **Login race condition** — `Sign In` button was re-enabled ~100 ms before the
+  `onAuthStateChange → checkAdminStatus → navigate('/admin')` cycle completed,
+  allowing accidental double-submits (evidence: 5 successful logins in 9 s from
+  same IP in Supabase auth logs). Fix: `setFormLoading(false)` now only fires
+  inside the `if (error)` block; on success the button stays disabled until
+  navigation unmounts the component (`src/pages/admin/Login.tsx`).
+
+### Performance
+- **6 missing FK indexes** — Supabase performance advisor flagged 6 foreign key
+  columns with no covering index (sequential scans on JOINs / cascading ops).
+  Added via `supabase/migrations/20260525000000_add_fk_indexes.sql` and applied
+  to the live DB: `contact_messages(upcoming_litter_id)`,
+  `deposit_agreements(litter_id)`, `deposit_requests(puppy_id)`,
+  `kit_items(product_id)`, `parent_dog_expenses(parent_dog_id)`,
+  `puppy_expenses(puppy_id)`.
+- **RLS initplan audit** — Verified all 70 flagged RLS policies already use the
+  `(SELECT auth.uid() AS uid)` subselect form (fixed by prior migrations). No
+  changes required.
+
+### Security
+- **`@supabase/supabase-js` 2.95.3 → 2.106.2** — New `@supabase/realtime-js`
+  drops `ws` as a dep entirely, resolving the ws uninitialized-memory-disclosure
+  CVE (GHSA-3h5q-q39x-f9x3, moderate).
+- **`brace-expansion` patched to 5.0.6** via `npm audit fix` — resolves
+  GHSA-jxxr-4gwj-5jf2 (large numeric range DoS bypass, moderate).
+- 0 vulnerabilities remaining (`npm audit` clean).
+
+### SEO
+- **Breed copy correction** — "French Bulldog" removed from all public SEO copy
+  (it's no longer an active breed). Updated across `index.html`, `src/lib/seo.ts`,
+  `src/pages/Puppies.tsx`, and `src/pages/UpcomingLitters.tsx`.
+  `verify-seo-build.ts` now asserts the string is absent so it can't drift back.
+- **`UpcomingLitters` H1** — Changed from "What is coming next." to the
+  descriptive "Upcoming Puppy Litters" for better on-page SEO signal.
+- **Private-page noindex infrastructure** — Buyer reservation / payment flows
+  must not appear in search results:
+  - New `PrivatePageSeo` component (`src/components/seo/PrivatePageSeo.tsx`)
+    wraps `<Seo>` with `noindex,nofollow` robots + a clean canonical path (never
+    a tokenized URL). Added to `DepositAgreement`, `RequestDeposit`,
+    `PaymentDashboard`, and `AgreementDownload`.
+  - `netlify.toml`: `X-Robots-Tag: noindex, nofollow` response headers for
+    `/deposit`, `/request-deposit`, `/payment/*`, `/agreements/*`.
+  - `postbuild-seo.tsx`: prerender `/deposit` and `/request-deposit` static HTML
+    with noindex metadata so crawlers see it even before JS hydrates.
+- **FAQ JSON-LD consolidation** — `FaqPage.tsx` was building its own inline
+  `FAQPage` schema. Extracted to `buildFaqPageJsonLd()` +
+  `sanitizeFaqAnswerForJsonLd()` in `seo.ts`. `postbuild-seo.tsx` now injects
+  the schema at build time so `/faq` static HTML includes it without JS.
+
+---
+
 ## 2026-05-07 — Workflow completion (Waves A–G)
 
 This release completes the full 13-step reservation workflow described in

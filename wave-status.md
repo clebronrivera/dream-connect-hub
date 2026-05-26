@@ -57,6 +57,21 @@ and **Smoke-tested** columns as each step lands in production.
 
 ---
 
+## 2026-05-25 maintenance session
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Login race condition fix | ✅ Merged + deployed | `Sign In` button no longer re-enables before redirect; commit `6c52893` |
+| 6 FK indexes | ✅ Applied to live DB + migrated | `20260525000000_add_fk_indexes.sql`; commit `40733dd` |
+| RLS initplan audit | ✅ Verified already fixed | All 70 policies already use `(SELECT auth.uid() AS uid)` — no changes needed |
+| `@supabase/supabase-js` 2.95 → 2.106 | ✅ Merged + deployed | Drops `ws` dep, clears GHSA-3h5q-q39x-f9x3; commit `b4998f2` |
+| `brace-expansion` CVE | ✅ Patched | 5.0.6 via `npm audit fix`; same commit |
+| Breed copy (French Bulldog removed) | ✅ Merged + deployed | `index.html`, `seo.ts`, `Puppies.tsx`, `UpcomingLitters.tsx`; commit `ade874c` |
+| Private-page noindex | ✅ Merged + deployed | `PrivatePageSeo` component, `netlify.toml` headers, `postbuild-seo.tsx` prerender; same commit |
+| FAQ JSON-LD consolidation | ✅ Merged + deployed | `buildFaqPageJsonLd()` in `seo.ts`, postbuild injection; same commit |
+
+---
+
 ## Pending operator actions (production deploy)
 
 1. Apply all pending migrations to production via `supabase db push` or the Supabase dashboard SQL editor.
