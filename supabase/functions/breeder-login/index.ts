@@ -82,10 +82,10 @@ export async function handler(
     .gte("attempted_at", since);
 
   if (countErr) {
+    console.error("breeder-login: rate-limit check failed:", countErr);
     return json(500, {
       ok: false,
       error: "Failed to check rate limit",
-      details: countErr.message,
     });
   }
   if ((failCount ?? 0) >= MAX_FAILS_PER_WINDOW) {
@@ -103,10 +103,10 @@ export async function handler(
     .maybeSingle();
 
   if (configErr) {
+    console.error("breeder-login: breeder_config read failed:", configErr);
     return json(500, {
       ok: false,
       error: "Failed to read breeder config",
-      details: configErr.message,
     });
   }
   if (!config) {
@@ -143,10 +143,10 @@ export async function handler(
     .single();
 
   if (sessErr || !session) {
+    console.error("breeder-login: session creation failed:", sessErr);
     return json(500, {
       ok: false,
       error: "Failed to create session",
-      details: sessErr?.message,
     });
   }
 

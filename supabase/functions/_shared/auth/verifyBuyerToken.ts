@@ -41,10 +41,11 @@ export async function verifyBuyerToken(
     .maybeSingle();
 
   if (error) {
+    console.error("verifyBuyerToken: agreement lookup failed:", error);
     return {
       ok: false,
       status: 500,
-      body: { error: "Failed to look up agreement", details: error.message },
+      body: { error: "Failed to look up agreement" },
     };
   }
   if (!agreement) {

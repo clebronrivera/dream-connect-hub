@@ -108,9 +108,9 @@ export async function handler(
     .maybeSingle();
 
   if (attestationErr) {
+    console.error("mark-payment-sent: attestation lookup failed:", attestationErr);
     return jsonResponse(500, {
       error: "Failed to look up payment attestation",
-      details: attestationErr.message,
     });
   }
   if (!attestation) {
@@ -159,9 +159,9 @@ export async function handler(
     .maybeSingle();
 
   if (updateErr) {
+    console.error("mark-payment-sent: agreement update failed:", updateErr);
     return jsonResponse(500, {
       error: "Failed to update agreement",
-      details: updateErr.message,
     });
   }
   if (!updated) {
