@@ -15,6 +15,27 @@ const distIndexPath = path.join(distDir, "index.html");
 loadDotEnv({ path: path.join(projectRoot, ".env.local"), override: false });
 loadDotEnv({ path: path.join(projectRoot, ".env"), override: false });
 
+// Node < 22 has no global WebSocket. supabase-js 2.106's realtime-js throws at
+// `createClient` time if no WebSocket constructor exists — which crashes this
+// SEO prerender the moment it first reads data (e.g. FAQ JSON-LD) through the
+// lazy Supabase client. This prerender only READS via PostgREST and never opens
+// a realtime channel, so a no-op constructor satisfies realtime-js's existence
+// check without pulling in `ws`. Belt to the netlify.toml/CI Node-22 suspenders,
+// so the build is correct even if the runner is pinned to Node 20.
+if (typeof (globalThis as { WebSocket?: unknown }).WebSocket === "undefined") {
+  class SsrNoopWebSocket {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSING = 2;
+    static readonly CLOSED = 3;
+    close() {}
+    send() {}
+    addEventListener() {}
+    removeEventListener() {}
+  }
+  (globalThis as { WebSocket?: unknown }).WebSocket = SsrNoopWebSocket;
+}
+
 async function main() {
   const {
     PUBLIC_SEO_ROUTES,
