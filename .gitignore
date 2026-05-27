@@ -51,3 +51,6 @@ supabase/.temp/
 # Local-only working folders for the breeder's puppy/dog photos before upload.
 # These are large binaries that should not live in the git tree.
 Litters - Organized by Breeding Pair/
+
+# Local Netlify folder
+.netlify
