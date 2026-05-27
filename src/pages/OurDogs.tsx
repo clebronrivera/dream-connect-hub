@@ -160,7 +160,7 @@ function DogCard({ dog }: { dog: BreedingDog }) {
           <img
             src={photoUrl}
             alt={`${dog.name} — ${dog.breed}`}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-top"
             loading="lazy"
           />
         ) : (
