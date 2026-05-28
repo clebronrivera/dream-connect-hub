@@ -12,14 +12,25 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formLoading, setFormLoading] = useState(false);
-  const { signIn, user, isAdmin, loading } = useAuth();
+  const { signIn, signOut, user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && user && isAdmin) {
+    if (loading) return;
+    if (user && isAdmin) {
       navigate('/admin', { replace: true });
+    } else if (user && !isAdmin && formLoading) {
+      // Auth succeeded but this account has no admin profile — don't just spin forever
+      toast({
+        title: 'Access denied',
+        description: 'This account does not have admin access. Use an authorised admin email.',
+        variant: 'destructive',
+      });
+      signOut();
+      setFormLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
