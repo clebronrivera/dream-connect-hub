@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { PrivatePageSeo } from "@/components/seo/PrivatePageSeo";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
+import { useNoIndex } from "@/components/seo/Seo";
 
 type State =
   | { status: "loading" }
@@ -22,6 +23,7 @@ type State =
   | { status: "error"; message: string; canRetry: boolean };
 
 export default function AgreementDownload() {
+  useNoIndex();
   const { agreementId, buyerToken } = useParams<{
     agreementId: string;
     buyerToken: string;

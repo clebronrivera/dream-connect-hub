@@ -8,6 +8,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // ---------------------------------------------------------------------------
 // Mocks — vi.mock is hoisted by Vitest so the static import below sees it
@@ -62,17 +63,24 @@ function restoreWindowLocation() {
 // ---------------------------------------------------------------------------
 
 function renderPage(agreementId = 'agr-1', buyerToken = 'tok-1') {
+  // AgreementDownload uses useBusinessInfo (useQuery), so it needs a
+  // QueryClientProvider. Retries off to keep failure-path tests deterministic.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter
-      initialEntries={[`/agreements/${agreementId}/${buyerToken}/download`]}
-    >
-      <Routes>
-        <Route
-          path="/agreements/:agreementId/:buyerToken/download"
-          element={<AgreementDownload />}
-        />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        initialEntries={[`/agreements/${agreementId}/${buyerToken}/download`]}
+      >
+        <Routes>
+          <Route
+            path="/agreements/:agreementId/:buyerToken/download"
+            element={<AgreementDownload />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -201,12 +209,17 @@ describe('AgreementDownload', () => {
   });
 
   it('shows "Invalid download link" when URL params are missing', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     render(
-      <MemoryRouter initialEntries={['/agreements']}>
-        <Routes>
-          <Route path="/agreements" element={<AgreementDownload />} />
-        </Routes>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/agreements']}>
+          <Routes>
+            <Route path="/agreements" element={<AgreementDownload />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {

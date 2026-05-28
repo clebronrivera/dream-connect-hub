@@ -15,6 +15,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { BreederRoute } from "@/components/breeder/BreederRoute";
 import { BreederLayout } from "@/components/breeder/BreederLayout";
 import { GoogleTranslateRuntime } from "@/components/i18n/GoogleTranslateRuntime";
+import { appEnv } from "@/lib/env";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 const Index = lazyWithRetry(() => import("./pages/Index"));
@@ -128,9 +129,14 @@ export function AppRoutes() {
         <Route path="/training-plan/:problemType" element={<TrainingPlanPage />} />
         <Route path="/about" element={<About />} />
 
-        {/* Dev / design mockups (URL-only; not linked from public nav) */}
-        <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
-        <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+        {/* Dev / design mockups (URL-only; not linked from public nav).
+            Only routed in development — never shipped to production. */}
+        {appEnv.isDev && (
+          <>
+            <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
+            <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+          </>
+        )}
 
         {/* Breeder tool (Yolanda) — token-gated via localStorage */}
         <Route path="/breeder/login" element={<BreederLogin />} />

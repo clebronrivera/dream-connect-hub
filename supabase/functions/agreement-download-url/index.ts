@@ -13,6 +13,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyBuyerToken } from "../_shared/auth/verifyBuyerToken.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -20,10 +21,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SIGNED_URL_TTL_SECONDS = 3600; // 1 hour
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  const cors = corsHeaders(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -35,7 +38,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -49,7 +52,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!tokenResult.ok) {
     return new Response(JSON.stringify(tokenResult.body), {
       status: tokenResult.status,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -63,7 +66,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         details:
           "The agreement has not been finalized. Contact Dream Puppies if you believe this is an error.",
       }),
-      { status: 404, headers: { "Content-Type": "application/json" } }
+      { status: 404, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
 
@@ -73,12 +76,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .createSignedUrl(agreement.signed_pdf_storage_path, SIGNED_URL_TTL_SECONDS);
 
   if (signedUrlErr || !signedUrlData?.signedUrl) {
+    console.error("agreement-download-url: signed URL mint failed:", signedUrlErr);
     return new Response(
-      JSON.stringify({
-        error: "Failed to generate download URL",
-        details: signedUrlErr?.message,
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Failed to generate download URL" }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
 
@@ -87,6 +88,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       download_url: signedUrlData.signedUrl,
       expires_in_seconds: SIGNED_URL_TTL_SECONDS,
     }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
   );
 });
