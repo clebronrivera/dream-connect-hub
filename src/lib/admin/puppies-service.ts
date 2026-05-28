@@ -43,7 +43,7 @@ export async function createPuppy(payload: Record<string, unknown>): Promise<Pup
 export async function fetchAdminPuppies(): Promise<Puppy[]> {
   const { data, error } = await supabase
     .from('puppies')
-    .select('*')
+    .select('*, upcoming_litter:upcoming_litter_id(id, dam_name, sire_name, date_of_birth)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as Puppy[];
