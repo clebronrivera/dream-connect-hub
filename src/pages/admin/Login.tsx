@@ -27,8 +27,10 @@ export default function Login() {
         description: 'This account does not have admin access. Use an authorised admin email.',
         variant: 'destructive',
       });
-      signOut();
-      setFormLoading(false);
+      // Reset the spinner only after sign-out settles. Doing it in the
+      // promise callback (rather than synchronously here) avoids the
+      // cascading-render that react-hooks/set-state-in-effect warns about.
+      void signOut().finally(() => setFormLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, isAdmin, navigate]);
