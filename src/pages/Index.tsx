@@ -21,6 +21,8 @@ import { GalacticHomeNav } from "@/components/home/GalacticHomeNav";
 import { GalacticHeroPuppiesMarquee } from "@/components/home/GalacticHeroPuppiesMarquee";
 import { GalacticHomeMiniFooter } from "@/components/home/GalacticHomeMiniFooter";
 import { StickerButton } from "@/components/redesign/PublicDesignPrimitives";
+import { GoogleRatingBadge } from "@/components/reviews/GoogleRatingBadge";
+import { GoogleReviewsSection } from "@/components/reviews/GoogleReviewsSection";
 import { BUSINESS } from "@/lib/constants/business";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
 import type { TranslationKey } from "@/i18n/translations";
@@ -141,9 +143,13 @@ export default function Index() {
                 <span className="mt-1 block text-white">{t("indexHeroTitlePart2")}</span>
               </h1>
 
-            <p className="mx-auto mb-10 max-w-2xl font-body text-xl leading-tight text-white/80 md:text-2xl">
+            <p className="mx-auto mb-8 max-w-2xl font-body text-xl leading-tight text-white/80 md:text-2xl">
               {t("indexHeroDescription")}
             </p>
+
+            <div className="mb-10 flex justify-center">
+              <GoogleRatingBadge />
+            </div>
 
             <div className="mb-12 flex flex-col justify-center gap-4 sm:flex-row">
               <StickerButton
@@ -233,6 +239,8 @@ export default function Index() {
             </div>
           </div>
         </section>
+
+        <GoogleReviewsSection />
 
         <section className="border-t border-white/10 py-16 md:py-20">
           <div className="mx-auto max-w-2xl px-6 text-center md:px-8">
