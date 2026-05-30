@@ -7,6 +7,8 @@ import {
   fetchPuppyNames,
   updatePuppy,
   createPuppy,
+  upsertPuppyDeathExpense,
+  fetchPuppyDeathExpense,
 } from '@/lib/admin/puppies-service';
 import { uploadPuppyPhoto } from '@/lib/puppy-photos';
 import { createLitterFromPuppy } from '@/lib/litter-api';
@@ -42,6 +44,11 @@ export default function PuppyForm() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [addLittermateOpen, setAddLittermateOpen] = useState(false);
   const [generateLittermatesOpen, setGenerateLittermatesOpen] = useState(false);
+  // Death-expense capture: shown only when "mark as deceased" is checked.
+  // These live outside the puppy form schema because the cost is written to a
+  // separate table (puppy_expenses), not a puppies column.
+  const [deathHasCost, setDeathHasCost] = useState(false);
+  const [deathCostAmount, setDeathCostAmount] = useState('');
 
   // Fetch existing puppy if editing
   const { data: puppy, isLoading } = useQuery({
@@ -97,6 +104,20 @@ export default function PuppyForm() {
     if (puppy) form.reset(puppyToFormValues(puppy));
   }, [puppy, form]);
 
+  // Prefill the death-expense capture when editing an already-deceased puppy.
+  useEffect(() => {
+    if (!puppy?.id || !puppy.is_deceased) return;
+    let cancelled = false;
+    fetchPuppyDeathExpense(puppy.id)
+      .then((cost) => {
+        if (cancelled || cost == null) return;
+        setDeathHasCost(cost > 0);
+        setDeathCostAmount(cost > 0 ? String(cost) : '');
+      })
+      .catch(() => { /* non-fatal: operator can re-enter the amount */ });
+    return () => { cancelled = true; };
+  }, [puppy?.id, puppy?.is_deceased]);
+
   const mutation = useMutation({
     mutationFn: async (data: PuppyFormValues) => {
       const { breed_select, other_breed, ...rest } = data;
@@ -136,16 +157,33 @@ export default function PuppyForm() {
       payload.vaccinations = payload.vaccinations || 'First round included';
       payload.microchipped = true;
       if (payload.is_deceased) {
+        // A deceased puppy is hidden from the public site and its status is
+        // forced to 'Deceased' so it drops out of all income/inventory metrics.
         payload.is_publicly_visible = false;
+        payload.status = 'Deceased';
       } else if (payload.is_publicly_visible == null) {
         payload.is_publicly_visible = payload.status === 'Available';
       }
 
-      if (isEdit && id) {
-        return updatePuppy(id, payload as Record<string, unknown>);
-      } else {
-        return createPuppy(payload as Record<string, unknown>);
+      const saved =
+        isEdit && id
+          ? await updatePuppy(id, payload as Record<string, unknown>)
+          : await createPuppy(payload as Record<string, unknown>);
+
+      // Record / correct / clear the death-related business expense. It lives in
+      // puppy_expenses (category='death'), not on the puppy row.
+      const savedId = saved.id ?? (isEdit ? id : undefined);
+      if (savedId) {
+        if (payload.is_deceased) {
+          const cost = deathHasCost ? Number(deathCostAmount) || 0 : 0;
+          await upsertPuppyDeathExpense(savedId, cost);
+        } else if (puppy?.is_deceased) {
+          // Puppy un-marked as deceased — drop any prior death expense.
+          await upsertPuppyDeathExpense(savedId, 0);
+        }
       }
+
+      return saved;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['puppies'] });
@@ -413,7 +451,19 @@ export default function PuppyForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status <BreederBadge /></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Keep the deceased flag in lockstep with the status.
+                      if (value === 'Deceased') {
+                        form.setValue('is_deceased', true);
+                        form.setValue('is_publicly_visible', false);
+                      } else if (form.getValues('is_deceased')) {
+                        form.setValue('is_deceased', false);
+                      }
+                    }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                     </FormControl>
@@ -422,6 +472,7 @@ export default function PuppyForm() {
                       <SelectItem value="Pending">Pending</SelectItem>
                       <SelectItem value="Sold">Sold</SelectItem>
                       <SelectItem value="Reserved">Reserved</SelectItem>
+                      <SelectItem value="Deceased">Deceased</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -467,13 +518,85 @@ export default function PuppyForm() {
               control={form.control}
               name="is_deceased"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Mark as deceased (kept for accounting)</FormLabel>
+                <FormItem className="md:col-span-2 space-y-3">
+                  <div className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={(checked) => {
+                          const isChecked = checked === true;
+                          field.onChange(isChecked);
+                          if (isChecked) {
+                            // Mark deceased → force status + hide from public.
+                            form.setValue('status', 'Deceased');
+                            form.setValue('is_publicly_visible', false);
+                          } else {
+                            // Un-mark → reset the death-expense capture and
+                            // return the puppy to Available.
+                            setDeathHasCost(false);
+                            setDeathCostAmount('');
+                            if (form.getValues('status') === 'Deceased') {
+                              form.setValue('status', 'Available');
+                            }
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Mark as deceased (kept for accounting)</FormLabel>
+                    </div>
                   </div>
+
+                  {field.value && (
+                    <div className="ml-7 rounded-md border border-line bg-muted/40 p-4 space-y-3">
+                      <p className="text-sm font-medium">Was there an expense due to this?</p>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="death-has-cost"
+                            checked={!deathHasCost}
+                            onChange={() => { setDeathHasCost(false); setDeathCostAmount(''); }}
+                          />
+                          No
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="death-has-cost"
+                            checked={deathHasCost}
+                            onChange={() => setDeathHasCost(true)}
+                          />
+                          Yes
+                        </label>
+                      </div>
+                      {deathHasCost && (
+                        <div className="space-y-1">
+                          <label className="text-sm text-muted-foreground" htmlFor="death-cost-amount">
+                            Approximate cost (USD)
+                          </label>
+                          <div className="relative max-w-[12rem]">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <Input
+                              id="death-cost-amount"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              className="pl-7"
+                              placeholder="0.00"
+                              value={deathCostAmount}
+                              onChange={(e) => setDeathCostAmount(e.target.value)}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Recorded as a business expense. This puppy is removed
+                            from income and inventory totals on the dashboard.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </FormItem>
               )}
             />

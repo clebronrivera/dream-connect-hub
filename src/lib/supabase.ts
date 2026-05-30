@@ -248,7 +248,7 @@ export interface Puppy {
   discount_amount?: number;
   discount_note?: string;
   final_price?: number;
-  status?: 'Available' | 'Pending' | 'Sold' | 'Reserved';
+  status?: 'Available' | 'Pending' | 'Sold' | 'Reserved' | 'Deceased';
   is_publicly_visible?: boolean;
   is_deceased?: boolean;
   photos?: string[];
