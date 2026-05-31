@@ -23,7 +23,7 @@ export const puppySchema = z
     discount_amount: optionalNumber(z.number().min(0)),
     discount_note: z.string().optional(),
     final_price: optionalNumber(z.number().min(0)),
-    status: z.enum(['Available', 'Pending', 'Sold', 'Reserved']).default('Available'),
+    status: z.enum(['Available', 'Pending', 'Sold', 'Reserved', 'Deceased']).default('Available'),
     description: z.string().optional(),
     mom_weight_approx: optionalNumber(z.number()),
     dad_weight_approx: optionalNumber(z.number()),

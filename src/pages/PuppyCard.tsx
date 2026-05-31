@@ -18,17 +18,6 @@ import { resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 import { PuppyPlaceholderSvg, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { PuppyMediaThumbs } from '@/components/puppy/PuppyMediaThumbs';
 
-function formatReadyDate(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 interface Props {
   puppy: Puppy;
   index: number;
@@ -135,16 +124,12 @@ export function PuppyCard({
             return w != null && ` • ${w} weeks`;
           })()}
         </CardDescription>
-        {(() => {
-          const ready = formatReadyDate(puppy.ready_date);
-          if (!ready) return null;
-          return (
-            <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-200/90">
-              <CalendarHeart className="h-3.5 w-3.5" aria-hidden />
-              Ready by {ready}
-            </p>
-          );
-        })()}
+        {puppy.ready_date && (
+          <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-200/90">
+            <CalendarHeart className="h-3.5 w-3.5" aria-hidden />
+            Contact for availability
+          </p>
+        )}
         <ParentThumbs puppy={puppy} />
         {puppy.description && (
           <p className="mt-2 line-clamp-2 text-sm text-white/65">{puppy.description}</p>

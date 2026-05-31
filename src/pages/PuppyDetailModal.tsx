@@ -110,23 +110,12 @@ export function PuppyDetailModal({
                 </div>
               </div>
               <div className="space-y-4">
-                {(() => {
-                  if (!puppy.ready_date) return null;
-                  const d = new Date(puppy.ready_date);
-                  if (Number.isNaN(d.getTime())) return null;
-                  return (
-                    <div className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-                      <CalendarHeart className="h-4 w-4" aria-hidden />
-                      Ready by{' '}
-                      {d.toLocaleDateString(undefined, {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </div>
-                  );
-                })()}
+                {puppy.ready_date && (
+                  <div className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+                    <CalendarHeart className="h-4 w-4" aria-hidden />
+                    Contact for availability
+                  </div>
+                )}
                 {puppy.description && (
                   <p className="text-muted-foreground">{puppy.description}</p>
                 )}

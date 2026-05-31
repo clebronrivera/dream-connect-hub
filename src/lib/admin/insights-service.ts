@@ -9,6 +9,10 @@ export interface KpiSummary {
   revenue_ytd: number;
   revenue_last_30d: number;
   revenue_prev_30d: number;
+  expenses_ytd: number;
+  expenses_last_30d: number;
+  expenses_total: number;
+  net_ytd: number;
   pipeline_value: number;
   active_reservations_count: number;
   available_inventory_count: number;
@@ -111,6 +115,10 @@ export async function fetchKpiSummary(): Promise<KpiSummary> {
     revenue_ytd: asNumber(row.revenue_ytd),
     revenue_last_30d: asNumber(row.revenue_last_30d),
     revenue_prev_30d: asNumber(row.revenue_prev_30d),
+    expenses_ytd: asNumber(row.expenses_ytd),
+    expenses_last_30d: asNumber(row.expenses_last_30d),
+    expenses_total: asNumber(row.expenses_total),
+    net_ytd: asNumber(row.net_ytd),
     pipeline_value: asNumber(row.pipeline_value),
     active_reservations_count: asNumber(row.active_reservations_count),
     available_inventory_count: asNumber(row.available_inventory_count),

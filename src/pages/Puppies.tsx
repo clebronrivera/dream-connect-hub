@@ -386,8 +386,6 @@ export default function Puppies() {
                         </DialogTitle>
                         <DialogDescription>
                           {prePuppy.breed}
-                          {prePuppy.ready_date &&
-                            ` • Ready ${prePuppy.ready_date}`}
                           {getDisplayAgeWeeks(prePuppy) != null &&
                             ` • ${getDisplayAgeWeeks(prePuppy)} weeks`}
                         </DialogDescription>
