@@ -255,6 +255,19 @@ export function updatePuppy(
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
 }
 
+/**
+ * Atomically swap one photo on a puppy. The breeder-write `replacePuppyPhoto`
+ * op updates the photos array + primary_photo and retires the old storage
+ * object (unless it's still referenced elsewhere). Pass `oldUrl: null` to add
+ * a new photo without replacing one.
+ */
+export function replacePuppyPhoto(
+  token: string,
+  args: { puppyId: string; oldUrl: string | null; newUrl: string },
+): Promise<BreederWriteResult<BreederPuppyRow>> {
+  return callBreederWrite<BreederPuppyRow>(token, "replacePuppyPhoto", args);
+}
+
 export interface UploadVideoResult {
   path: string;
   publicUrl: string;
