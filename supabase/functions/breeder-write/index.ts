@@ -77,6 +77,8 @@ export async function handler(
       return await createPuppy(supabase, body.payload, json);
     case "updatePuppy":
       return await updatePuppy(supabase, body.payload, json);
+    case "replacePuppyPhoto":
+      return await replacePuppyPhoto(supabase, body.payload, json);
     case "deletePuppy":
       return await deletePuppy(supabase, body.payload, json);
     case "listParents":
@@ -523,6 +525,136 @@ async function updatePuppy(
   }
 
   return json(200, { ok: true, data });
+}
+
+// Bucket that breeder-upload-photo writes to. Public read; service-role
+// delete. We only ever remove objects under the breeder/puppy/ prefix.
+const PUPPY_PHOTOS_BUCKET = "puppy-photos";
+
+// Parse the in-bucket path out of a public storage URL, e.g.
+//   https://<ref>.supabase.co/storage/v1/object/public/puppy-photos/breeder/puppy/<id>/<uuid>.jpg
+// → breeder/puppy/<id>/<uuid>.jpg. Returns null for URLs we don't own
+// (external hosts, admin-uploaded paths, malformed input) so we never try
+// to delete something outside the breeder photo namespace.
+function parsePuppyPhotoPath(url: unknown, puppyId: string): string | null {
+  if (typeof url !== "string" || url.length === 0) return null;
+  const marker = `/${PUPPY_PHOTOS_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  const path = url.slice(idx + marker.length).split("?")[0];
+  // Only ever delete inside this puppy's own folder — defence in depth.
+  if (!path.startsWith(`breeder/puppy/${puppyId}/`)) return null;
+  return path;
+}
+
+interface ReplacePuppyPhotoPayload {
+  puppyId?: string;
+  // The current photo URL being replaced. Omit / pass null to ADD a new
+  // photo without retiring an existing one.
+  oldUrl?: string | null;
+  // The already-uploaded replacement URL (from breeder-upload-photo).
+  newUrl?: string;
+}
+
+// Atomically swap one photo on a puppy: update the photos array (and
+// primary_photo when index 0 / the primary changed), then best-effort
+// delete the retired storage object. The old picture "becomes inactive,
+// essentially deleted — unless there's a good enough reason to keep it",
+// the reason being: it's still referenced by this or another puppy row.
+async function replacePuppyPhoto(
+  supabase: SupabaseClient,
+  payload: unknown,
+  json: JsonResponder,
+): Promise<Response> {
+  const p = (payload ?? {}) as ReplacePuppyPhotoPayload;
+  if (!isUuid(p.puppyId))
+    return json(400, { ok: false, error: "puppyId must be a UUID" });
+  if (typeof p.newUrl !== "string" || p.newUrl.length === 0)
+    return json(400, { ok: false, error: "newUrl is required" });
+  const oldUrl = typeof p.oldUrl === "string" && p.oldUrl.length > 0 ? p.oldUrl : null;
+
+  const { data: current, error: loadErr } = await supabase
+    .from("puppies")
+    .select("photos, primary_photo")
+    .eq("id", p.puppyId)
+    .maybeSingle();
+  if (loadErr) return json(500, { ok: false, error: "Failed to load puppy", details: loadErr.message });
+  if (!current) return json(404, { ok: false, error: "Puppy not found" });
+
+  const existing: string[] = Array.isArray(current.photos)
+    ? (current.photos as string[]).filter((u) => typeof u === "string" && u.length > 0)
+    : [];
+
+  let nextPhotos: string[];
+  let replacedIndex = -1;
+  if (oldUrl) {
+    replacedIndex = existing.indexOf(oldUrl);
+    if (replacedIndex === -1) {
+      // Old URL no longer present (concurrent edit / already replaced).
+      // Treat as an add so the new photo isn't lost.
+      nextPhotos = [...existing, p.newUrl];
+    } else {
+      nextPhotos = existing.slice();
+      nextPhotos[replacedIndex] = p.newUrl;
+    }
+  } else {
+    nextPhotos = [...existing, p.newUrl];
+  }
+  // De-dupe defensively while preserving order.
+  nextPhotos = nextPhotos.filter((u, i) => nextPhotos.indexOf(u) === i);
+
+  const patch: Record<string, unknown> = {
+    photos: nextPhotos,
+    updated_at: new Date().toISOString(),
+  };
+  // Keep primary_photo in sync: it tracks the first slot, or whichever slot
+  // was the primary before the swap.
+  if (replacedIndex === 0 || current.primary_photo === oldUrl || !current.primary_photo) {
+    patch.primary_photo = nextPhotos[0] ?? p.newUrl;
+  }
+
+  const { data, error } = await supabase
+    .from("puppies")
+    .update(patch)
+    .eq("id", p.puppyId)
+    .select("id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at")
+    .single();
+  if (error || !data)
+    return json(500, { ok: false, error: "Failed to update puppy photos", details: error?.message });
+
+  // Best-effort retirement of the old object. Never block the response on
+  // storage cleanup; an orphaned object is harmless next to a lost photo.
+  if (oldUrl && oldUrl !== p.newUrl) {
+    const oldPath = parsePuppyPhotoPath(oldUrl, p.puppyId);
+    if (oldPath) {
+      // "Good enough reason to keep": the same URL is still referenced by
+      // this puppy (shouldn't happen post-dedupe) or any other puppy row.
+      const stillReferenced =
+        nextPhotos.includes(oldUrl) || (await isPhotoReferencedElsewhere(supabase, oldUrl, p.puppyId));
+      if (!stillReferenced) {
+        await supabase.storage.from(PUPPY_PHOTOS_BUCKET).remove([oldPath]);
+      }
+    }
+  }
+
+  return json(200, { ok: true, data });
+}
+
+// Is this photo URL still used by some OTHER puppy? Guards against deleting
+// a storage object that a different row points at (e.g. a shared/cloned URL).
+async function isPhotoReferencedElsewhere(
+  supabase: SupabaseClient,
+  url: string,
+  excludePuppyId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("puppies")
+    .select("id")
+    .neq("id", excludePuppyId)
+    .or(`primary_photo.eq.${url},photos.cs.{"${url}"}`)
+    .limit(1);
+  if (error) return true; // On uncertainty, keep the file.
+  return (data?.length ?? 0) > 0;
 }
 
 interface DeletePuppyPayload {

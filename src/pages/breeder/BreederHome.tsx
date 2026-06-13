@@ -4,7 +4,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2, PawPrint, Heart, Users, ChevronRight, Plus } from "lucide-react";
+import { Loader2, PawPrint, Heart, Users, ChevronRight, Plus, Camera } from "lucide-react";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import { loadBreederHome } from "@/lib/breeder/api";
 import { listAllBreederPuppies } from "@/lib/breeder/api";
@@ -48,6 +48,7 @@ export default function BreederHome() {
   const preBirth      = litters?.filter(l => l.lifecycle_status === "pre_birth").length ?? 0;
   const activePuppies = puppies?.filter(p => p.status !== "Sold").length ?? 0;
   const soldPuppies   = puppies?.filter(p => p.status === "Sold").length ?? 0;
+  const missingPhotos = puppies?.filter(p => p.status !== "Sold" && !(p.photos?.length)).length ?? 0;
 
   return (
     <div className="mx-auto max-w-screen-sm px-4 py-6 space-y-6">
@@ -99,6 +100,26 @@ export default function BreederHome() {
                 {activePuppies === 0 && soldPuppies === 0
                   ? "No puppies yet"
                   : `${activePuppies} active${soldPuppies > 0 ? ` · ${soldPuppies} sold` : ""}`}
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+          </button>
+
+          {/* ── Update puppy pictures card ── */}
+          <button
+            type="button"
+            onClick={() => navigate("/breeder/photos")}
+            className="group flex items-center gap-4 rounded-2xl border bg-card p-5 text-left shadow-sm transition hover:shadow-md active:scale-[0.99]"
+          >
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-500">
+              <Camera className="h-7 w-7" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-lg font-semibold">Update puppy pictures</p>
+              <p className="text-sm text-muted-foreground">
+                {activePuppies === 0
+                  ? "Add puppies first"
+                  : `Replace or add photos${missingPhotos > 0 ? ` · ${missingPhotos} need photos` : ""}`}
               </p>
             </div>
             <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
