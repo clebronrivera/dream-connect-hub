@@ -85,30 +85,23 @@ export type DepositRequestValidation =
  * Validate a deposit-request link. The request must exist, not yet be
  * converted, and be in `'deposit_link_sent'` status. Used by DepositAgreement
  * to gate the public form on an operator-issued link.
+ *
+ * Runs server-side via the `validate-deposit-request` edge function: the
+ * `deposit_requests` table holds buyer PII and has no anon SELECT policy, so the
+ * lookup uses the service role and returns only the decision + puppy/litter ids.
  */
 export async function validateDepositRequest(
   requestId: string
 ): Promise<DepositRequestValidation> {
-  const { data, error } = await supabase
-    .from('deposit_requests')
-    .select('id, request_status, puppy_id, upcoming_litter_id, deposit_agreement_id')
-    .eq('id', requestId)
-    .maybeSingle();
+  const { data, error } = await supabase.functions.invoke<DepositRequestValidation>(
+    'validate-deposit-request',
+    { body: { requestId } }
+  );
 
   if (error || !data) {
     return { valid: false, reason: 'Request not found' };
   }
-  if (data.request_status === 'converted' || data.deposit_agreement_id) {
-    return { valid: false, reason: 'Request already converted' };
-  }
-  if (data.request_status !== 'deposit_link_sent') {
-    return { valid: false, reason: `Request status is ${data.request_status}` };
-  }
-  return {
-    valid: true,
-    puppyId: data.puppy_id,
-    litterId: data.upcoming_litter_id,
-  };
+  return data;
 }
 
 /** Fetch enabled payment methods for the deposit form */

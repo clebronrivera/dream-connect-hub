@@ -9,6 +9,7 @@ import { useNavigate, Outlet, useLocation, NavLink } from "react-router-dom";
 import { ArrowLeft, LogOut, Users, PawPrint, Heart, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
+import { useNoIndex } from "@/components/seo/Seo";
 
 const NAV_ITEMS = [
   { to: "/breeder",          label: "Home",    Icon: Home,     exact: true  },
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function BreederLayout() {
+  useNoIndex();
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useBreederAuth();

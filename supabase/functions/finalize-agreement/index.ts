@@ -84,8 +84,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .eq("id", body.agreement_id);
 
   if (updateErr) {
+    console.error("finalize-agreement: agreement update failed:", updateErr);
     return new Response(
-      JSON.stringify({ error: "Failed to update agreement", details: updateErr }),
+      JSON.stringify({ error: "Failed to update agreement" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
