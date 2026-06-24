@@ -7,18 +7,18 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarHeart, Heart, Share2 } from 'lucide-react';
+import { CalendarHeart, Heart, Share2, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 import {
-  getDisplayPrice,
   getPuppyMediaList,
   getSizeCategory,
   isPoodleOrDoodle,
   isSmallBreed,
 } from '@/lib/puppy-display-utils';
 import { PuppyMediaCollage } from '@/components/puppy/PuppyMediaCollage';
+import { InquirePriceDialog } from '@/components/InquirePriceDialog';
 import type { Puppy } from '@/lib/supabase';
 
 interface Props {
@@ -152,39 +152,19 @@ export function PuppyDetailModal({
                   </div>
                 </div>
                 <div className="pt-4">
-                  {getDisplayPrice(puppy) != null ? (
-                    <p className="mb-2 flex flex-wrap items-baseline gap-2">
-                      {puppy.discount_active &&
-                      (puppy.base_price != null || puppy.discount_amount != null) ? (
-                        <>
-                          <span className="text-sm text-muted-foreground line-through">
-                            $
-                            {Number(
-                              puppy.base_price ??
-                                Number(getDisplayPrice(puppy)) +
-                                  Number(puppy.discount_amount ?? 0)
-                            ).toLocaleString()}
-                          </span>
-                          <span className="text-2xl font-bold text-foreground">
-                            ${Number(getDisplayPrice(puppy)).toLocaleString()}
-                          </span>
-                          {puppy.discount_amount != null &&
-                            Number(puppy.discount_amount) > 0 && (
-                              <Badge variant="secondary" className="text-xs">
-                                ${Number(puppy.discount_amount).toLocaleString()} OFF
-                              </Badge>
-                            )}
-                        </>
-                      ) : (
-                        <span className="text-2xl font-bold text-foreground">
-                          ${Number(getDisplayPrice(puppy)).toLocaleString()}
-                        </span>
-                      )}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground mb-2">Price on request</p>
-                  )}
-                  <Button className="w-full" onClick={() => onSendInterest(puppy.id)}>
+                  <InquirePriceDialog
+                    puppy={{ id: puppy.id, name: puppy.name, breed: puppy.breed }}
+                  >
+                    <Button className="w-full">
+                      <Tag className="h-4 w-4 mr-2" />
+                      Inquire about price
+                    </Button>
+                  </InquirePriceDialog>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={() => onSendInterest(puppy.id)}
+                  >
                     <Heart className="h-4 w-4 mr-2" />
                     Send Interest
                   </Button>

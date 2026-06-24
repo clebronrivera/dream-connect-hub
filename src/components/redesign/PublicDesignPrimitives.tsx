@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,14 +32,17 @@ export function DreamTag({ children, className }: TagProps) {
   );
 }
 
-export function StickerButton({ className, ...props }: ButtonProps) {
-  return (
+// forwardRef so it composes with Radix `asChild` slots (e.g. DialogTrigger).
+export const StickerButton = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, ...props }, ref) => (
     <Button
+      ref={ref}
       className={cn("rounded-pill font-bold tracking-[0.08em] uppercase shadow-sticker active:sticker-press", className)}
       {...props}
     />
-  );
-}
+  ),
+);
+StickerButton.displayName = "StickerButton";
 
 export function PuppyPlaceholderSvg({
   hue = 28,
