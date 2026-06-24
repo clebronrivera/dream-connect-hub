@@ -32,7 +32,13 @@ async function checkRLSPolicies() {
   console.log('🔍 Checking RLS Policies...\n');
   
   const tables = ['contact_messages', 'puppy_inquiries', 'consultation_requests', 'product_inquiries'];
-  
+
+  // These tables are intentionally locked: public submissions go through a
+  // captcha-gated edge function (service-role insert), so a BLOCKED direct anon
+  // insert is the correct/healthy state. The others still accept a direct anon
+  // insert (no edge function yet).
+  const EDGE_GATED = new Set(['contact_messages', 'puppy_inquiries', 'testimonials']);
+
   for (const table of tables) {
     try {
       // Query pg_policies to check if policies exist
@@ -55,12 +61,21 @@ async function checkRLSPolicies() {
         .from(table)
         .insert([testData], { returning: 'minimal' });
       
+      const gated = EDGE_GATED.has(table);
       if (insertError && insertError.code === '42501') {
-        console.log(`❌ ${table}: RLS policy missing or blocking inserts`);
+        console.log(
+          gated
+            ? `✅ ${table}: direct anon insert correctly blocked (captcha-gated edge function path)`
+            : `❌ ${table}: RLS policy missing or blocking inserts`
+        );
       } else if (insertError) {
         console.log(`⚠️  ${table}: ${insertError.message}`);
       } else {
-        console.log(`✅ ${table}: INSERT policy is working`);
+        console.log(
+          gated
+            ? `⚠️  ${table}: anon can insert directly — expected to be gated to the edge function`
+            : `✅ ${table}: INSERT policy is working`
+        );
         // Clean up
         try {
           await supabaseAdmin.from(table).delete().eq('email', 'test@test.com');
