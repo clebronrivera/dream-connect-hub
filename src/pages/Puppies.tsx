@@ -268,14 +268,7 @@ export default function Puppies() {
               <Select
                 value={sortBy}
                 onValueChange={(v) =>
-                  setSortBy(
-                    v as
-                      | "ready-soonest"
-                      | "name"
-                      | "breed"
-                      | "price-low"
-                      | "price-high",
-                  )
+                  setSortBy(v as "ready-soonest" | "name" | "breed")
                 }
               >
                 <SelectTrigger className="w-[170px] border-white/25 bg-white/5 text-white">
@@ -287,12 +280,6 @@ export default function Puppies() {
                   </SelectItem>
                   <SelectItem value="name">{t("puppiesSortNameAZ")}</SelectItem>
                   <SelectItem value="breed">{t("puppiesSortBreed")}</SelectItem>
-                  <SelectItem value="price-low">
-                    {t("puppiesSortPriceLowHigh")}
-                  </SelectItem>
-                  <SelectItem value="price-high">
-                    {t("puppiesSortPriceHighLow")}
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

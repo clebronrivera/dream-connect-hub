@@ -6,10 +6,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarHeart, Heart, Share2 } from 'lucide-react';
+import { CalendarHeart, Heart, Share2, Tag } from 'lucide-react';
 import { getDisplayAgeWeeks } from '@/lib/puppy-utils';
 import {
-  getDisplayPrice,
   getPuppyMediaList,
   getSizeCategory,
 } from '@/lib/puppy-display-utils';
@@ -17,6 +16,7 @@ import type { Puppy } from '@/lib/supabase';
 import { resolvePuppyPhotosPublicUrl } from '@/lib/puppy-photos';
 import { PuppyPlaceholderSvg, StickerButton } from '@/components/redesign/PublicDesignPrimitives';
 import { PuppyMediaThumbs } from '@/components/puppy/PuppyMediaThumbs';
+import { InquirePriceDialog } from '@/components/InquirePriceDialog';
 
 interface Props {
   puppy: Puppy;
@@ -39,7 +39,6 @@ export function PuppyCard({
 }: Props) {
   const { photos, videoUrl } = getPuppyMediaList(puppy);
   const hasMedia = photos.length > 0 || !!videoUrl;
-  const price = getDisplayPrice(puppy);
   const status = puppy.status || 'Unknown';
   const isAvailable = status === 'Available';
   const sizeCat = getSizeCategory(puppy);
@@ -63,13 +62,6 @@ export function PuppyCard({
           </div>
         )}
         <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-          {puppy.discount_active &&
-            puppy.discount_amount != null &&
-            Number(puppy.discount_amount) > 0 && (
-              <Badge className="shrink-0 bg-[#ff3399] text-xs text-white">
-                ${Number(puppy.discount_amount).toLocaleString()} OFF
-              </Badge>
-            )}
           <div className="flex gap-2">
             <span
               className={`text-xs px-2 py-1 rounded-full ${
@@ -136,39 +128,20 @@ export function PuppyCard({
         )}
       </CardHeader>
       <CardContent onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          {price != null ? (
-            <span className="flex flex-wrap items-baseline gap-2">
-              {puppy.discount_active &&
-              (puppy.base_price != null || puppy.discount_amount != null) ? (
-                <>
-                  <span className="text-sm text-white/50 line-through">
-                    $
-                    {Number(
-                      puppy.base_price ?? price + Number(puppy.discount_amount ?? 0)
-                    ).toLocaleString()}
-                  </span>
-                  <span className="text-2xl font-bold text-white">
-                    ${Number(price).toLocaleString()}
-                  </span>
-                </>
-              ) : (
-                <span className="text-2xl font-bold text-white">
-                  ${Number(price).toLocaleString()}
-                </span>
-              )}
-            </span>
-          ) : (
-            <span className="text-white/70">Price on request</span>
-          )}
-          <StickerButton onClick={onSendInterest}>
+        <div className="flex flex-wrap items-center gap-2">
+          <InquirePriceDialog
+            puppy={{ id: puppy.id, name: puppy.name, breed: puppy.breed }}
+          >
+            <StickerButton className="flex-1">
+              <Tag className="h-4 w-4 mr-2" />
+              Inquire about price
+            </StickerButton>
+          </InquirePriceDialog>
+          <StickerButton variant="outline" onClick={onSendInterest}>
             <Heart className="h-4 w-4 mr-2" />
             Send Interest
           </StickerButton>
         </div>
-        {puppy.discount_note && (
-          <p className="text-xs text-primary mt-2">{puppy.discount_note}</p>
-        )}
       </CardContent>
     </Card>
   );
