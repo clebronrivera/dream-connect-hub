@@ -5,6 +5,8 @@ import { Loader2, MapPin, Truck, ShieldCheck, Phone, MessageCircle } from "lucid
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
+import { PriceIncludes } from "@/components/PriceIncludes";
+import { WaitlistForm } from "@/components/WaitlistForm";
 import { SERVICE_LOCATIONS, LOCATION_BREEDS } from "@/data/locations-content";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
 import { normalizeBreedToCanonical } from "@/lib/breed-utils";
@@ -155,6 +157,10 @@ export default function BreedLocation() {
           </p>
         </section>
 
+        <section className="mx-auto max-w-screen-2xl px-6 pb-10 md:px-8">
+          <PriceIncludes />
+        </section>
+
         <section className="mx-auto max-w-screen-2xl px-6 pb-16 md:px-8">
           <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-white/60">
             Available {breed.displayName}s
@@ -210,6 +216,12 @@ export default function BreedLocation() {
                 <Button variant="outline" className="border-white/25 bg-transparent text-white hover:bg-white/10" asChild>
                   <Link to="/upcoming-litters">See upcoming litters</Link>
                 </Button>
+              </div>
+              <div className="mt-6 max-w-md">
+                <p className="mb-3 text-sm font-semibold text-white">
+                  Or join the waitlist and we'll email you the moment one matches
+                </p>
+                <WaitlistForm breedInterest={breed.dbBreed} />
               </div>
             </div>
           )}

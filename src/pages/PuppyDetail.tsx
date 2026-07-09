@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PuppyMediaCollage } from "@/components/puppy/PuppyMediaCollage";
 import { InquirePriceDialog } from "@/components/InquirePriceDialog";
+import { PriceIncludes } from "@/components/PriceIncludes";
 import { fetchPuppyBySlugOrId } from "@/lib/puppies-api";
 import { getPuppyMediaList } from "@/lib/puppy-display-utils";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
@@ -201,6 +202,9 @@ export default function PuppyDetail() {
                 </div>
               </div>
             </div>
+          </div>
+          <div className="mt-8">
+            <PriceIncludes />
           </div>
         </section>
       </div>

@@ -42,6 +42,7 @@ const ProductForm = lazyWithRetry(() => import("./pages/admin/inventory/ProductF
 const KitsList = lazyWithRetry(() => import("./pages/admin/inventory/KitsList"));
 const KitForm = lazyWithRetry(() => import("./pages/admin/inventory/KitForm"));
 const Inquiries = lazyWithRetry(() => import("./pages/admin/Inquiries"));
+const WaitlistSignups = lazyWithRetry(() => import("./pages/admin/WaitlistSignups"));
 const BusinessModes = lazyWithRetry(() => import("./pages/admin/BusinessModes"));
 const DepositAgreement = lazyWithRetry(() => import("./pages/DepositAgreement"));
 const PaymentDashboard = lazyWithRetry(() => import("./pages/PaymentDashboard"));
@@ -194,6 +195,7 @@ export function AppRoutes() {
             <Route path="settings/breeder-passcode" element={<BreederPasscodeSettings />} />
             <Route path="faq" element={<FaqManager />} />
             <Route path="testimonials" element={<TestimonialsList />} />
+            <Route path="waitlist" element={<WaitlistSignups />} />
             <Route path="newsletter" element={<Newsletter />} />
             <Route path="settings/business-info" element={<BusinessInfoPage />} />
           </Route>

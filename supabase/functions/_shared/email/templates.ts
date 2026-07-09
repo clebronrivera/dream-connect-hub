@@ -675,7 +675,14 @@ export function pickupCompleteBuyer(args: {
   puppyName: string;
   agreementNumber: string;
   pickupDate: string;
+  /** Google Business Profile place ID. Omit/undefined until Carlos claims the
+   *  profile (GOOGLE_PLACE_ID edge function secret) — the review CTA is
+   *  skipped entirely rather than linking to a non-existent listing. */
+  googlePlaceId?: string | null;
 }): EmailTemplate {
+  const reviewUrl = args.googlePlaceId
+    ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(args.googlePlaceId)}`
+    : null;
   const body =
     heading(`Welcome home, ${escape(args.puppyName)}!`) +
     paragraph(`Hi ${args.buyerName},`) +
@@ -689,6 +696,11 @@ export function pickupCompleteBuyer(args: {
     paragraph(
       `Watch your inbox for the new owner care guide we send out separately, and please don't hesitate to reach out with any questions as you settle in together.`
     ) +
+    (reviewUrl
+      ? paragraph(
+          `If ${escape(args.puppyName)} has made you smile today, a quick Google review means the world to a small, family-run breeder like us.`
+        ) + button("Leave us a review", reviewUrl)
+      : "") +
     rawParagraph(
       `If you'd like to share photos or testimonials, we always love hearing how things are going — just reply to this email or call us at <strong>${escape(BRAND.phone)}</strong>.`
     );

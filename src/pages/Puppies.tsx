@@ -13,6 +13,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
+import { WaitlistForm } from "@/components/WaitlistForm";
 import { Dog, Loader2, Info, Heart } from "lucide-react";
 import type { Puppy } from "@/lib/supabase";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
@@ -307,6 +308,12 @@ export default function Puppies() {
               <Heart className="h-4 w-4 mr-2" />
               {t("puppiesSendInterestRecs")}
             </Button>
+            <div className="mx-auto mt-6 max-w-md text-left">
+              <p className="mb-3 text-center text-sm font-semibold text-white">
+                Or join the waitlist and we'll email you the moment a puppy matches
+              </p>
+              <WaitlistForm />
+            </div>
           </div>
         )}
 

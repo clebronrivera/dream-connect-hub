@@ -30,6 +30,7 @@ export interface PickupHandover {
   health_acknowledgment_signed_at?: string | null;
   vet_certificate_handed_over: boolean;
   vet_certificate_acknowledged_at?: string | null;
+  review_request_mentioned_at?: string | null;
   created_at: string;
   updated_at: string;
 }

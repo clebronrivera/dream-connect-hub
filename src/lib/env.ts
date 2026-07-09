@@ -42,4 +42,9 @@ export const appEnv = {
   get isDev() {
     return readFlag("DEV");
   },
+  /** Defaults off — the "Price Includes" line items need Carlos's confirmation
+   *  before they're accurate (see src/data/price-includes.ts). */
+  get showPriceIncludes() {
+    return readEnv("VITE_SHOW_PRICE_INCLUDES") === "true";
+  },
 };

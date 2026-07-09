@@ -202,6 +202,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       puppyName: agreement.puppy_name,
       agreementNumber: agreement.agreement_number,
       pickupDate: handover.pickup_date,
+      // Unset until Carlos claims the Google Business Profile — the review
+      // CTA lights up automatically once GOOGLE_PLACE_ID is set as a secret.
+      googlePlaceId: Deno.env.get("GOOGLE_PLACE_ID") || null,
     });
     const r = await sendEmail({
       to: agreement.buyer_email,
