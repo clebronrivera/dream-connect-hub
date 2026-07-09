@@ -564,6 +564,65 @@ export function renderPuppyJsonLd(
   return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
 }
 
+export type BreedLocationSource = {
+  breedSlug: string;
+  breedDisplayName: string;
+  locationSlug: string;
+  city: string;
+  state: "FL" | "NC";
+};
+
+export type BreedLocationSeoMetadata = {
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+};
+
+export function getBreedLocationSeoMetadata(source: BreedLocationSource): BreedLocationSeoMetadata {
+  return {
+    path: `/puppies/${source.breedSlug}/${source.locationSlug}`,
+    title: `${source.breedDisplayName} Puppies in ${source.city}, ${source.state} | Dream Puppies`,
+    description:
+      `Family-raised ${source.breedDisplayName} puppies for ${source.city}, ${source.state} families. ` +
+      `Free local delivery within 30 miles or visit our home to meet the parents. Call (321) 697-8864.`,
+    h1: `${source.breedDisplayName} Puppies for Sale in ${source.city}, ${source.state}`,
+  };
+}
+
+export function renderBreedLocationBodyFallback(
+  location: {
+    intro: string;
+    isPrimary?: boolean;
+    driveDistanceMiles: number;
+    driveTimeMinutes: number;
+    freeDelivery: boolean;
+  },
+  meta: BreedLocationSeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const deliveryLine = location.isPrimary
+    ? "Free local pickup at our home."
+    : location.freeDelivery
+      ? `Free delivery — ${location.driveDistanceMiles} mi / ~${location.driveTimeMinutes} min from our nearest location.`
+      : `Delivery available for a fee — ${location.driveDistanceMiles} mi / ~${location.driveTimeMinutes} min from our nearest location.`;
+  const introParagraphs = location.intro
+    .split("\n\n")
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join("\n  ");
+  return `<noscript>
+  <header>
+    <h1>${escapeHtml(meta.h1)}</h1>
+  </header>
+  ${introParagraphs}
+  <p>${escapeHtml(deliveryLine)} Every puppy goes home with a veterinarian-issued health certificate regardless of
+  destination — if you're crossing the FL/NC state line, confirm current requirements with your own vet.</p>
+  <p><a href="${base}/puppies">View all available puppies</a> &middot; <a href="${base}/contact">Contact us</a>
+  &middot; Call or text <a href="tel:+13216978864">(321) 697-8864</a></p>
+</noscript>`;
+}
+
 export function requireSiteUrlForBuild(env: SeoEnvOverrides = appEnv): string {
   const siteUrl = env.siteUrl?.trim();
   if (!siteUrl) {
@@ -707,7 +766,22 @@ export function renderRouteBodyFallback(pageId: SeoPageId | undefined, siteUrl: 
 </noscript>`;
 }
 
-export function renderLocalBusinessJsonLd(siteUrl: string): string {
+export type LocalBusinessAddress = {
+  city: string;
+  state: "FL" | "NC";
+  county?: string;
+};
+
+const STATE_NAMES: Record<"FL" | "NC", string> = { FL: "Florida", NC: "North Carolina" };
+
+/**
+ * @param address When provided (city x location pages), the JSON-LD carries
+ * just that city's address + areaServed instead of both home-base states —
+ * this is also what a future Google Business Profile will cross-reference
+ * per-location, so the shape is built correctly now even though claiming the
+ * profile itself is a human/operator action.
+ */
+export function renderLocalBusinessJsonLd(siteUrl: string, address?: LocalBusinessAddress): string {
   const base = siteUrl.replace(/\/$/, "");
   const payload = {
     "@context": "https://schema.org",
@@ -728,14 +802,21 @@ export function renderLocalBusinessJsonLd(siteUrl: string): string {
       height: 256,
     },
     image: `${base}/dream-puppies-logo.png`,
-    address: [
-      { "@type": "PostalAddress", addressLocality: "Orlando", addressRegion: "FL", addressCountry: "US" },
-      { "@type": "PostalAddress", addressLocality: "Raeford", addressRegion: "NC", addressCountry: "US" },
-    ],
-    areaServed: [
-      { "@type": "State", name: "Florida" },
-      { "@type": "State", name: "North Carolina" },
-    ],
+    address: address
+      ? [{ "@type": "PostalAddress", addressLocality: address.city, addressRegion: address.state, addressCountry: "US" }]
+      : [
+          { "@type": "PostalAddress", addressLocality: "Orlando", addressRegion: "FL", addressCountry: "US" },
+          { "@type": "PostalAddress", addressLocality: "Raeford", addressRegion: "NC", addressCountry: "US" },
+        ],
+    areaServed: address
+      ? [
+          { "@type": "City", name: address.city },
+          { "@type": "State", name: STATE_NAMES[address.state] },
+        ]
+      : [
+          { "@type": "State", name: "Florida" },
+          { "@type": "State", name: "North Carolina" },
+        ],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "Customer Service",

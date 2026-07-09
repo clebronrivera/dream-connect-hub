@@ -20,6 +20,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Puppies = lazyWithRetry(() => import("./pages/Puppies"));
 const PuppyDetail = lazyWithRetry(() => import("./pages/PuppyDetail"));
+const BreedLocation = lazyWithRetry(() => import("./pages/BreedLocation"));
 const Consultation = lazyWithRetry(() => import("./pages/Consultation"));
 const Essentials = lazyWithRetry(() => import("./pages/Essentials"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
@@ -112,6 +113,7 @@ export function AppRoutes() {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/puppies" element={<Puppies />} />
+        <Route path="/puppies/:breedSlug/:locationSlug" element={<BreedLocation />} />
         <Route path="/puppies/:slug" element={<PuppyDetail />} />
         <Route path="/consultation" element={<Consultation />} />
         <Route path="/essentials" element={<Essentials />} />
