@@ -388,7 +388,7 @@ export default function Puppies() {
               setSharePuppy(null);
             }
           }}
-          puppy={sharePuppy ?? detailPuppy}
+          puppy={sharePuppy}
         />
       </section>
 
