@@ -23,6 +23,20 @@ const CRON_SECRET = Deno.env.get("CRON_SECRET");
 const REMINDER_MAX_COUNT = 5;
 const TRIGGER_HOURS = 24;
 
+/** Length-independent constant-time string comparison (avoids timing leaks). */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  // Compare against a fixed-length buffer so length itself isn't a timing oracle.
+  const len = Math.max(aBytes.length, bBytes.length);
+  let mismatch = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < len; i++) {
+    mismatch |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return mismatch === 0;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -48,7 +62,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       { status: 401, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (providedSecret !== CRON_SECRET) {
+  if (!CRON_SECRET || !timingSafeEqual(providedSecret, CRON_SECRET)) {
     return new Response(
       JSON.stringify({ error: "Invalid cron secret" }),
       { status: 403, headers: { "Content-Type": "application/json" } }

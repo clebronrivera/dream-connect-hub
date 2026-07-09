@@ -101,12 +101,12 @@ async function uploadScreenshot(
   try {
     bytes = base64ToBytes(base64);
   } catch (e) {
+    console.error(`submit-payment-attestation: invalid ${kind} screenshot:`, e);
     return {
       ok: false,
       status: 400,
       body: {
         error: `Invalid ${kind} screenshot data`,
-        details: (e as Error).message,
       },
     };
   }
@@ -121,12 +121,12 @@ async function uploadScreenshot(
     },
   );
   if (uploadErr) {
+    console.error(`submit-payment-attestation: ${kind} screenshot upload failed:`, uploadErr);
     return {
       ok: false,
       status: 500,
       body: {
         error: `${kind} screenshot upload failed`,
-        details: uploadErr.message,
       },
     };
   }
@@ -223,9 +223,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (error) {
+      console.error("submit-payment-attestation: failed to save attestation:", error);
       return jsonResponse(500, {
         error: "Failed to save attestation",
-        details: error.message,
       });
     }
 
@@ -245,9 +245,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq("agreement_id", body.agreement_id)
       .maybeSingle();
     if (lookupErr) {
+      console.error("submit-payment-attestation: h2 lookup failed:", lookupErr);
       return jsonResponse(500, {
         error: "Lookup failed",
-        details: lookupErr.message,
       });
     }
     if (!existing || existing.attestation_status !== "signed") {
@@ -284,9 +284,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq("id", existing.id);
 
     if (updateErr) {
+      console.error("submit-payment-attestation: h2 update failed:", updateErr);
       return jsonResponse(500, {
         error: "Failed to update attestation",
-        details: updateErr.message,
       });
     }
 

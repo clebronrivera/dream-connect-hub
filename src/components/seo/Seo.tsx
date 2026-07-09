@@ -1,6 +1,28 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { resolveSeoMetadata, type SeoPageId } from "@/lib/seo";
+import { resolveSeoMetadata, NOINDEX_ROBOTS, type SeoPageId } from "@/lib/seo";
+
+/**
+ * Marks the current page noindex,nofollow for the lifetime of the calling
+ * component. Use on private/token-gated routes (deposit, payment, agreement
+ * download, breeder, admin) as defense-in-depth alongside the robots.txt
+ * disallow. Restores the previous robots value on unmount so SPA navigation
+ * back to public pages re-indexes correctly.
+ */
+export function useNoIndex() {
+  useEffect(() => {
+    const prevRobots =
+      document.head.querySelector<HTMLMetaElement>('meta[name="robots"]')?.getAttribute("content") ?? null;
+    const prevGooglebot =
+      document.head.querySelector<HTMLMetaElement>('meta[name="googlebot"]')?.getAttribute("content") ?? null;
+    upsertMetaTag("name", "robots", NOINDEX_ROBOTS);
+    upsertMetaTag("name", "googlebot", NOINDEX_ROBOTS);
+    return () => {
+      if (prevRobots !== null) upsertMetaTag("name", "robots", prevRobots);
+      if (prevGooglebot !== null) upsertMetaTag("name", "googlebot", prevGooglebot);
+    };
+  }, []);
+}
 
 type SeoProps = {
   pageId?: SeoPageId;

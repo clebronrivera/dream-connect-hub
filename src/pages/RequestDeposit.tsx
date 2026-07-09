@@ -11,8 +11,10 @@ import { insertDepositRequest, depositRequestPayloadToRow, type DepositRequestPa
 import { useState } from "react";
 import { PrivatePageSeo } from "@/components/seo/PrivatePageSeo";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
+import { useNoIndex } from "@/components/seo/Seo";
 
 export default function RequestDeposit() {
+  useNoIndex();
   const [searchParams] = useSearchParams();
   const puppyId = searchParams.get("puppy") ?? undefined;
   const litterId = searchParams.get("litter") ?? undefined;
