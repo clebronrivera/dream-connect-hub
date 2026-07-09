@@ -19,9 +19,7 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom"],
   },
-  // Force cache busting
   optimizeDeps: {
-    force: true,
     include: [
       "@radix-ui/react-tabs",
       "@radix-ui/react-toggle-group",

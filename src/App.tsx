@@ -130,8 +130,12 @@ export function AppRoutes() {
         <Route path="/about" element={<About />} />
 
         {/* Dev / design mockups (URL-only; not linked from public nav) */}
-        <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
-        <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+        {import.meta.env.DEV && (
+          <>
+            <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
+            <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+          </>
+        )}
 
         {/* Breeder tool (Yolanda) — token-gated via localStorage */}
         <Route path="/breeder/login" element={<BreederLogin />} />
