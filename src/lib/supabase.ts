@@ -236,6 +236,8 @@ export interface Litter {
 export interface Puppy {
   id?: string;
   puppy_id?: string;
+  slug?: string;
+  generation?: 'F1' | 'F1b' | 'F2' | 'F2b' | 'multigen' | null;
   name: string;
   breed: string;
   gender?: 'Male' | 'Female';

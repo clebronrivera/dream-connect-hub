@@ -86,6 +86,9 @@ const STEP_LABELS: Record<Step, string> = {
 type PuppyStatus = "Available" | "Pending" | "Sold" | "Reserved";
 const PUPPY_STATUSES: PuppyStatus[] = ["Available", "Pending", "Sold", "Reserved"];
 
+type Generation = "F1" | "F1b" | "F2" | "F2b" | "multigen";
+const GENERATIONS: Generation[] = ["F1", "F1b", "F2", "F2b", "multigen"];
+
 function isStep(s: string | null): s is Step {
   return s !== null && (STEPS as string[]).includes(s);
 }
@@ -238,6 +241,10 @@ function CaptureForm({
   const [priceText, setPriceText] = useState<string>(
     puppy.base_price != null ? String(puppy.base_price) : "",
   );
+  // Empty string = not recorded.
+  const [generation, setGeneration] = useState<Generation | "">(
+    (puppy.generation as Generation | null) ?? "",
+  );
   const [status, setStatus] = useState<PuppyStatus>(
     (puppy.status as PuppyStatus | null) ?? "Available",
   );
@@ -301,18 +308,25 @@ function CaptureForm({
         return;
       }
       case "price": {
+        const patch: Parameters<typeof updatePuppy>[2] = {};
         const trim = priceText.trim();
-        const initial = puppy.base_price != null ? String(puppy.base_price) : "";
-        if (trim === initial) return;
-        if (trim === "") {
-          await patchMut.mutateAsync({ base_price: null });
-        } else {
-          const n = Number(trim);
-          if (!Number.isFinite(n) || n < 0 || n > 100000) {
-            throw new Error("Price must be a non-negative number up to 100000");
+        const initialPrice = puppy.base_price != null ? String(puppy.base_price) : "";
+        if (trim !== initialPrice) {
+          if (trim === "") {
+            patch.base_price = null;
+          } else {
+            const n = Number(trim);
+            if (!Number.isFinite(n) || n < 0 || n > 100000) {
+              throw new Error("Price must be a non-negative number up to 100000");
+            }
+            patch.base_price = n;
           }
-          await patchMut.mutateAsync({ base_price: n });
         }
+        if (generation !== (puppy.generation ?? "")) {
+          patch.generation = generation === "" ? null : generation;
+        }
+        if (Object.keys(patch).length === 0) return;
+        await patchMut.mutateAsync(patch);
         return;
       }
       case "status": {
@@ -467,6 +481,27 @@ function CaptureForm({
                 className="pl-7"
                 placeholder="1500"
               />
+            </div>
+
+            <div className="pt-2">
+              <Label htmlFor="generation">Generation (optional)</Label>
+              <p className="mb-1 text-xs text-muted-foreground">
+                F1b and later generations often command a premium — record it here.
+              </p>
+              <Select
+                value={generation || "unset"}
+                onValueChange={(v) => setGeneration(v === "unset" ? "" : (v as Generation))}
+              >
+                <SelectTrigger id="generation" className="mt-1">
+                  <SelectValue placeholder="Not recorded" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Not recorded</SelectItem>
+                  {GENERATIONS.map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </>
         )}

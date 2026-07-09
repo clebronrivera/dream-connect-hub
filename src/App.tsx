@@ -19,6 +19,7 @@ import { GoogleTranslateRuntime } from "@/components/i18n/GoogleTranslateRuntime
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Puppies = lazyWithRetry(() => import("./pages/Puppies"));
+const PuppyDetail = lazyWithRetry(() => import("./pages/PuppyDetail"));
 const Consultation = lazyWithRetry(() => import("./pages/Consultation"));
 const Essentials = lazyWithRetry(() => import("./pages/Essentials"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
@@ -111,7 +112,7 @@ export function AppRoutes() {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/puppies" element={<Puppies />} />
-        <Route path="/puppies/:id" element={<Puppies />} />
+        <Route path="/puppies/:slug" element={<PuppyDetail />} />
         <Route path="/consultation" element={<Consultation />} />
         <Route path="/essentials" element={<Essentials />} />
         <Route path="/contact" element={<Contact />} />

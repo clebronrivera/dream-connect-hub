@@ -51,9 +51,14 @@ async function main() {
     renderFaqPageJsonLd,
     NOINDEX_PRIVATE_PRERENDER_ROUTES,
     renderPrivateNoindexBodyFallback,
+    getPuppySeoMetadata,
+    renderPuppyBodyFallback,
+    renderPuppyJsonLd,
   } = await import("../src/lib/seo");
   const { BREEDS_DATA } = await import("../src/data/breeds-content");
   const { appEnv } = await import("../src/lib/env");
+  const { fetchPuppiesForPrerender } = await import("../src/lib/puppies-api");
+  const { getPuppyMediaList } = await import("../src/lib/puppy-display-utils");
 
   // requireSiteUrlForBuild now falls back to https://puppyheavenllc.com when
   // VITE_SITE_URL is not set, so the SEO output is always produced. The
@@ -181,10 +186,53 @@ async function main() {
     breedPaths.push(breedMeta.path);
   }
 
+  // Per-puppy pages — one prerendered HTML + sitemap entry per Available/Reserved
+  // puppy. Sold/Deceased/Pending puppies are excluded by fetchPuppiesForPrerender
+  // so no stale page stays indexable. Degrades to an empty list (not a throw)
+  // when Supabase env isn't configured, same as the rest of this script.
+  const puppyPaths: string[] = [];
+  const puppies = await fetchPuppiesForPrerender();
+  for (const puppy of puppies) {
+    if (!puppy.slug) continue;
+    const { photos } = getPuppyMediaList(puppy);
+    const puppySeoSource = {
+      slug: puppy.slug,
+      name: puppy.name,
+      breed: puppy.breed,
+      generation: puppy.generation,
+      status: puppy.status,
+      readyDate: puppy.ready_date,
+      primaryImage: photos[0] ?? null,
+    };
+    const puppyMeta = getPuppySeoMetadata(puppySeoSource);
+    const metadata = resolveSeoMetadata({
+      pageId: "puppies",
+      title: puppyMeta.title,
+      description: puppyMeta.description,
+      canonicalPath: puppyMeta.path,
+      imageUrl: photos[0] ?? undefined,
+      currentOrigin: siteUrl,
+    });
+    const seoTags = renderStaticSeoTags(metadata);
+    const bodyFallback = renderPuppyBodyFallback(puppySeoSource, puppyMeta, siteUrl);
+    const jsonLdBlocks = [
+      renderBreadcrumbJsonLd(siteUrl, [
+        { name: "Home", path: "/" },
+        { name: "Available Puppies", path: "/puppies" },
+        { name: puppy.name, path: puppyMeta.path },
+      ]),
+      renderPuppyJsonLd(puppySeoSource, puppyMeta, siteUrl),
+    ];
+    const html = renderRouteHtml(template, puppyMeta.path, seoTags, bodyFallback, jsonLdBlocks, renderModules);
+    await writeRouteHtml(puppyMeta.path, html);
+    puppyPaths.push(puppyMeta.path);
+  }
+
   const sitemapRoutes = [
     ...PUBLIC_SEO_ROUTES.map((r) => ({ path: r.path })),
     ...extraPaths.map((p) => ({ path: p })),
     ...breedPaths.map((p) => ({ path: p })),
+    ...puppyPaths.map((p) => ({ path: p, changefreq: "weekly" as const, priority: 0.8 })),
   ];
   await fs.writeFile(path.join(distDir, "sitemap.xml"), buildSitemap(siteUrl, sitemapRoutes), "utf8");
   await fs.writeFile(path.join(distDir, "robots.txt"), buildRobots(siteUrl), "utf8");
@@ -269,13 +317,15 @@ async function writeRouteHtml(routePath: string, html: string) {
 
 function buildSitemap(
   siteUrl: string,
-  routes: ReadonlyArray<{ path: string }>
+  routes: ReadonlyArray<{ path: string; changefreq?: string; priority?: number }>
 ): string {
   const lastmod = new Date().toISOString().slice(0, 10);
   const urls = routes
-    .map(({ path: routePath }) => {
+    .map(({ path: routePath, changefreq, priority }) => {
       const loc = `${siteUrl}${routePath === "/" ? "/" : routePath}`;
-      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
+      const changefreqTag = changefreq ? `\n    <changefreq>${changefreq}</changefreq>` : "";
+      const priorityTag = priority != null ? `\n    <priority>${priority}</priority>` : "";
+      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>${changefreqTag}${priorityTag}\n  </url>`;
     })
     .join("\n");
 

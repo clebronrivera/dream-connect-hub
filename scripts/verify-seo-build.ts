@@ -1,14 +1,38 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+// Node < 22 has no global WebSocket. supabase-js 2.106's realtime-js throws at
+// `createClient` time if no WebSocket constructor exists — which crashes this
+// script the moment it reads puppy data through the lazy Supabase client. This
+// script only READS via PostgREST and never opens a realtime channel, so a
+// no-op constructor satisfies realtime-js's existence check. Mirrors the same
+// guard in scripts/postbuild-seo.tsx.
+if (typeof (globalThis as { WebSocket?: unknown }).WebSocket === "undefined") {
+  class SsrNoopWebSocket {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSING = 2;
+    static readonly CLOSED = 3;
+    close() {}
+    send() {}
+    addEventListener() {}
+    removeEventListener() {}
+  }
+  (globalThis as { WebSocket?: unknown }).WebSocket = SsrNoopWebSocket;
+}
+
 import {
   NOINDEX_PRIVATE_SEO,
   PUBLIC_SEO_ROUTES,
   SEO_ROUTE_CONFIG,
   getBreedSeoMetadata,
+  getPuppySeoMetadata,
 } from "../src/lib/seo";
 import { BREEDS_DATA } from "../src/data/breeds-content";
 import { PROBLEM_TYPES } from "../src/lib/constants/trainingPlan";
+import { fetchPuppiesForPrerender, fetchNonPublicPuppySlugsForVerify } from "../src/lib/puppies-api";
+import { getPuppyMediaList } from "../src/lib/puppy-display-utils";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +59,23 @@ const breedRoutes = BREEDS_DATA.map((breed) => {
 const NOINDEX_PRIVATE_PATHS = ["/deposit", "/request-deposit"] as const;
 
 async function main() {
+  const puppies = await fetchPuppiesForPrerender();
+  const puppyRoutes = puppies
+    .filter((p) => !!p.slug)
+    .map((p) => {
+      const { photos } = getPuppyMediaList(p);
+      const meta = getPuppySeoMetadata({
+        slug: p.slug!,
+        name: p.name,
+        breed: p.breed,
+        generation: p.generation,
+        status: p.status,
+        readyDate: p.ready_date,
+        primaryImage: photos[0] ?? null,
+      });
+      return { path: meta.path, title: meta.title, description: meta.description, h1: meta.h1 };
+    });
+
   const allRoutes = [
     ...PUBLIC_SEO_ROUTES.map((r) => ({
       path: r.path,
@@ -43,6 +84,7 @@ async function main() {
     })),
     ...trainingPlanProblemRoutes,
     ...breedRoutes,
+    ...puppyRoutes,
   ];
 
   for (const route of allRoutes) {
@@ -133,6 +175,34 @@ async function main() {
   );
   if (supabaseConfigured) {
     assertIncludes(faqHtml, '"@type":"FAQPage"', "/faq FAQPage JSON-LD");
+  }
+
+  if (supabaseConfigured) {
+    for (const route of puppyRoutes) {
+      const html = await fs.readFile(
+        path.join(distDir, route.path.replace(/^\/+/, ""), "index.html"),
+        "utf8"
+      );
+      const h1Match = html.match(/<h1>(.+?)<\/h1>/);
+      if (!h1Match || !h1Match[1].trim()) {
+        throw new Error(`Missing or empty ${route.path} h1`);
+      }
+      assertIncludes(html, '"@type":"Product"', `${route.path} Product JSON-LD`);
+    }
+
+    const nonPublicSlugs = await fetchNonPublicPuppySlugsForVerify();
+    for (const slug of nonPublicSlugs) {
+      const filePath = path.join(distDir, "puppies", slug, "index.html");
+      const exists = await fs
+        .access(filePath)
+        .then(() => true)
+        .catch(() => false);
+      if (exists) {
+        throw new Error(
+          `Sold/Deceased/Pending puppy "${slug}" must not have a prerendered page: ${filePath}`
+        );
+      }
+    }
   }
 
   const seoSource = await fs.readFile(path.join(projectRoot, "src/lib/seo.ts"), "utf8");

@@ -1,6 +1,6 @@
 // getPuppyMediaList feeds both PuppyCard (mini-grid on /puppies) and
-// PuppyDetailModal (full collage in the modal). If the dedup or ordering
-// drifts between them, the card and the modal show different photos —
+// PuppyDetail (full collage on /puppies/:slug). If the dedup or ordering
+// drifts between them, the card and the detail page show different photos —
 // these tests pin the contract.
 //
 // resolvePuppyPhotosPublicUrl + resolvePuppyVideoUrl pass full https://

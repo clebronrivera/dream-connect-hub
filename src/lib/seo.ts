@@ -470,6 +470,100 @@ export function renderBreedJsonLd(
   return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
 }
 
+export type PuppySeoSource = {
+  slug: string;
+  name: string;
+  breed: string;
+  generation?: string | null;
+  status?: string | null;
+  readyDate?: string | null;
+  primaryImage?: string | null;
+};
+
+export type PuppySeoMetadata = {
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+  breedLabel: string;
+  isOnHold: boolean;
+};
+
+export function getPuppySeoMetadata(puppy: PuppySeoSource): PuppySeoMetadata {
+  const breedLabel = puppy.generation ? `${puppy.generation} ${puppy.breed}` : puppy.breed;
+  const isOnHold = puppy.status === "Reserved";
+  const holdNote = isOnHold
+    ? " Currently on hold — contact us to join the waitlist for the next available puppy."
+    : "";
+  return {
+    path: `/puppies/${puppy.slug}`,
+    title: `${puppy.name} — ${breedLabel} Puppy in Orlando, FL`,
+    description:
+      `Meet ${puppy.name}, a ${breedLabel} puppy from Dream Puppies, family-raised in Orlando, FL ` +
+      `and Raeford, NC.${holdNote} Call (321) 697-8864 to reserve.`,
+    h1: `${puppy.name} — ${breedLabel} in Orlando, FL`,
+    breedLabel,
+    isOnHold,
+  };
+}
+
+export function renderPuppyBodyFallback(
+  puppy: PuppySeoSource,
+  meta: PuppySeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const statusLine = meta.isOnHold
+    ? "Status: On Hold (reserved by another family)"
+    : "Status: Available";
+  return `<noscript>
+  <header>
+    <h1>${escapeHtml(meta.h1)}</h1>
+    <p>${escapeHtml(meta.description)}</p>
+  </header>
+  <p>${escapeHtml(statusLine)}</p>
+  ${puppy.readyDate ? `<p>Ready by: ${escapeHtml(puppy.readyDate)}</p>` : ""}
+  <p><a href="${base}/our-dogs">Meet ${escapeHtml(puppy.name)}'s parents</a></p>
+  <p><a href="${base}/request-deposit">Ask about ${escapeHtml(puppy.name)}</a></p>
+  <nav aria-label="Site"><ul>
+    <li><a href="${base}/puppies">All available puppies</a></li>
+    <li><a href="${base}/breeds">Breeds we raise</a></li>
+    <li><a href="${base}/contact">Contact</a></li>
+  </ul></nav>
+  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+</noscript>`;
+}
+
+export function renderPuppyJsonLd(
+  puppy: PuppySeoSource,
+  meta: PuppySeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  // No `offers.price` — this site intentionally doesn't publish puppy prices
+  // (buyers use the "Inquire about price" flow instead), so the Offer here
+  // signals availability only.
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${puppy.name} — ${meta.breedLabel} puppy`,
+    description: meta.description,
+    ...(puppy.primaryImage ? { image: [puppy.primaryImage] } : {}),
+    offers: {
+      "@type": "Offer",
+      url: `${base}${meta.path}`,
+      priceCurrency: "USD",
+      availability: meta.isOnHold ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
+      businessFunction: "https://schema.org/Sell",
+      seller: {
+        "@type": "Organization",
+        name: "Dream Puppies",
+      },
+    },
+  };
+  return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
+}
+
 export function requireSiteUrlForBuild(env: SeoEnvOverrides = appEnv): string {
   const siteUrl = env.siteUrl?.trim();
   if (!siteUrl) {
@@ -630,8 +724,8 @@ export function renderLocalBusinessJsonLd(siteUrl: string): string {
     logo: {
       "@type": "ImageObject",
       url: `${base}/dream-puppies-logo.png`,
-      width: 1024,
-      height: 1024,
+      width: 256,
+      height: 256,
     },
     image: `${base}/dream-puppies-logo.png`,
     address: [

@@ -154,6 +154,7 @@ export interface BreederPuppyRow {
   status: string | null;
   is_publicly_visible?: boolean;
   vaccinated_at: string | null;
+  generation?: "F1" | "F1b" | "F2" | "F2b" | "multigen" | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -250,6 +251,7 @@ export function updatePuppy(
     status: string;
     is_publicly_visible: boolean;
     vaccinated_at: string | null;
+    generation: "F1" | "F1b" | "F2" | "F2b" | "multigen" | null;
   }>,
 ): Promise<BreederWriteResult<BreederPuppyRow>> {
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
