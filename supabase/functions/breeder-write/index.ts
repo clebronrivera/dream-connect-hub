@@ -314,7 +314,8 @@ async function listAllPuppies(
     .select(
       `id, name, gender, breed, color, date_of_birth, photos, primary_photo,
        video_path, description, ready_date, base_price, status,
-       is_publicly_visible, vaccinated_at, created_at, updated_at,
+       is_publicly_visible, vaccinated_at, generation, personality_blurb,
+       created_at, updated_at,
        upcoming_litter_id, litter_id,
        upcoming_litters:upcoming_litter_id (
          breed,
@@ -449,6 +450,7 @@ const UPDATE_PUPPY_ALLOWED = new Set([
   "is_publicly_visible",
   "vaccinated_at",
   "generation",
+  "personality_blurb",
 ]);
 
 interface UpdatePuppyPayload {
@@ -506,7 +508,7 @@ async function updatePuppy(
     .from("puppies")
     .update(patch)
     .eq("id", p.puppyId)
-    .select("id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, generation")
+    .select("id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, generation, personality_blurb")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy", details: error?.message });
@@ -618,7 +620,7 @@ async function replacePuppyPhoto(
     .from("puppies")
     .update(patch)
     .eq("id", p.puppyId)
-    .select("id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, generation")
+    .select("id, name, gender, breed, color, date_of_birth, photos, primary_photo, video_path, description, ready_date, base_price, status, is_publicly_visible, vaccinated_at, generation, personality_blurb")
     .single();
   if (error || !data)
     return json(500, { ok: false, error: "Failed to update puppy photos", details: error?.message });

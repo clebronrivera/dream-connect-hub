@@ -70,6 +70,7 @@ const BreederLitter = lazyWithRetry(() => import("./pages/breeder/BreederLitter"
 const BreederLitterSetup = lazyWithRetry(() => import("./pages/breeder/BreederLitterSetup"));
 const BreederPuppiesWizard = lazyWithRetry(() => import("./pages/breeder/BreederPuppiesWizard"));
 const BreederPuppyCapture = lazyWithRetry(() => import("./pages/breeder/BreederPuppyCapture"));
+const BreederPostGenerator = lazyWithRetry(() => import("./pages/breeder/BreederPostGenerator"));
 const BreederLitterDates = lazyWithRetry(() => import("./pages/breeder/BreederLitterDates"));
 const BreederParents = lazyWithRetry(() => import("./pages/breeder/BreederParents"));
 const BreederParentEdit = lazyWithRetry(() => import("./pages/breeder/BreederParentEdit"));
@@ -154,6 +155,7 @@ export function AppRoutes() {
             <Route path="litters/:litterId/wizard" element={<BreederPuppiesWizard />} />
             <Route path="litters/:litterId/dates" element={<BreederLitterDates />} />
             <Route path="puppies/:puppyId/capture" element={<BreederPuppyCapture />} />
+            <Route path="puppies/:puppyId/post" element={<BreederPostGenerator />} />
             <Route path="parents" element={<BreederParents />} />
             <Route path="parents/new" element={<BreederParentEdit />} />
             <Route path="parents/:dogId/edit" element={<BreederParentEdit />} />

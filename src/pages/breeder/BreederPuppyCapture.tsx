@@ -237,6 +237,7 @@ function CaptureForm({
   });
   const [name, setName] = useState(puppy.name);
   const [notes, setNotes] = useState(puppy.description ?? "");
+  const [personalityBlurb, setPersonalityBlurb] = useState(puppy.personality_blurb ?? "");
   // Empty string = inherit from litter (don't override). Otherwise a manual price.
   const [priceText, setPriceText] = useState<string>(
     puppy.base_price != null ? String(puppy.base_price) : "",
@@ -303,8 +304,13 @@ function CaptureForm({
         return;
       }
       case "notes": {
-        if (notes === (puppy.description ?? "")) return;
-        await patchMut.mutateAsync({ description: notes });
+        const patch: Parameters<typeof updatePuppy>[2] = {};
+        if (notes !== (puppy.description ?? "")) patch.description = notes;
+        if (personalityBlurb !== (puppy.personality_blurb ?? "")) {
+          patch.personality_blurb = personalityBlurb.trim() || null;
+        }
+        if (Object.keys(patch).length === 0) return;
+        await patchMut.mutateAsync(patch);
         return;
       }
       case "price": {
@@ -508,14 +514,28 @@ function CaptureForm({
 
         {step === "notes" && (
           <>
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Sweetest girl in the litter, loves squeaky toys."
-              rows={5}
+            <Label htmlFor="personality-blurb">Personality (optional)</Label>
+            <p className="mb-1 text-xs text-muted-foreground">
+              One punchy sentence — used to lead the auto-generated social posts (Breeder →
+              Generate Post).
+            </p>
+            <Input
+              id="personality-blurb"
+              value={personalityBlurb}
+              onChange={(e) => setPersonalityBlurb(e.target.value)}
+              placeholder="The cuddly one who falls asleep mid-play."
+              maxLength={140}
             />
+            <div className="pt-4">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Sweetest girl in the litter, loves squeaky toys."
+                rows={5}
+              />
+            </div>
           </>
         )}
 

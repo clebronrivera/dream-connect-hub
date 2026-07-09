@@ -738,5 +738,30 @@ export function adminPickupCompleted(args: {
   };
 }
 
+// Phase 6.4 — own-property waitlist notification. Fires when a puppy flips
+// to Available and matches a waitlist_signups row on breed/size.
+export function waitlistPuppyMatch(args: {
+  puppyName: string;
+  breed: string;
+  puppyUrl: string;
+}): EmailTemplate {
+  const body =
+    heading(`A ${escape(args.breed)} puppy is available!`) +
+    paragraph(
+      `You joined our waitlist for a ${escape(args.breed)} — ${escape(args.puppyName)} just became available and might be the one.`
+    ) +
+    button(`Meet ${args.puppyName}`, args.puppyUrl) +
+    rawParagraph(
+      `Reach out soon — Available puppies are placed on a first-reserved basis. Questions? Call or text us at <strong>${escape(BRAND.phone)}</strong>.`
+    );
+  return {
+    subject: `${args.puppyName} — a ${args.breed} puppy just became available`,
+    html: wrap({
+      previewText: `${args.puppyName} the ${args.breed} is available now.`,
+      bodyHtml: body,
+    }),
+  };
+}
+
 // Suppress unused-import warnings in environments that lint unused symbols.
 export const _unused = { FONT_STACK };

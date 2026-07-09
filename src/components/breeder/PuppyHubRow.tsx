@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowRight, Trash2, Eye, Loader2 } from "lucide-react";
+import { ArrowRight, Trash2, Eye, Loader2, Megaphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -314,6 +314,18 @@ export function PuppyHubRow({ puppy, onDeleted, onPublished }: PuppyHubRowProps)
           Publish
         </Button>
       )}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 shrink-0 text-muted-foreground"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/breeder/puppies/${puppy.id}/post`);
+        }}
+        aria-label={`Generate social post copy for ${puppy.name}`}
+      >
+        <Megaphone className="h-4 w-4" aria-hidden />
+      </Button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button

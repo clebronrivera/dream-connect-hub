@@ -257,6 +257,7 @@ export interface Puppy {
   primary_photo?: string;
   video_path?: string | null;
   description?: string;
+  personality_blurb?: string | null;
   mom_weight_approx?: number;
   dad_weight_approx?: number;
   vaccinations?: string;
