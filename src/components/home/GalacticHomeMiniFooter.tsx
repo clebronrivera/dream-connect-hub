@@ -14,7 +14,17 @@ export function GalacticHomeMiniFooter() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/dream-puppies-logo.png" alt="Dream Puppies logo" className="h-6 w-6 rounded-full object-cover" />
+              <picture>
+                <source srcSet="/dream-puppies-logo.webp" type="image/webp" />
+                <img
+                  src="/dream-puppies-logo.png"
+                  alt="Dream Puppies logo"
+                  width={24}
+                  height={24}
+                  loading="lazy"
+                  className="h-6 w-6 rounded-full object-cover"
+                />
+              </picture>
               <span className="font-display text-lg text-white">Dream Puppies</span>
             </Link>
             <p className="text-sm text-white/70">{t("footerBrandDescription")}</p>

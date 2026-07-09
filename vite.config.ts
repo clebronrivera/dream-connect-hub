@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
+    // Warn loudly if a chunk creeps past this — the largest legit chunk today
+    // (charts, admin-only) sits at ~394 KB pre-gzip.
+    chunkSizeWarningLimit: 400,
     rollupOptions: {
       output: {
         // Split vendor libraries into separate, long-lived cacheable chunks
