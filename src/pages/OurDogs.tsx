@@ -38,6 +38,23 @@ export default function OurDogs() {
     };
   }, [dogs]);
 
+  // Deep-link support: /our-dogs#dog-{id} (e.g. from a puppy's "meet mom/dad"
+  // thumbnail) scrolls to and briefly highlights that specific dog once the
+  // roster has loaded — no extra query, just an anchor into the same page.
+  useEffect(() => {
+    if (!dogs || dogs.length === 0) return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#dog-")) return;
+    const el = document.getElementById(hash.slice(1));
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-[#ff3399]", "ring-offset-2", "ring-offset-[#0f041b]");
+    const timeout = setTimeout(() => {
+      el.classList.remove("ring-2", "ring-[#ff3399]", "ring-offset-2", "ring-offset-[#0f041b]");
+    }, 2500);
+    return () => clearTimeout(timeout);
+  }, [dogs]);
+
   useEffect(() => {
     const jsonLd = {
       "@context": "https://schema.org",
@@ -154,7 +171,10 @@ function DogCard({ dog }: { dog: BreedingDog }) {
   const size = formatDogSize(dog.weight_lbs, dog.breed);
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition hover:border-white/20">
+    <article
+      id={`dog-${dog.id}`}
+      className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_10px_40px_rgba(0,0,0,0.35)] transition hover:border-white/20"
+    >
       <div className="aspect-square w-full bg-[#1a0a2e]">
         {photoUrl ? (
           <img

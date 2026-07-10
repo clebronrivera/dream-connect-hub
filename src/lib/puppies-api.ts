@@ -35,7 +35,7 @@ export async function fetchAvailablePuppies(): Promise<Puppy[]> {
     const { data, error } = await supabase
       .from("puppies")
       .select(
-        "*, upcoming_litter:upcoming_litters(dam_name, sire_name, dam_photo_path, sire_photo_path)",
+        "*, upcoming_litter:upcoming_litters(dam_id, sire_id, dam_name, sire_name, dam_photo_path, sire_photo_path)",
       )
       .eq("is_publicly_visible", true)
       .eq("is_deceased", false)
@@ -59,7 +59,7 @@ export async function fetchAvailablePuppies(): Promise<Puppy[]> {
 }
 
 const PUPPY_DETAIL_SELECT =
-  "*, upcoming_litter:upcoming_litters(dam_name, sire_name, dam_photo_path, sire_photo_path)";
+  "*, upcoming_litter:upcoming_litters(dam_id, sire_id, dam_name, sire_name, dam_photo_path, sire_photo_path)";
 const PUPPY_DETAIL_STATUSES = ["Available", "Reserved"] as const;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

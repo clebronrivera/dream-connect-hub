@@ -273,6 +273,8 @@ export interface Puppy {
    *  by fetchAvailablePuppies via a Supabase nested select. May be null when
    *  the puppy isn't tied to any litter row (legacy / orphan). */
   upcoming_litter?: {
+    dam_id: string | null;
+    sire_id: string | null;
     dam_name: string | null;
     sire_name: string | null;
     dam_photo_path: string | null;

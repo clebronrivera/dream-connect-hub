@@ -11,6 +11,7 @@ import { InquirePriceDialog } from "@/components/InquirePriceDialog";
 import { PriceIncludes } from "@/components/PriceIncludes";
 import { fetchPuppyBySlugOrId } from "@/lib/puppies-api";
 import { getPuppyMediaList } from "@/lib/puppy-display-utils";
+import { getBreedingDogPhotoUrl } from "@/lib/puppy-photos";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
 import { getPuppySeoMetadata, renderPuppyJsonLd, DEFAULT_SITE_URL } from "@/lib/seo";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
@@ -98,8 +99,20 @@ export default function PuppyDetail() {
   }
 
   const ageWeeks = getDisplayAgeWeeks(puppy);
-  const damName = puppy.upcoming_litter?.dam_name;
-  const sireName = puppy.upcoming_litter?.sire_name;
+  const dam = puppy.upcoming_litter?.dam_id
+    ? {
+        id: puppy.upcoming_litter.dam_id,
+        name: puppy.upcoming_litter.dam_name,
+        photoUrl: getBreedingDogPhotoUrl(puppy.upcoming_litter.dam_photo_path),
+      }
+    : null;
+  const sire = puppy.upcoming_litter?.sire_id
+    ? {
+        id: puppy.upcoming_litter.sire_id,
+        name: puppy.upcoming_litter.sire_name,
+        photoUrl: getBreedingDogPhotoUrl(puppy.upcoming_litter.sire_photo_path),
+      }
+    : null;
 
   return (
     <Layout>
@@ -164,13 +177,16 @@ export default function PuppyDetail() {
                 <p className="text-white/80">{puppy.description}</p>
               )}
 
-              {(damName || sireName) && (
-                <p className="text-sm text-white/70">
-                  Parents: {[damName, sireName].filter(Boolean).join(" & ")} —{" "}
-                  <Link to="/our-dogs" className="text-[#ff3399] underline hover:text-white">
-                    meet {puppy.name}'s parents
-                  </Link>
-                </p>
+              {(dam || sire) && (
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-white/50">
+                    {puppy.name}'s Parents
+                  </p>
+                  <div className="flex gap-3">
+                    {dam && <ParentThumb dog={dam} label="Mom" />}
+                    {sire && <ParentThumb dog={sire} label="Dad" />}
+                  </div>
+                </div>
               )}
 
               <div className="space-y-2 pt-2">
@@ -209,5 +225,48 @@ export default function PuppyDetail() {
         </section>
       </div>
     </Layout>
+  );
+}
+
+/**
+ * Small "meet mom/dad" thumbnail — reuses dam/sire photo + id already fetched
+ * as part of the single puppy query (no extra Supabase call). Links straight
+ * to that dog's card on /our-dogs, which scrolls to and briefly highlights it.
+ */
+function ParentThumb({
+  dog,
+  label,
+}: {
+  dog: { id: string; name: string | null; photoUrl: string | null };
+  label: string;
+}) {
+  return (
+    <Link
+      to={`/our-dogs#dog-${dog.id}`}
+      className="group flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1 pl-1 pr-3 transition hover:border-white/30 hover:bg-white/10"
+    >
+      {dog.photoUrl ? (
+        <img
+          src={dog.photoUrl}
+          alt={dog.name ?? label}
+          width={40}
+          height={40}
+          loading="lazy"
+          className="h-10 w-10 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg">
+          🐾
+        </div>
+      )}
+      <span className="text-sm">
+        <span className="block text-[10px] font-bold uppercase tracking-wide text-white/50">
+          {label}
+        </span>
+        <span className="font-medium text-white group-hover:text-[#ff3399]">
+          {dog.name ?? "Meet"}
+        </span>
+      </span>
+    </Link>
   );
 }
