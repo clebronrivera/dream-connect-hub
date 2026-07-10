@@ -46,14 +46,14 @@ and **Smoke-tested** columns as each step lands in production.
 
 | Task | Status | Notes |
 |------|--------|-------|
-| H1 | ✅ Done | `payment_attestations` table (`20260506000006_payment_attestations.sql`); H1Form in `PaymentDashboard.tsx`; `submit-payment-attestation` edge function (302 lines); IP/UA/geolocation capture |
+| H1 | ✅ Done | `payment_attestations` table (`20260506000009_payment_attestations_and_h3.sql`); H1Form in `PaymentDashboard.tsx`; `submit-payment-attestation` edge function (302 lines); IP/UA/geolocation capture |
 | H2 | ✅ Done | H2Form in `PaymentDashboard.tsx`; `confirmation_screenshot_path`, `transaction_reference_id`, `payment_memo_used` columns; `mark-payment-sent` gates on all H1+H2 preconditions (422 with missing field name if not met) |
-| H3 | ✅ Done | `operator_verified_sender_handle` + `operator_handle_mismatch_flagged` columns (`20260506000007_h3_operator_handle_mismatch.sql`); mismatch banner in `AgreementDetailPanel.tsx`; non-blocking flag for chargeback evidence |
-| H4 | ✅ Done | `pickup_handovers` table (`20260506000008_pickup_handovers.sql`); `PickupHandover.tsx` (567 lines); `finalize-pickup-handover` edge function (241 lines); `Reserved → Sold` puppy transition; `pickup-evidence` bucket (`20260506000010`) |
-| H5 | ✅ Done | `agreement_communications` table (`20260506000009_agreement_communications.sql`); `_shared/email/send.ts` auto-logs every outbound email; `AgreementCommunicationsCard.tsx` in admin detail panel; manual log UI |
+| H3 | ✅ Done | `operator_verified_sender_handle` + `operator_handle_mismatch_flagged` columns (same migration as H1: `20260506000009_payment_attestations_and_h3.sql`); mismatch banner in `AgreementDetailPanel.tsx`; non-blocking flag for chargeback evidence |
+| H4 | ✅ Done | `pickup_handovers` table (`20260506000010_pickup_handovers.sql`); `PickupHandover.tsx` (567 lines); `finalize-pickup-handover` edge function (241 lines); `Reserved → Sold` puppy transition; `pickup-evidence` bucket (same migration) |
+| H5 | ✅ Done | `agreement_communications` table (`20260506000011_agreement_communications.sql`); `_shared/email/send.ts` auto-logs every outbound email; `AgreementCommunicationsCard.tsx` in admin detail panel; manual log UI |
 | H6 | ✅ Done | Contract clauses encoded in Wave E; no new code in Wave H |
 | H7 | ✅ Done | `docs/ops/payment-handle-hygiene.md` — Square merchant descriptor + Zelle/Venmo/CashApp handle hygiene checklist; operator action items documented |
-| H8 | ✅ Done | `generate-dispute-evidence-packet` edge function (491 lines); ZIP with all PDFs + screenshots + communications JSON + audit trail; `dispute-evidence` storage bucket; "Generate evidence packet" button wired in `AgreementDetailPanel.tsx` |
+| H8 | ✅ Done | `generate-dispute-evidence-packet` edge function (491 lines); ZIP with all PDFs + screenshots + communications JSON + audit trail; `dispute-evidence` storage bucket (`20260506000012_dispute_evidence_bucket.sql`); "Generate evidence packet" button wired in `AgreementDetailPanel.tsx` |
 
 ---
 
@@ -76,11 +76,10 @@ and **Smoke-tested** columns as each step lands in production.
 
 1. Apply all pending migrations to production via `supabase db push` or the Supabase dashboard SQL editor.
    Key migrations not yet deployed (verify with `supabase migrations list`):
-   - `20260506000006_payment_attestations.sql` (H1)
-   - `20260506000007_h3_operator_handle_mismatch.sql` (H3)
-   - `20260506000008_pickup_handovers.sql` (H4)
-   - `20260506000009_agreement_communications.sql` (H5)
-   - `20260506000010_pickup_evidence_bucket.sql` (H4 storage)
+   - `20260506000009_payment_attestations_and_h3.sql` (H1 + H3 + payment-evidence bucket)
+   - `20260506000010_pickup_handovers.sql` (H4 + pickup-evidence bucket)
+   - `20260506000011_agreement_communications.sql` (H5)
+   - `20260506000012_dispute_evidence_bucket.sql` (H8 storage)
    - `20260506000013_agreements_storage_bucket.sql` (F storage — PDF uploads)
 2. Deploy all edge functions: `supabase functions deploy --no-verify-jwt` (public functions: `submit-payment-attestation`, `mark-payment-sent`, `agreement-download-url`) and `supabase functions deploy` (JWT-gated: `finalize-agreement`, `finalize-pickup-handover`, `generate-agreement-pdf`, `generate-dispute-evidence-packet`, `send-deposit-link`, `send-deposit-receipt`).
 3. Confirm `PUBLIC_SITE_URL` Edge Function secret is set to `https://puppyheavenllc.com`.

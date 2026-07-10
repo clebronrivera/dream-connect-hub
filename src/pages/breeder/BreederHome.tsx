@@ -2,9 +2,10 @@
 // whether she's working on litters or puppies. From here she can also
 // jump straight to "Add litter" without going into the litters list.
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2, PawPrint, Heart, Users, ChevronRight, Plus, Camera } from "lucide-react";
+import { Loader2, PawPrint, Heart, Users, ChevronRight, Plus, Camera, AlertTriangle } from "lucide-react";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import { loadBreederHome } from "@/lib/breeder/api";
 import { listAllBreederPuppies } from "@/lib/breeder/api";
@@ -50,6 +51,30 @@ export default function BreederHome() {
   const soldPuppies   = puppies?.filter(p => p.status === "Sold").length ?? 0;
   const missingPhotos = puppies?.filter(p => p.status !== "Sold" && !(p.photos?.length)).length ?? 0;
 
+  // Listing freshness — cadence beats volume. Flag active listings with
+  // fewer than 5 photos or no update in 7+ days so nothing goes stale.
+  // `now` is snapshotted once per mount (lazy useState initializer) rather
+  // than read inline during render, which the React Compiler flags as an
+  // impure call.
+  const [now] = useState<number>(() => Date.now());
+  const STALE_DAYS = 7;
+  const MIN_PHOTOS = 5;
+  const staleListings = (puppies ?? [])
+    .filter((p) => p.status !== "Sold" && p.status !== "Deceased")
+    .map((p) => {
+      const photoCount = p.photos?.length ?? 0;
+      const daysSinceUpdate = p.updated_at
+        ? Math.floor((now - new Date(p.updated_at).getTime()) / 86_400_000)
+        : null;
+      const reasons: string[] = [];
+      if (photoCount < MIN_PHOTOS) reasons.push(`${photoCount} photo${photoCount === 1 ? "" : "s"}`);
+      if (daysSinceUpdate != null && daysSinceUpdate >= STALE_DAYS) {
+        reasons.push(`updated ${daysSinceUpdate}d ago`);
+      }
+      return reasons.length > 0 ? { id: p.id, name: p.name, reasons } : null;
+    })
+    .filter((x): x is { id: string; name: string; reasons: string[] } => x !== null);
+
   return (
     <div className="mx-auto max-w-screen-sm px-4 py-6 space-y-6">
       {/* ── Greeting ── */}
@@ -63,6 +88,30 @@ export default function BreederHome() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
+        <>
+          {staleListings.length > 0 && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="mb-2 flex items-center gap-2 text-amber-800">
+                <AlertTriangle className="h-4 w-4" />
+                <p className="text-sm font-semibold">
+                  {staleListings.length} listing{staleListings.length !== 1 ? "s" : ""} could use a refresh
+                </p>
+              </div>
+              <ul className="space-y-1.5">
+                {staleListings.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/breeder/puppies/${s.id}/capture`)}
+                      className="text-sm text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+                    >
+                      {s.name} — {s.reasons.join(", ")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         <div className="grid gap-4">
 
           {/* ── Litters card ── */}
@@ -149,7 +198,8 @@ export default function BreederHome() {
             <Plus className="h-4 w-4" />
             Add an upcoming litter
           </Link>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -18,6 +18,7 @@ import {
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
+import { PriceIncludes } from "@/components/PriceIncludes";
 import { BREEDS_DATA, type BreedStats } from "@/data/breeds-content";
 import { getBreedSeoMetadata } from "@/lib/seo";
 import { useBusinessInfoOrDefaults } from "@/lib/hooks/useBusinessInfo";
@@ -260,6 +261,10 @@ export default function BreedDetail() {
               </div>
             </dl>
           </div>
+        </section>
+
+        <section className="container pb-10">
+          <PriceIncludes variant="light" />
         </section>
 
         <section className="container pb-20 pt-4">

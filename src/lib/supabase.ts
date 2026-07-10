@@ -236,6 +236,8 @@ export interface Litter {
 export interface Puppy {
   id?: string;
   puppy_id?: string;
+  slug?: string;
+  generation?: 'F1' | 'F1b' | 'F2' | 'F2b' | 'multigen' | null;
   name: string;
   breed: string;
   gender?: 'Male' | 'Female';
@@ -255,6 +257,7 @@ export interface Puppy {
   primary_photo?: string;
   video_path?: string | null;
   description?: string;
+  personality_blurb?: string | null;
   mom_weight_approx?: number;
   dad_weight_approx?: number;
   vaccinations?: string;
@@ -270,6 +273,8 @@ export interface Puppy {
    *  by fetchAvailablePuppies via a Supabase nested select. May be null when
    *  the puppy isn't tied to any litter row (legacy / orphan). */
   upcoming_litter?: {
+    dam_id: string | null;
+    sire_id: string | null;
     dam_name: string | null;
     sire_name: string | null;
     dam_photo_path: string | null;

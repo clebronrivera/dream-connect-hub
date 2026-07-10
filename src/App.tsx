@@ -19,6 +19,8 @@ import { GoogleTranslateRuntime } from "@/components/i18n/GoogleTranslateRuntime
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Puppies = lazyWithRetry(() => import("./pages/Puppies"));
+const PuppyDetail = lazyWithRetry(() => import("./pages/PuppyDetail"));
+const BreedLocation = lazyWithRetry(() => import("./pages/BreedLocation"));
 const Consultation = lazyWithRetry(() => import("./pages/Consultation"));
 const Essentials = lazyWithRetry(() => import("./pages/Essentials"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
@@ -40,6 +42,7 @@ const ProductForm = lazyWithRetry(() => import("./pages/admin/inventory/ProductF
 const KitsList = lazyWithRetry(() => import("./pages/admin/inventory/KitsList"));
 const KitForm = lazyWithRetry(() => import("./pages/admin/inventory/KitForm"));
 const Inquiries = lazyWithRetry(() => import("./pages/admin/Inquiries"));
+const WaitlistSignups = lazyWithRetry(() => import("./pages/admin/WaitlistSignups"));
 const BusinessModes = lazyWithRetry(() => import("./pages/admin/BusinessModes"));
 const DepositAgreement = lazyWithRetry(() => import("./pages/DepositAgreement"));
 const PaymentDashboard = lazyWithRetry(() => import("./pages/PaymentDashboard"));
@@ -67,6 +70,7 @@ const BreederLitter = lazyWithRetry(() => import("./pages/breeder/BreederLitter"
 const BreederLitterSetup = lazyWithRetry(() => import("./pages/breeder/BreederLitterSetup"));
 const BreederPuppiesWizard = lazyWithRetry(() => import("./pages/breeder/BreederPuppiesWizard"));
 const BreederPuppyCapture = lazyWithRetry(() => import("./pages/breeder/BreederPuppyCapture"));
+const BreederPostGenerator = lazyWithRetry(() => import("./pages/breeder/BreederPostGenerator"));
 const BreederLitterDates = lazyWithRetry(() => import("./pages/breeder/BreederLitterDates"));
 const BreederParents = lazyWithRetry(() => import("./pages/breeder/BreederParents"));
 const BreederParentEdit = lazyWithRetry(() => import("./pages/breeder/BreederParentEdit"));
@@ -111,7 +115,8 @@ export function AppRoutes() {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/puppies" element={<Puppies />} />
-        <Route path="/puppies/:id" element={<Puppies />} />
+        <Route path="/puppies/:breedSlug/:locationSlug" element={<BreedLocation />} />
+        <Route path="/puppies/:slug" element={<PuppyDetail />} />
         <Route path="/consultation" element={<Consultation />} />
         <Route path="/essentials" element={<Essentials />} />
         <Route path="/contact" element={<Contact />} />
@@ -130,8 +135,12 @@ export function AppRoutes() {
         <Route path="/about" element={<About />} />
 
         {/* Dev / design mockups (URL-only; not linked from public nav) */}
-        <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
-        <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+        {import.meta.env.DEV && (
+          <>
+            <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
+            <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+          </>
+        )}
 
         {/* Breeder tool (Yolanda) — token-gated via localStorage */}
         <Route path="/breeder/login" element={<BreederLogin />} />
@@ -146,6 +155,7 @@ export function AppRoutes() {
             <Route path="litters/:litterId/wizard" element={<BreederPuppiesWizard />} />
             <Route path="litters/:litterId/dates" element={<BreederLitterDates />} />
             <Route path="puppies/:puppyId/capture" element={<BreederPuppyCapture />} />
+            <Route path="puppies/:puppyId/post" element={<BreederPostGenerator />} />
             <Route path="parents" element={<BreederParents />} />
             <Route path="parents/new" element={<BreederParentEdit />} />
             <Route path="parents/:dogId/edit" element={<BreederParentEdit />} />
@@ -187,6 +197,7 @@ export function AppRoutes() {
             <Route path="settings/breeder-passcode" element={<BreederPasscodeSettings />} />
             <Route path="faq" element={<FaqManager />} />
             <Route path="testimonials" element={<TestimonialsList />} />
+            <Route path="waitlist" element={<WaitlistSignups />} />
             <Route path="newsletter" element={<Newsletter />} />
             <Route path="settings/business-info" element={<BusinessInfoPage />} />
           </Route>

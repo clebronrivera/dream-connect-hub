@@ -154,6 +154,8 @@ export interface BreederPuppyRow {
   status: string | null;
   is_publicly_visible?: boolean;
   vaccinated_at: string | null;
+  generation?: "F1" | "F1b" | "F2" | "F2b" | "multigen" | null;
+  personality_blurb?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -209,6 +211,8 @@ export async function listAllBreederPuppies(
     status: row.status,
     is_publicly_visible: row.is_publicly_visible,
     vaccinated_at: row.vaccinated_at,
+    generation: row.generation,
+    personality_blurb: row.personality_blurb,
     created_at: row.created_at,
     updated_at: row.updated_at,
     upcoming_litter_id: row.upcoming_litter_id,
@@ -250,6 +254,8 @@ export function updatePuppy(
     status: string;
     is_publicly_visible: boolean;
     vaccinated_at: string | null;
+    generation: "F1" | "F1b" | "F2" | "F2b" | "multigen" | null;
+    personality_blurb: string | null;
   }>,
 ): Promise<BreederWriteResult<BreederPuppyRow>> {
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });

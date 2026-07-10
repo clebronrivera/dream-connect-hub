@@ -28,6 +28,7 @@ import {
   Newspaper,
   KeyRound,
   Building2,
+  ListPlus,
 } from 'lucide-react';
 
 export function AdminLayout() {
@@ -44,6 +45,7 @@ export function AdminLayout() {
     { name: 'Agreements', href: '/admin/agreements', icon: FileSignature },
     { name: 'Deposit Requests', href: '/admin/deposit-requests', icon: ClipboardCheck },
     { name: 'Inquiries', href: '/admin/inquiries', icon: MessageSquare },
+    { name: 'Waitlist', href: '/admin/waitlist', icon: ListPlus },
     { name: 'Payment Settings', href: '/admin/payment-settings', icon: CreditCard },
     { name: 'Business Info', href: '/admin/settings/business-info', icon: Building2 },
     { name: 'Breeder Passcode', href: '/admin/settings/breeder-passcode', icon: KeyRound },

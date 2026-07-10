@@ -24,6 +24,7 @@
     "verify:puppy-photos": "node scripts/verify-puppy-photos.js",
     "verify:database": "tsx scripts/verify-database.ts",
     "inspect:database": "tsx scripts/inspect-database.ts",
+    "optimize:images": "tsx scripts/optimize-images.ts",
     "db:push": "supabase db push",
     "prepare": "husky"
   },
@@ -51,6 +52,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "qrcode.react": "^4.2.0",
@@ -85,6 +87,7 @@
     "jsdom": "^29.0.2",
     "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.6",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",

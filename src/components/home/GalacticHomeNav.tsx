@@ -67,11 +67,16 @@ export function GalacticHomeNav() {
 
       <div className="relative z-10 mx-auto grid min-h-[64px] max-w-screen-2xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2 sm:px-6 lg:min-h-[68px] lg:px-8">
         <Link to="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
-          <img
-            src="/dream-puppies-logo.png"
-            alt="Dream Puppies logo"
-            className="size-8 shrink-0 rounded-full object-cover ring-1 ring-white/25 sm:size-10"
-          />
+          <picture>
+            <source srcSet="/dream-puppies-logo.webp" type="image/webp" />
+            <img
+              src="/dream-puppies-logo.png"
+              alt="Dream Puppies logo"
+              width={40}
+              height={40}
+              className="size-8 shrink-0 rounded-full object-cover ring-1 ring-white/25 sm:size-10"
+            />
+          </picture>
           <div className="min-w-0 leading-none">
             <div className="font-display text-sm font-black uppercase tracking-[-0.03em] text-white drop-shadow-[0_0_10px_rgba(255,51,153,0.35)] sm:text-lg md:text-xl">
               {BUSINESS.primaryBrand}

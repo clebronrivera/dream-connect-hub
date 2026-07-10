@@ -166,6 +166,9 @@ function PickupForm({
   const [healthAckSigned, setHealthAckSigned] = useState(
     !!existing?.health_acknowledgment_signed_at
   );
+  const [reviewRequestMentioned, setReviewRequestMentioned] = useState(
+    !!existing?.review_request_mentioned_at
+  );
 
   const [puppyPhotoPath, setPuppyPhotoPath] = useState<string | null>(
     existing?.photo_buyer_with_puppy_path ?? null
@@ -249,6 +252,7 @@ function PickupForm({
         health_acknowledgment_signed_at: now,
         vet_certificate_handed_over: true,
         vet_certificate_acknowledged_at: now,
+        review_request_mentioned_at: reviewRequestMentioned ? now : null,
       });
 
       return await finalizePickupHandover(agreementId);
@@ -424,6 +428,17 @@ function PickupForm({
             />
             <Label htmlFor="vet-cert" className="text-sm leading-snug">
               Vet certificate / health record was handed to the buyer.
+            </Label>
+          </div>
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="review-request"
+              checked={reviewRequestMentioned}
+              onCheckedChange={(v) => setReviewRequestMentioned(v === true)}
+            />
+            <Label htmlFor="review-request" className="text-sm leading-snug">
+              Mentioned to the buyer that we'd appreciate a Google review (optional — the
+              welcome-home email also includes a review link once one is configured).
             </Label>
           </div>
         </CardContent>

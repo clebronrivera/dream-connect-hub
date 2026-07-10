@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string;
   readonly VITE_BANNER_IMAGE_URL?: string;
   readonly VITE_SITE_URL?: string;
+  readonly VITE_SHOW_PRICE_INCLUDES?: string;
   readonly DEV?: boolean;
   readonly MODE?: string;
 }

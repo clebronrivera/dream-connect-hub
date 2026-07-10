@@ -19,9 +19,9 @@ interface Props {
 }
 
 function getShareUrl(puppy: Puppy): string {
-  const id = puppy.id ?? puppy.puppy_id;
-  if (!id) return `${window.location.origin}/puppies`;
-  return `${window.location.origin}/puppies/${encodeURIComponent(String(id))}`;
+  const slugOrId = puppy.slug ?? puppy.id ?? puppy.puppy_id;
+  if (!slugOrId) return `${window.location.origin}/puppies`;
+  return `${window.location.origin}/puppies/${encodeURIComponent(String(slugOrId))}`;
 }
 
 export function PuppyShareDialog({ open, onOpenChange, puppy }: Props) {

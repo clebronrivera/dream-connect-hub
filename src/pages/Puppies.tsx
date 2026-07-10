@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
@@ -13,6 +13,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { PuppyInterestForm } from "@/components/PuppyInterestForm";
+import { WaitlistForm } from "@/components/WaitlistForm";
 import { Dog, Loader2, Info, Heart } from "lucide-react";
 import type { Puppy } from "@/lib/supabase";
 import { fetchAvailablePuppies } from "@/lib/puppies-api";
@@ -23,7 +24,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useFavorites } from "@/hooks/use-favorites";
 import { usePuppyFilters } from "@/hooks/use-puppy-filters";
 import { PuppyCard } from "./PuppyCard";
-import { PuppyDetailModal } from "./PuppyDetailModal";
 import { PuppyShareDialog } from "./PuppyShareDialog";
 import { GalacticPawCanvas } from "@/components/GalacticPawCanvas";
 
@@ -38,12 +38,10 @@ const breedPillInactiveClass =
 
 export default function Puppies() {
   const { t } = useLanguage();
-  const { id: puppyIdFromUrl } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [interestFormOpen, setInterestFormOpen] = useState(false);
   const [interestFormPuppyId, setInterestFormPuppyId] = useState<string | undefined>(undefined);
-  const [detailPuppy, setDetailPuppy] = useState<Puppy | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [sharePuppy, setSharePuppy] = useState<Puppy | null>(null);
 
@@ -78,31 +76,10 @@ export default function Puppies() {
     return ordered;
   }, [puppies]);
 
-  // Open detail dialog when URL has /puppies/:id and we have data (adjust state during render)
-  const detailSyncKey = `${puppyIdFromUrl ?? ''}|${puppies?.length ?? 0}`;
-  const [prevDetailSyncKey, setPrevDetailSyncKey] = useState(detailSyncKey);
-  if (detailSyncKey !== prevDetailSyncKey) {
-    setPrevDetailSyncKey(detailSyncKey);
-    if (puppyIdFromUrl && puppies?.length) {
-      const puppy = puppies.find(
-        (p) => String(p.id) === puppyIdFromUrl || p.id === puppyIdFromUrl
-      );
-      if (puppy) setDetailPuppy(puppy);
-    }
-  }
-
   const openInterestForm = (puppyId?: string) => {
     setInterestFormPuppyId(puppyId);
     setInterestFormOpen(true);
   };
-
-  // Per-puppy SEO when viewing a shared link (/puppies/:id)
-  const puppyForSeo =
-    puppyIdFromUrl &&
-    detailPuppy &&
-    (String(detailPuppy.id) === puppyIdFromUrl || detailPuppy.id === puppyIdFromUrl)
-      ? detailPuppy
-      : null;
 
   // BreadcrumbList JSON-LD
   useEffect(() => {
@@ -174,17 +151,7 @@ export default function Puppies() {
 
   return (
     <Layout>
-      <Seo
-        pageId="puppies"
-        title={puppyForSeo ? `${puppyForSeo.name ?? "Puppy"} — ${puppyForSeo.breed}` : undefined}
-        description={
-          puppyForSeo
-            ? `${puppyForSeo.breed}${puppyForSeo.gender ? ` • ${puppyForSeo.gender}` : ""}. Available at Dream Puppies.`
-            : undefined
-        }
-        canonicalPath={puppyForSeo ? `/puppies/${puppyForSeo.id}` : undefined}
-        imageUrl={puppyForSeo ? getPuppyImage(puppyForSeo) ?? undefined : undefined}
-      />
+      <Seo pageId="puppies" />
       <div className="min-h-screen bg-[#0f041b] text-white">
 
       {/* Compact hero: H1 + disclaimer chip directly under the title. */}
@@ -313,9 +280,8 @@ export default function Puppies() {
                 isFav={favorites.has(String(puppy.id))}
                 onToggleFavorite={() => toggleFavorite(String(puppy.id))}
                 onOpenDetail={() => {
-                  const id = puppy.id ?? puppy.puppy_id;
-                  if (id) navigate(`/puppies/${encodeURIComponent(String(id))}`);
-                  setDetailPuppy(puppy);
+                  const slugOrId = puppy.slug ?? puppy.id ?? puppy.puppy_id;
+                  if (slugOrId) navigate(`/puppies/${encodeURIComponent(String(slugOrId))}`);
                 }}
                 onShare={() => {
                   setSharePuppy(puppy);
@@ -342,6 +308,12 @@ export default function Puppies() {
               <Heart className="h-4 w-4 mr-2" />
               {t("puppiesSendInterestRecs")}
             </Button>
+            <div className="mx-auto mt-6 max-w-md text-left">
+              <p className="mb-3 text-center text-sm font-semibold text-white">
+                Or join the waitlist and we'll email you the moment a puppy matches
+              </p>
+              <WaitlistForm />
+            </div>
           </div>
         )}
 
@@ -408,20 +380,6 @@ export default function Puppies() {
           </DialogContent>
         </Dialog>
 
-        <PuppyDetailModal
-          puppy={detailPuppy}
-          open={!!detailPuppy}
-          onClose={() => {
-            setDetailPuppy(null);
-            setShareDialogOpen(false);
-            navigate("/puppies", { replace: true });
-          }}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onShareClick={() => setShareDialogOpen(true)}
-          onSendInterest={(id) => openInterestForm(id)}
-        />
-
         <PuppyShareDialog
           open={shareDialogOpen}
           onOpenChange={(open) => {
@@ -430,7 +388,7 @@ export default function Puppies() {
               setSharePuppy(null);
             }
           }}
-          puppy={sharePuppy ?? detailPuppy}
+          puppy={sharePuppy}
         />
       </section>
 

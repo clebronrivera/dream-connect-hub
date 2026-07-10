@@ -470,6 +470,159 @@ export function renderBreedJsonLd(
   return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
 }
 
+export type PuppySeoSource = {
+  slug: string;
+  name: string;
+  breed: string;
+  generation?: string | null;
+  status?: string | null;
+  readyDate?: string | null;
+  primaryImage?: string | null;
+};
+
+export type PuppySeoMetadata = {
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+  breedLabel: string;
+  isOnHold: boolean;
+};
+
+export function getPuppySeoMetadata(puppy: PuppySeoSource): PuppySeoMetadata {
+  const breedLabel = puppy.generation ? `${puppy.generation} ${puppy.breed}` : puppy.breed;
+  const isOnHold = puppy.status === "Reserved";
+  const holdNote = isOnHold
+    ? " Currently on hold — contact us to join the waitlist for the next available puppy."
+    : "";
+  return {
+    path: `/puppies/${puppy.slug}`,
+    title: `${puppy.name} — ${breedLabel} Puppy in Orlando, FL`,
+    description:
+      `Meet ${puppy.name}, a ${breedLabel} puppy from Dream Puppies, family-raised in Orlando, FL ` +
+      `and Raeford, NC.${holdNote} Call (321) 697-8864 to reserve.`,
+    h1: `${puppy.name} — ${breedLabel} in Orlando, FL`,
+    breedLabel,
+    isOnHold,
+  };
+}
+
+export function renderPuppyBodyFallback(
+  puppy: PuppySeoSource,
+  meta: PuppySeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const statusLine = meta.isOnHold
+    ? "Status: On Hold (reserved by another family)"
+    : "Status: Available";
+  return `<noscript>
+  <header>
+    <h1>${escapeHtml(meta.h1)}</h1>
+    <p>${escapeHtml(meta.description)}</p>
+  </header>
+  <p>${escapeHtml(statusLine)}</p>
+  ${puppy.readyDate ? `<p>Ready by: ${escapeHtml(puppy.readyDate)}</p>` : ""}
+  <p><a href="${base}/our-dogs">Meet ${escapeHtml(puppy.name)}'s parents</a></p>
+  <p><a href="${base}/request-deposit">Ask about ${escapeHtml(puppy.name)}</a></p>
+  <nav aria-label="Site"><ul>
+    <li><a href="${base}/puppies">All available puppies</a></li>
+    <li><a href="${base}/breeds">Breeds we raise</a></li>
+    <li><a href="${base}/contact">Contact</a></li>
+  </ul></nav>
+  <p>Call or text <a href="tel:+13216978864">(321) 697-8864</a> &middot; <a href="mailto:Dreampuppies22@gmail.com">Dreampuppies22@gmail.com</a></p>
+</noscript>`;
+}
+
+export function renderPuppyJsonLd(
+  puppy: PuppySeoSource,
+  meta: PuppySeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  // No `offers.price` — this site intentionally doesn't publish puppy prices
+  // (buyers use the "Inquire about price" flow instead), so the Offer here
+  // signals availability only.
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${puppy.name} — ${meta.breedLabel} puppy`,
+    description: meta.description,
+    ...(puppy.primaryImage ? { image: [puppy.primaryImage] } : {}),
+    offers: {
+      "@type": "Offer",
+      url: `${base}${meta.path}`,
+      priceCurrency: "USD",
+      availability: meta.isOnHold ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
+      businessFunction: "https://schema.org/Sell",
+      seller: {
+        "@type": "Organization",
+        name: "Dream Puppies",
+      },
+    },
+  };
+  return `<script type="application/ld+json">${JSON.stringify(payload)}</script>`;
+}
+
+export type BreedLocationSource = {
+  breedSlug: string;
+  breedDisplayName: string;
+  locationSlug: string;
+  city: string;
+  state: "FL" | "NC";
+};
+
+export type BreedLocationSeoMetadata = {
+  path: string;
+  title: string;
+  description: string;
+  h1: string;
+};
+
+export function getBreedLocationSeoMetadata(source: BreedLocationSource): BreedLocationSeoMetadata {
+  return {
+    path: `/puppies/${source.breedSlug}/${source.locationSlug}`,
+    title: `${source.breedDisplayName} Puppies in ${source.city}, ${source.state} | Dream Puppies`,
+    description:
+      `Family-raised ${source.breedDisplayName} puppies for ${source.city}, ${source.state} families. ` +
+      `Free local delivery within 30 miles or visit our home to meet the parents. Call (321) 697-8864.`,
+    h1: `${source.breedDisplayName} Puppies for Sale in ${source.city}, ${source.state}`,
+  };
+}
+
+export function renderBreedLocationBodyFallback(
+  location: {
+    intro: string;
+    isPrimary?: boolean;
+    driveDistanceMiles: number;
+    driveTimeMinutes: number;
+    freeDelivery: boolean;
+  },
+  meta: BreedLocationSeoMetadata,
+  siteUrl: string
+): string {
+  const base = siteUrl.replace(/\/$/, "");
+  const deliveryLine = location.isPrimary
+    ? "Free local pickup at our home."
+    : location.freeDelivery
+      ? `Free delivery — ${location.driveDistanceMiles} mi / ~${location.driveTimeMinutes} min from our nearest location.`
+      : `Delivery available for a fee — ${location.driveDistanceMiles} mi / ~${location.driveTimeMinutes} min from our nearest location.`;
+  const introParagraphs = location.intro
+    .split("\n\n")
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join("\n  ");
+  return `<noscript>
+  <header>
+    <h1>${escapeHtml(meta.h1)}</h1>
+  </header>
+  ${introParagraphs}
+  <p>${escapeHtml(deliveryLine)} Every puppy goes home with a veterinarian-issued health certificate regardless of
+  destination — if you're crossing the FL/NC state line, confirm current requirements with your own vet.</p>
+  <p><a href="${base}/puppies">View all available puppies</a> &middot; <a href="${base}/contact">Contact us</a>
+  &middot; Call or text <a href="tel:+13216978864">(321) 697-8864</a></p>
+</noscript>`;
+}
+
 export function requireSiteUrlForBuild(env: SeoEnvOverrides = appEnv): string {
   const siteUrl = env.siteUrl?.trim();
   if (!siteUrl) {
@@ -613,7 +766,22 @@ export function renderRouteBodyFallback(pageId: SeoPageId | undefined, siteUrl: 
 </noscript>`;
 }
 
-export function renderLocalBusinessJsonLd(siteUrl: string): string {
+export type LocalBusinessAddress = {
+  city: string;
+  state: "FL" | "NC";
+  county?: string;
+};
+
+const STATE_NAMES: Record<"FL" | "NC", string> = { FL: "Florida", NC: "North Carolina" };
+
+/**
+ * @param address When provided (city x location pages), the JSON-LD carries
+ * just that city's address + areaServed instead of both home-base states —
+ * this is also what a future Google Business Profile will cross-reference
+ * per-location, so the shape is built correctly now even though claiming the
+ * profile itself is a human/operator action.
+ */
+export function renderLocalBusinessJsonLd(siteUrl: string, address?: LocalBusinessAddress): string {
   const base = siteUrl.replace(/\/$/, "");
   const payload = {
     "@context": "https://schema.org",
@@ -630,18 +798,25 @@ export function renderLocalBusinessJsonLd(siteUrl: string): string {
     logo: {
       "@type": "ImageObject",
       url: `${base}/dream-puppies-logo.png`,
-      width: 1024,
-      height: 1024,
+      width: 256,
+      height: 256,
     },
     image: `${base}/dream-puppies-logo.png`,
-    address: [
-      { "@type": "PostalAddress", addressLocality: "Orlando", addressRegion: "FL", addressCountry: "US" },
-      { "@type": "PostalAddress", addressLocality: "Raeford", addressRegion: "NC", addressCountry: "US" },
-    ],
-    areaServed: [
-      { "@type": "State", name: "Florida" },
-      { "@type": "State", name: "North Carolina" },
-    ],
+    address: address
+      ? [{ "@type": "PostalAddress", addressLocality: address.city, addressRegion: address.state, addressCountry: "US" }]
+      : [
+          { "@type": "PostalAddress", addressLocality: "Orlando", addressRegion: "FL", addressCountry: "US" },
+          { "@type": "PostalAddress", addressLocality: "Raeford", addressRegion: "NC", addressCountry: "US" },
+        ],
+    areaServed: address
+      ? [
+          { "@type": "City", name: address.city },
+          { "@type": "State", name: STATE_NAMES[address.state] },
+        ]
+      : [
+          { "@type": "State", name: "Florida" },
+          { "@type": "State", name: "North Carolina" },
+        ],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "Customer Service",

@@ -909,7 +909,6 @@ Setup method:
 
 Declared env examples:
 - `.env.example`
-- `.env.local.example`
 
 Hardcoded Supabase values check:
 - `src/lib/supabase.ts` currently has **no hardcoded URL/key values**; strictly env-driven.
