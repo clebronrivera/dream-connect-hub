@@ -3,7 +3,7 @@ import { NOINDEX_PRIVATE_SEO } from "@/lib/seo";
 
 type PrivatePageSeoProps = {
   /** Fixed public path segment — never pass tokenized URLs. */
-  canonicalPath: "/deposit" | "/request-deposit" | "/payment" | "/agreements";
+  canonicalPath: "/deposit" | "/payment" | "/agreements";
 };
 
 /** noindex metadata for buyer reservation / payment flows (not for indexing). */

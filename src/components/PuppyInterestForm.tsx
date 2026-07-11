@@ -32,8 +32,11 @@ import {
   EXPERIENCE_OPTIONS,
   HOW_HEARD_OPTIONS,
   VIEWING_PREFERENCE_OPTIONS,
+  BUDGET_OPTIONS,
 } from "@/data/breedsData";
 import { getDisplayAgeWeeks } from "@/lib/puppy-utils";
+import { getSizeCategory } from "@/lib/puppy-display-utils";
+import { normalizeBreedToCanonical, isMainBreed } from "@/lib/breed-utils";
 import { cn } from "@/lib/utils";
 import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
 import { PuppyInterestNote } from "@/components/PuppyInterestNote";
@@ -66,23 +69,30 @@ const defaultValues: Partial<PuppyInterestFormValues> = {
   breedPreference: [],
   genderPreference: "No Preference",
   timeline: "",
+  budgetRange: "",
   experience: "",
   howHeard: "",
   viewingPreference: "",
   wantsAiTraining: false,
 };
 
-// When the form is launched with an implicit puppy (puppy-card flow), most
-// preference questions are noise — the buyer is already telling us which
-// puppy they want. We fill in schema-compatible defaults so validation
-// passes without rendering those rows.
-const puppySpecificDefaults: Partial<PuppyInterestFormValues> = {
-  interestedSpecific: "yes",
-  sizePreference: "no_preference",
-  breedPreference: ["No Preference"],
-  genderPreference: "No Preference",
-  timeline: "just_browsing",
-};
+// When the form is launched with an implicit puppy (puppy-card / puppy-page
+// flow), the buyer's already told us which puppy they want — so size/breed
+// start pre-filled from that puppy's own attributes. The fields stay visible
+// and editable so the buyer can still flag other breeds/sizes they'd
+// consider instead of (or in addition to) this one.
+function getPuppySpecificDefaults(
+  preSelectedPuppy: Puppy | null | undefined
+): Partial<PuppyInterestFormValues> {
+  const size = preSelectedPuppy ? getSizeCategory(preSelectedPuppy) : null;
+  const breed = preSelectedPuppy?.breed ? normalizeBreedToCanonical(preSelectedPuppy.breed) : null;
+  return {
+    interestedSpecific: "yes",
+    sizePreference: size ?? "no_preference",
+    breedPreference: breed && isMainBreed(breed) ? [breed] : ["No Preference"],
+    genderPreference: preSelectedPuppy?.gender || "No Preference",
+  };
+}
 
 const SHOW_AI_TRAINING_SECTION = false;
 const SHOW_STAY_CONNECTED_SECTION = true;
@@ -113,7 +123,7 @@ export function PuppyInterestForm({
     resolver: zodResolver(puppyInterestFormSchema),
     defaultValues: {
       ...defaultValues,
-      ...(puppySpecific ? puppySpecificDefaults : {}),
+      ...(puppySpecific ? getPuppySpecificDefaults(preSelectedPuppy) : {}),
       selectedPuppyId: initialPuppyId ?? "",
     },
   });
@@ -160,6 +170,7 @@ export function PuppyInterestForm({
       sizePreference: values.sizePreference,
       breedPreference: values.breedPreference,
       genderPreference: values.genderPreference,
+      budgetRange: values.budgetRange,
       howHeard: values.howHeard,
       howHeardOther: values.howHeardOther,
       viewingPreference: values.viewingPreference,
@@ -344,74 +355,87 @@ export function PuppyInterestForm({
           </div>
         </div>
 
-        {/* 2. Puppy Preferences — hidden when the form is launched with an
-            implicit puppy (puppy-card flow); the buyer's already picked one. */}
-        {!puppySpecific && (
+        {/* 2. Puppy Preferences. When launched with an implicit puppy
+            (puppy-card / puppy-page flow) the "which puppy" question is
+            skipped — the buyer already told us — but size/breed/gender/
+            timeline still show, pre-filled from that puppy, so the buyer can
+            confirm or flag other breeds/sizes they'd consider too. */}
         <div className={sectionClass}>
           <h3 className={sectionTitleClass}>Puppy Preferences</h3>
-          <FormField
-            control={form.control}
-            name="interestedSpecific"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Are you interested in a specific puppy? *</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    className="flex flex-col gap-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="specific-yes" />
-                      <label htmlFor="specific-yes" className="cursor-pointer text-sm">
-                        Yes (select specific puppy)
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="specific-no" />
-                      <label htmlFor="specific-no" className="cursor-pointer text-sm">
-                        Not sure yet (I want recommendations)
-                      </label>
-                    </div>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {interestedSpecific === "yes" && puppies.length > 0 && (
-            <FormField
-              control={form.control}
-              name="selectedPuppyId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Select Puppy *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+          {puppySpecific && preSelectedPuppy && (
+            <p className="text-sm text-muted-foreground">
+              Starting from <span className="font-medium text-foreground">{preSelectedPuppy.name}</span>
+              {preSelectedPuppy.breed ? ` (${preSelectedPuppy.breed})` : ""} — feel free to also flag
+              other breeds or sizes you'd consider below.
+            </p>
+          )}
+          {!puppySpecific && (
+            <>
+              <FormField
+                control={form.control}
+                name="interestedSpecific"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Are you interested in a specific puppy? *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a puppy" />
-                      </SelectTrigger>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="flex flex-col gap-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="yes" id="specific-yes" />
+                          <label htmlFor="specific-yes" className="cursor-pointer text-sm">
+                            Yes (select specific puppy)
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="no" id="specific-no" />
+                          <label htmlFor="specific-no" className="cursor-pointer text-sm">
+                            Not sure yet (I want recommendations)
+                          </label>
+                        </div>
+                      </RadioGroup>
                     </FormControl>
-                    <SelectContent>
-                      {puppies.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name || "Unnamed"} — {p.breed}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedPuppy && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedPuppy.breed} • {selectedPuppy.gender || "—"} • {selectedPuppy.color || "—"}
-                      {getDisplayAgeWeeks(selectedPuppy) != null &&
-                        ` • ${getDisplayAgeWeeks(selectedPuppy)} weeks`}
-                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {interestedSpecific === "yes" && puppies.length > 0 && (
+                <FormField
+                  control={form.control}
+                  name="selectedPuppyId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Puppy *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a puppy" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {puppies.map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.name || "Unnamed"} — {p.breed}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedPuppy && (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedPuppy.breed} • {selectedPuppy.gender || "—"} • {selectedPuppy.color || "—"}
+                          {getDisplayAgeWeeks(selectedPuppy) != null &&
+                            ` • ${getDisplayAgeWeeks(selectedPuppy)} weeks`}
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  <FormMessage />
-                </FormItem>
+                />
               )}
-            />
+            </>
           )}
 
           <FormField
@@ -534,8 +558,35 @@ export function PuppyInterestForm({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="budgetRange"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Budget range (optional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a range" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {BUDGET_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  A suggestion is fine — it just helps us match you with the right pups.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-        )}
 
         {/* 2b. About your home — only shown on the puppy-card flow. Optional
             puppy-guide questions that pre-fill the eventual deposit form. */}

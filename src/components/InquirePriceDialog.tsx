@@ -36,17 +36,7 @@ import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
 import { useToast } from "@/hooks/use-toast";
 import { insertContactMessage } from "@/lib/contact-messages";
 import { formatUSPhone } from "@/lib/puppy-interest-form-schema";
-
-// Budget bands. Per the breeder: minimum $650, maximum $2,500 — never offer
-// a band below $650. The last option keeps it open for "send me anything in
-// range" buyers.
-const BUDGET_OPTIONS = [
-  "$650 – $1,000",
-  "$1,000 – $1,500",
-  "$1,500 – $2,000",
-  "$2,000 – $2,500",
-  "Flexible — show me options in my range",
-] as const;
+import { BUDGET_OPTIONS } from "@/data/breedsData";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneDigits = (v: string) => v.replace(/\D/g, "");
