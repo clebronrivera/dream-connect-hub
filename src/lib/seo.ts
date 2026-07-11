@@ -15,7 +15,6 @@ export const NOINDEX_PRIVATE_SEO = {
 
 export const NOINDEX_PRIVATE_PRERENDER_ROUTES = [
   { path: "/deposit", ...NOINDEX_PRIVATE_SEO },
-  { path: "/request-deposit", ...NOINDEX_PRIVATE_SEO },
 ] as const;
 
 export type FaqJsonLdItem = {
@@ -524,7 +523,7 @@ export function renderPuppyBodyFallback(
   <p>${escapeHtml(statusLine)}</p>
   ${puppy.readyDate ? `<p>Ready by: ${escapeHtml(puppy.readyDate)}</p>` : ""}
   <p><a href="${base}/our-dogs">Meet ${escapeHtml(puppy.name)}'s parents</a></p>
-  <p><a href="${base}/request-deposit">Ask about ${escapeHtml(puppy.name)}</a></p>
+  <p><a href="${base}/contact?subject=puppies">Ask about ${escapeHtml(puppy.name)}</a></p>
   <nav aria-label="Site"><ul>
     <li><a href="${base}/puppies">All available puppies</a></li>
     <li><a href="${base}/breeds">Breeds we raise</a></li>

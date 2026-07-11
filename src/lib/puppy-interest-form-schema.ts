@@ -36,6 +36,7 @@ export const puppyInterestFormSchema = z
       .refine((arr) => arr && arr.length > 0, "Please select at least one breed or No Preference"),
     genderPreference: z.string().optional(),
     timeline: z.string().min(1, "Please select when you're looking to bring a puppy home"),
+    budgetRange: z.string().optional(),
 
     experience: z.string().min(1, "Please select your experience level"),
     howHeard: z.string().min(1, "Please select how you heard about us"),

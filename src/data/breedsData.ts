@@ -54,3 +54,13 @@ export const VIEWING_PREFERENCE_OPTIONS = [
   { value: "photos_fine", label: "Photos/videos are fine" },
   { value: "not_sure", label: "Not sure yet" },
 ] as const;
+
+/** Budget bands shown on the puppy interest / inquiry forms. Per the
+ *  breeder: minimum $650, maximum $2,500 — never offer a band below $650. */
+export const BUDGET_OPTIONS = [
+  "$650 – $1,000",
+  "$1,000 – $1,500",
+  "$1,500 – $2,000",
+  "$2,000 – $2,500",
+  "Flexible — show me options in my range",
+] as const;

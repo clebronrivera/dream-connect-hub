@@ -393,7 +393,11 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
               </div>
             </div>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(1)}>
+              <Button
+                variant="outline"
+                className="border-white/25 bg-transparent text-white hover:bg-white/10"
+                onClick={() => setStep(1)}
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button onClick={() => setStep(3)} disabled={!canAdvanceStep2}>
@@ -484,7 +488,11 @@ export function TrainingPlanForm({ defaultProblemType, onPlanGenerated }: Traini
             )}
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)}>
+              <Button
+                variant="outline"
+                className="border-white/25 bg-transparent text-white hover:bg-white/10"
+                onClick={() => setStep(2)}
+              >
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button

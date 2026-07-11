@@ -131,7 +131,11 @@ export function TrainingPlanResult({ plan, onReset }: Props) {
           Love raising a {plan.breed}? {BUSINESS.primaryBrand} raises puppies the same way — at home, with care from day one.
         </p>
         <div className="flex justify-center gap-3">
-          <Button variant="outline" onClick={onReset} className="gap-2">
+          <Button
+            variant="outline"
+            onClick={onReset}
+            className="gap-2 border-white/25 bg-transparent text-white hover:bg-white/10"
+          >
             <RotateCcw className="h-4 w-4" />
             Generate Another Plan
           </Button>

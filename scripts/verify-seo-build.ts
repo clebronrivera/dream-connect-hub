@@ -24,6 +24,7 @@ if (typeof (globalThis as { WebSocket?: unknown }).WebSocket === "undefined") {
 
 import {
   NOINDEX_PRIVATE_SEO,
+  NOINDEX_PRIVATE_PRERENDER_ROUTES,
   PUBLIC_SEO_ROUTES,
   SEO_ROUTE_CONFIG,
   getBreedSeoMetadata,
@@ -58,7 +59,7 @@ const breedRoutes = BREEDS_DATA.map((breed) => {
   };
 });
 
-const NOINDEX_PRIVATE_PATHS = ["/deposit", "/request-deposit"] as const;
+const NOINDEX_PRIVATE_PATHS = NOINDEX_PRIVATE_PRERENDER_ROUTES.map((r) => r.path);
 
 const breedLocationRoutes = LOCATION_BREEDS.flatMap((breed) =>
   SERVICE_LOCATIONS.map((location) => {

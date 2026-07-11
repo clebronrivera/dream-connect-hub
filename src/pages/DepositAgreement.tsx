@@ -22,9 +22,9 @@ export default function DepositAgreement() {
     body = (
       <GateLanding
         title="Operator-only entry"
-        body="The deposit agreement form is reached via a personalized link sent by Dream Puppies after we accept your deposit request. Please start at the request form."
-        ctaHref="/request-deposit"
-        ctaLabel="Start a deposit request"
+        body="The deposit agreement form is reached via a personalized link sent by Dream Puppies after we've reviewed your inquiry. Please start by telling us about yourself."
+        ctaHref="/contact?subject=puppies"
+        ctaLabel="Tell us about yourself"
       />
     );
   } else {
@@ -60,8 +60,8 @@ function ValidatedDepositAgreement({ requestId }: { requestId: string }) {
       <GateLanding
         title="Could not verify reservation"
         body="There was a problem looking up your deposit link. Please try again, or contact us if the issue persists."
-        ctaHref="/request-deposit"
-        ctaLabel="Start a new deposit request"
+        ctaHref="/contact?subject=puppies"
+        ctaLabel="Tell us about yourself"
       />
     );
   }
@@ -130,8 +130,8 @@ function messageFor(reason: string): GateLandingProps {
     return {
       title: 'Reservation link not recognized',
       body: 'This deposit link is not associated with any active reservation. If you received it from us, please reach out and we\'ll resend a fresh link.',
-      ctaHref: '/request-deposit',
-      ctaLabel: 'Start a new deposit request',
+      ctaHref: '/contact?subject=puppies',
+      ctaLabel: 'Tell us about yourself',
     };
   }
   if (reason === 'Request already converted') {

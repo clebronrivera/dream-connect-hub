@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Tag, Heart, CalendarHeart, Phone, MessageCircle } from "lucide-react";
@@ -6,8 +6,16 @@ import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PuppyMediaCollage } from "@/components/puppy/PuppyMediaCollage";
 import { InquirePriceDialog } from "@/components/InquirePriceDialog";
+import { PuppyInterestForm } from "@/components/PuppyInterestForm";
 import { PriceIncludes } from "@/components/PriceIncludes";
 import { fetchPuppyBySlugOrId } from "@/lib/puppies-api";
 import { getPuppyMediaList } from "@/lib/puppy-display-utils";
@@ -20,6 +28,7 @@ import NotFound from "@/pages/NotFound";
 export default function PuppyDetail() {
   const { slug } = useParams<{ slug: string }>();
   const businessInfo = useBusinessInfoOrDefaults();
+  const [interestFormOpen, setInterestFormOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["puppy-detail", slug],
@@ -196,11 +205,13 @@ export default function PuppyDetail() {
                     Inquire about price
                   </Button>
                 </InquirePriceDialog>
-                <Button variant="outline" className="w-full border-white/25 bg-transparent text-white hover:bg-white/10" asChild>
-                  <Link to={`/request-deposit?puppy=${encodeURIComponent(puppy.id ?? "")}`}>
-                    <Heart className="mr-2 h-4 w-4" />
-                    Tell us about your home and we'll see if {puppy.name}'s a fit
-                  </Link>
+                <Button
+                  variant="outline"
+                  className="w-full border-white/25 bg-transparent text-white hover:bg-white/10"
+                  onClick={() => setInterestFormOpen(true)}
+                >
+                  <Heart className="mr-2 h-4 w-4" />
+                  Tell us about your home and we'll see if {puppy.name}'s a fit
                 </Button>
                 <div className="flex gap-2 pt-1">
                   <Button variant="outline" className="flex-1 border-white/25 bg-transparent text-white hover:bg-white/10" asChild>
@@ -224,6 +235,26 @@ export default function PuppyDetail() {
           </div>
         </section>
       </div>
+
+      <Dialog open={interestFormOpen} onOpenChange={setInterestFormOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tell us about your home</DialogTitle>
+            <DialogDescription>
+              {puppy.name} — {puppy.breed}
+              {ageWeeks != null && ` • ${ageWeeks} weeks`}
+            </DialogDescription>
+          </DialogHeader>
+          <PuppyInterestForm
+            initialPuppyId={puppy.id}
+            preSelectedPuppy={puppy}
+            puppies={[puppy]}
+            onSuccess={() => setInterestFormOpen(false)}
+            submitLabel="Send Inquiry"
+            compact
+          />
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

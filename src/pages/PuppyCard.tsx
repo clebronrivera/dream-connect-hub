@@ -132,12 +132,16 @@ export function PuppyCard({
           <InquirePriceDialog
             puppy={{ id: puppy.id, name: puppy.name, breed: puppy.breed }}
           >
-            <StickerButton className="flex-1">
+            <StickerButton className="flex-1 bg-[#ff3399] text-white hover:bg-[#ff1a8c]">
               <Tag className="h-4 w-4 mr-2" />
               Inquire about price
             </StickerButton>
           </InquirePriceDialog>
-          <StickerButton variant="outline" onClick={onSendInterest}>
+          <StickerButton
+            variant="outline"
+            className="border-white/25 bg-transparent text-white hover:bg-white/10"
+            onClick={onSendInterest}
+          >
             <Heart className="h-4 w-4 mr-2" />
             Send Interest
           </StickerButton>

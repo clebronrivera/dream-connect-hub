@@ -387,7 +387,6 @@ Disallow: /breeder/
 Disallow: /payment/
 Disallow: /agreements/
 Disallow: /deposit
-Disallow: /request-deposit
 Disallow: /__mockup/
 
 Sitemap: ${siteUrl}/sitemap.xml

@@ -54,7 +54,16 @@ export default function Contact() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [subject, setSubject] = useState("");
+  // Lazy-initialize from the URL so a direct link (e.g. /contact?subject=puppies)
+  // lands on the right tab immediately — the sync effect below only reacts to
+  // the param changing after mount, not the initial value.
+  const [subject, setSubject] = useState(() => {
+    const initial = searchParams.get("subject");
+    if (initial === SUBJECT_OTHER_CONSULTATION) return SUBJECT_OTHER_CONSULTATION;
+    if (initial === "upcoming-litter" || initial === SUBJECT_UPCOMING_LITTER) return SUBJECT_UPCOMING_LITTER;
+    if (initial === SUBJECT_PUPPY_INQUIRY) return SUBJECT_PUPPY_INQUIRY;
+    return "";
+  });
   const [upcomingLitterId, setUpcomingLitterId] = useState<string | null>(null);
   const [generalFormToken, setGeneralFormToken] = useState<string | null>(null);
   const businessInfo = useBusinessInfoOrDefaults();
@@ -83,6 +92,7 @@ export default function Contact() {
     if (subjectFromUrl === SUBJECT_OTHER_CONSULTATION) setSubject(SUBJECT_OTHER_CONSULTATION);
     if (subjectFromUrl === "upcoming-litter" || subjectFromUrl === SUBJECT_UPCOMING_LITTER)
       setSubject(SUBJECT_UPCOMING_LITTER);
+    if (subjectFromUrl === SUBJECT_PUPPY_INQUIRY) setSubject(SUBJECT_PUPPY_INQUIRY);
   }
 
   // Preselect litter from ?litter= id when on Upcoming Litter subject (adjust state during render)

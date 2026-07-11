@@ -57,7 +57,6 @@ const Newsletter = lazyWithRetry(() => import("./pages/admin/Newsletter"));
 const BusinessInfoPage = lazyWithRetry(() => import("./pages/admin/BusinessInfoPage"));
 const TrainingPlanPage = lazyWithRetry(() => import("./pages/TrainingPlanPage"));
 const DepositRequests = lazyWithRetry(() => import("./pages/admin/DepositRequests"));
-const RequestDeposit = lazyWithRetry(() => import("./pages/RequestDeposit"));
 const AgreementDownload = lazyWithRetry(() => import("./pages/AgreementDownload"));
 const ForgotPassword = lazyWithRetry(() => import("./pages/admin/ForgotPassword"));
 const ResetPassword = lazyWithRetry(() => import("./pages/admin/ResetPassword"));
@@ -127,7 +126,6 @@ export function AppRoutes() {
         <Route path="/deposit" element={<DepositAgreement />} />
         <Route path="/payment/:agreementId/:buyerToken" element={<PaymentDashboard />} />
         <Route path="/agreements/:agreementId/:buyerToken/download" element={<AgreementDownload />} />
-        <Route path="/request-deposit" element={<RequestDeposit />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/dreamy-reviews" element={<DreamyReviews />} />
         <Route path="/training-plan" element={<TrainingPlanPage />} />

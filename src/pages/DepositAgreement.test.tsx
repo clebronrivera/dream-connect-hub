@@ -50,9 +50,9 @@ describe('DepositAgreement gate', () => {
     expect(screen.getByRole('heading', { name: /operator-only entry/i })).toBeInTheDocument();
     expect(screen.queryByTestId('deposit-form')).not.toBeInTheDocument();
 
-    // CTA points back to the public intake form.
-    const cta = screen.getByRole('link', { name: /start a deposit request/i });
-    expect(cta).toHaveAttribute('href', '/request-deposit');
+    // CTA points back to the general inquiry form.
+    const cta = screen.getByRole('link', { name: /tell us about yourself/i });
+    expect(cta).toHaveAttribute('href', '/contact?subject=puppies');
 
     // Validation should not run without a requestId.
     expect(mockValidate).not.toHaveBeenCalled();
