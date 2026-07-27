@@ -75,7 +75,10 @@ export interface ProjectionRow {
 export type AgingActionKind =
   | 'request_stale'
   | 'agreement_unpaid_stale'
-  | 'reservation_pickup_overdue';
+  | 'reservation_pickup_overdue'
+  /** Puppy marked Sold but still missing its sale price. `dollars` carries the
+   *  LISTED price as a reference — the sale price is the thing that's absent. */
+  | 'puppy_signoff_incomplete';
 
 export interface AgingActionRow {
   kind: AgingActionKind;

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Clock, CalendarX2, Loader2, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Clock, CalendarX2, DollarSign, Loader2, ChevronRight } from 'lucide-react';
 import { useAdminAgingActions } from '@/hooks/use-admin-aging-actions';
 import type { AgingActionKind } from '@/lib/admin/insights-service';
 import { formatUsd } from '@/lib/format/currency';
@@ -27,6 +27,13 @@ function kindMeta(kind: AgingActionKind) {
         Icon: CalendarX2,
         bgClass: 'bg-rose-50 dark:bg-rose-950/40',
         textClass: 'text-rose-700 dark:text-rose-400',
+      };
+    case 'puppy_signoff_incomplete':
+      return {
+        label: 'Needs sale price',
+        Icon: DollarSign,
+        bgClass: 'bg-sky-50 dark:bg-sky-950/40',
+        textClass: 'text-sky-700 dark:text-sky-400',
       };
   }
 }
@@ -98,7 +105,14 @@ export function AgingActionList() {
                       <p className="text-sm font-medium truncate">{r.label}</p>
                       <p className="text-xs text-muted-foreground">
                         {meta.label} · {r.days_stale} day{r.days_stale === 1 ? '' : 's'}
-                        {r.dollars != null ? ` · ${formatUsd(r.dollars)}` : ''}
+                        {/* For a sold-puppy close-out the amount shown is the
+                            LISTED price, not the sale price — the sale price is
+                            precisely what's missing — so it's labelled. */}
+                        {r.dollars != null
+                          ? r.kind === 'puppy_signoff_incomplete'
+                            ? ` · listed ${formatUsd(r.dollars)}`
+                            : ` · ${formatUsd(r.dollars)}`
+                          : ''}
                       </p>
                     </div>
                   </div>

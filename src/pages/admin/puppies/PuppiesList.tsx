@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Puppy } from '@/lib/supabase';
 import { fetchAdminPuppies, deletePuppy } from '@/lib/admin/puppies-service';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { PuppyStatusCell } from '@/components/admin/PuppyStatusCell';
+import { PuppyCloseOutDialog } from '@/components/admin/PuppyCloseOutDialog';
+import { DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Pencil, Trash2, SlidersHorizontal, X } from 'lucide-react';
@@ -94,6 +97,8 @@ export default function PuppiesList() {
   const { toast } = useToast();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [manualCloseOut, setManualCloseOut] = useState<Puppy | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: puppies, isLoading } = useQuery({
     queryKey: ['admin-puppies'],
@@ -101,6 +106,33 @@ export default function PuppiesList() {
   });
 
   const allPuppies = (puppies ?? []) as PuppyWithLitter[];
+
+  // Deep link from the Dashboard's "Needs sale price" queue:
+  // /admin/puppies?closeout=<id> opens straight into that puppy's dialog.
+  //
+  // Derived from the URL rather than copied into state by an effect — the
+  // param IS the state, and mirroring it would mean a burst of setState on
+  // every arrival. Dismissing the dialog clears the param, which is what
+  // closes it.
+  const closeoutId = searchParams.get('closeout');
+  const linkedCloseOut = closeoutId
+    ? (allPuppies.find((p) => p.id === closeoutId) ?? null)
+    : null;
+  const closeOutPuppy = manualCloseOut ?? linkedCloseOut;
+
+  function dismissCloseOut() {
+    setManualCloseOut(null);
+    if (closeoutId) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('closeout');
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }
 
   // Derive unique filter options from all loaded puppies
   const litterOptions = useMemo(() => {
@@ -223,11 +255,42 @@ export default function PuppiesList() {
       },
     },
     { header: 'Gender', accessorKey: 'gender' as keyof Puppy },
-    { header: 'Status', accessorKey: 'status' as keyof Puppy },
+    {
+      header: 'Status / On site',
+      cell: (puppy: Puppy) => (
+        <PuppyStatusCell
+          puppy={puppy}
+          // Marking Sold from the table offers the close-out immediately —
+          // the operator is already thinking about this puppy. Dismissing it
+          // is fine; the Dashboard queue keeps it until the price is recorded.
+          onSoldRecorded={(saved) => setManualCloseOut(saved)}
+        />
+      ),
+    },
     {
       header: 'Price',
       accessorKey: 'final_price' as keyof Puppy,
-      cell: (puppy: Puppy) => `$${puppy.final_price || puppy.base_price || 0}`,
+      cell: (puppy: Puppy) => {
+        const listed = puppy.final_price || puppy.base_price || 0;
+        const sold = (puppy.status ?? '').toLowerCase() === 'sold';
+        if (sold && puppy.sale_price != null) {
+          return <span className="font-medium text-emerald-700">${puppy.sale_price}</span>;
+        }
+        if (sold) {
+          return (
+            <button
+              type="button"
+              onClick={() => setManualCloseOut(puppy)}
+              className="inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100"
+              aria-label={`Record sale price for ${puppy.name}`}
+            >
+              <DollarSign className="h-3 w-3" aria-hidden />
+              Add sale price
+            </button>
+          );
+        }
+        return `$${listed}`;
+      },
     },
     {
       header: 'Actions',
@@ -450,6 +513,15 @@ export default function PuppiesList() {
           </section>
         </>
       )}
+
+      <PuppyCloseOutDialog
+        // Keyed per puppy so each open starts from that row's own values
+        // rather than whatever the last one left behind.
+        key={closeOutPuppy?.id ?? 'closed'}
+        puppy={closeOutPuppy}
+        open={closeOutPuppy !== null}
+        onOpenChange={(o) => !o && dismissCloseOut()}
+      />
     </div>
   );
 }
