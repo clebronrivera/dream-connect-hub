@@ -26,6 +26,9 @@ const ALLOWED_MIME: Record<string, string> = {
   "image/webp": "webp",
 };
 
+// Photo kinds only — 'video' belongs to breeder-upload-video.
+const MEDIA_KINDS = new Set(["face", "back", "top", "paw", "candid"]);
+
 export async function handler(
   req: Request,
   adminOverride?: SupabaseClient,
@@ -55,6 +58,12 @@ export async function handler(
   const file = form.get("file");
   const kind = form.get("kind");
   const subjectId = form.get("subjectId");
+  // Optional puppy_media recording. Absent => legacy behaviour (upload only).
+  const record = form.get("record");
+  const mediaKind = form.get("mediaKind") ?? "candid";
+  const isPublic = form.get("isPublic") ?? "false";
+  const derivedFrom = form.get("derivedFrom");
+  const editOps = form.get("editOps");
 
   if (!(file instanceof File)) return json(400, { ok: false, error: "Missing file" });
   if (kind !== "puppy" && kind !== "parent")
@@ -85,7 +94,68 @@ export async function handler(
 
   const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
+  // Optional: also record the upload in puppy_media, so the caller doesn't have
+  // to make a second round trip and can't leave a file with no row behind it.
+  // Omitted entirely by legacy callers, whose behaviour is unchanged.
+  if (record === "1" && kind === "puppy") {
+    const mediaRow: Record<string, unknown> = {
+      puppy_id: subjectId,
+      media_type: "photo",
+      kind: MEDIA_KINDS.has(String(mediaKind)) ? mediaKind : "candid",
+      url: pub.publicUrl,
+      storage_bucket: BUCKET,
+      storage_path: path,
+      // Staging by default. Only the capture wizard, which replaces one
+      // known slot at a time, opts into publishing straight away.
+      is_public: isPublic === "true",
+      sort_order: await nextSortOrder(supabase, subjectId),
+    };
+    if (typeof derivedFrom === "string" && /^[0-9a-f-]{36}$/i.test(derivedFrom)) {
+      mediaRow.derived_from_media_id = derivedFrom;
+    }
+    if (typeof editOps === "string" && editOps.length > 0) {
+      try {
+        mediaRow.edit_ops = JSON.parse(editOps);
+      } catch {
+        return json(400, { ok: false, error: "editOps must be valid JSON" });
+      }
+    }
+
+    const { data: media, error: mediaErr } = await supabase
+      .from("puppy_media")
+      .insert(mediaRow)
+      .select("*")
+      .single();
+
+    if (mediaErr || !media) {
+      // Don't leave a file nobody has a handle on.
+      await supabase.storage.from(BUCKET).remove([path]);
+      return json(500, {
+        ok: false,
+        error: "Failed to record media row",
+        details: mediaErr?.message,
+      });
+    }
+
+    return json(200, { ok: true, path, publicUrl: pub.publicUrl, media });
+  }
+
   return json(200, { ok: true, path, publicUrl: pub.publicUrl });
+}
+
+/** Append to the end of the puppy's existing photos. Reordering is an explicit
+ *  operator action (reorderPuppyMedia), never a side effect of uploading. */
+async function nextSortOrder(supabase: SupabaseClient, puppyId: string): Promise<number> {
+  const { data } = await supabase
+    .from("puppy_media")
+    .select("sort_order")
+    .eq("puppy_id", puppyId)
+    .eq("media_type", "photo")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const top = data?.sort_order;
+  return typeof top === "number" ? top + 1 : 0;
 }
 
 // See breeder-login for the rationale of the arrow wrap.

@@ -53,6 +53,9 @@ export async function handler(
 
   const file = form.get("file");
   const subjectId = form.get("subjectId");
+  // Optional puppy_media recording. Absent => legacy behaviour (upload only).
+  const record = form.get("record");
+  const isPublic = form.get("isPublic") ?? "false";
 
   if (!(file instanceof File)) return json(400, { ok: false, error: "Missing file" });
   if (typeof subjectId !== "string" || !/^[0-9a-f-]{36}$/i.test(subjectId))
@@ -83,6 +86,35 @@ export async function handler(
     return json(500, { ok: false, error: "Upload failed", details: uploadErr.message });
 
   const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+
+  // See breeder-upload-photo for the rationale; same opt-in contract.
+  if (record === "1") {
+    const { data: media, error: mediaErr } = await supabase
+      .from("puppy_media")
+      .insert({
+        puppy_id: subjectId,
+        media_type: "video",
+        kind: "video",
+        url: pub.publicUrl,
+        storage_bucket: BUCKET,
+        storage_path: path,
+        is_public: isPublic === "true",
+        sort_order: 0,
+      })
+      .select("*")
+      .single();
+
+    if (mediaErr || !media) {
+      await supabase.storage.from(BUCKET).remove([path]);
+      return json(500, {
+        ok: false,
+        error: "Failed to record media row",
+        details: mediaErr?.message,
+      });
+    }
+
+    return json(200, { ok: true, path, publicUrl: pub.publicUrl, media });
+  }
 
   return json(200, { ok: true, path, publicUrl: pub.publicUrl });
 }

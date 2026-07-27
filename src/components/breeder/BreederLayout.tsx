@@ -6,7 +6,7 @@
 // need to go Home first to reach the Puppies tab.
 
 import { useNavigate, Outlet, useLocation, NavLink } from "react-router-dom";
-import { ArrowLeft, LogOut, Users, PawPrint, Heart, Home } from "lucide-react";
+import { ArrowLeft, Images, LogOut, Users, PawPrint, Heart, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { to: "/breeder",          label: "Home",    Icon: Home,     exact: true  },
   { to: "/breeder/litters",  label: "Litters", Icon: Heart,    exact: false },
   { to: "/breeder/puppies",  label: "Puppies", Icon: PawPrint, exact: false },
+  { to: "/breeder/photos",   label: "Photos",  Icon: Images,   exact: false },
   { to: "/breeder/parents",  label: "Parents", Icon: Users,    exact: false },
 ] as const;
 

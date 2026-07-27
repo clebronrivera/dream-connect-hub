@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, RotateCcw, StopCircle, Trash2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { uploadBreederVideo } from "@/lib/breeder/api";
+import { uploadBreederVideo, type PuppyMediaRow } from "@/lib/breeder/api";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 
 const MAX_DURATION_MS = 10_000;
@@ -23,7 +23,16 @@ export interface VideoCaptureSlotProps {
   label: string;
   subjectId: string;
   value?: string | null;
-  onUploaded: (result: { path: string; publicUrl: string } | null) => void;
+  /** `null` means the operator cleared the existing video. */
+  onUploaded: (
+    result: { path: string; publicUrl: string; media?: PuppyMediaRow } | null,
+  ) => void;
+  /** Create a puppy_media video row as part of the upload. Pass only when
+   *  there is no existing video row — otherwise the parent replaces that row
+   *  instead, so recording here would leave a second video behind. */
+  recordMedia?: boolean;
+  /** Only meaningful with recordMedia. Defaults to staging. */
+  isPublic?: boolean;
 }
 
 type Phase = "idle" | "recording" | "preview" | "uploading";
@@ -33,6 +42,8 @@ export function VideoCaptureSlot({
   subjectId,
   value,
   onUploaded,
+  recordMedia,
+  isPublic,
 }: VideoCaptureSlotProps) {
   const { session } = useBreederAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -176,6 +187,8 @@ export function VideoCaptureSlot({
       token: session.token,
       file: draftFile,
       subjectId,
+      record: recordMedia,
+      isPublic,
     });
     if (!res.ok) {
       setError(res.error);
