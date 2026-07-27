@@ -86,7 +86,7 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.0",
     "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.23",
     "sharp": "^0.35.3",
