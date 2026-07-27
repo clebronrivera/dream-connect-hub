@@ -1,17 +1,19 @@
-// /breeder/photos — Bulk puppy photo manager.
+// /breeder/photos — the puppy media library.
 //
-// One scrollable page that lists every puppy with all of its uploaded
-// pictures. Under each picture the breeder can tap to replace it (pick from
-// the phone's library or take a new shot) without ever leaving the page —
-// minimising the back-and-forth of the per-puppy capture wizard. Replacing a
-// photo uploads + swaps it in place and retires the old file server-side.
+// One scrollable list of every puppy. Tapping a puppy opens its media manager,
+// which splits that puppy's pictures into two lanes: what's live on the public
+// site, and what's staged. New uploads always land in staging, so the operator
+// can dump a whole day's shooting in here and curate afterwards without
+// anything reaching buyers half-finished.
+//
+// Cards fetch their media lazily — a 30-puppy roster shouldn't fire 30
+// requests when only one puppy is being worked on.
 //
 // Sortable by name, litter, age, or breed.
 
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, PawPrint } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -20,11 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { EditablePuppyPhoto } from "@/components/breeder/EditablePuppyPhoto";
+import { PuppyMediaManagerCard } from "@/components/breeder/PuppyMediaManagerCard";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
   listAllBreederPuppies,
-  type BreederPuppyRow,
   type BreederPuppyWithLitter,
 } from "@/lib/breeder/api";
 
@@ -85,9 +86,11 @@ function sortPuppies(list: BreederPuppyWithLitter[], key: SortKey): BreederPuppy
 
 export default function BreederPhotos() {
   const { session } = useBreederAuth();
-  const queryClient = useQueryClient();
   const [sortKey, setSortKey] = useState<SortKey>("litter");
   const [showSold, setShowSold] = useState(false);
+  // Which puppies are open. Several can be open at once — the operator often
+  // works through a litter — and each fetches its own media on first open.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const { data, isLoading, error } = useQuery({
     queryKey: ALL_PUPPIES_QK,
@@ -100,16 +103,13 @@ export default function BreederPhotos() {
     },
   });
 
-  // Merge the saved puppy row back into the cached roster so the new photo
-  // shows immediately without a refetch.
-  function applyUpdate(updated: BreederPuppyRow) {
-    queryClient.setQueryData<BreederPuppyWithLitter[]>(ALL_PUPPIES_QK, (prev) =>
-      (prev ?? []).map((p) =>
-        p.id === updated.id
-          ? { ...p, photos: updated.photos, primary_photo: updated.primary_photo }
-          : p,
-      ),
-    );
+  function toggleExpanded(puppyId: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(puppyId)) next.delete(puppyId);
+      else next.add(puppyId);
+      return next;
+    });
   }
 
   const visible = useMemo(() => {
@@ -144,10 +144,10 @@ export default function BreederPhotos() {
   return (
     <div className="mx-auto max-w-screen-sm px-4 py-6 space-y-5">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold">Update puppy pictures</h1>
+        <h1 className="text-2xl font-bold">Puppy pictures</h1>
         <p className="text-sm text-muted-foreground">
-          Tap any photo to replace it — pick from your phone or take a new one.
-          The old picture is retired automatically.
+          Tap a puppy to add photos from your phone, then choose which ones go
+          on the site. New pictures wait in staging until you publish them.
         </p>
       </header>
 
@@ -178,52 +178,23 @@ export default function BreederPhotos() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {visible.map((puppy) => {
-            const photos = (puppy.photos ?? []).filter(
-              (u): u is string => typeof u === "string" && u.length > 0,
-            );
-            return (
-              <Card key={puppy.id} className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-lg font-semibold">
-                      {puppy.name || "(no name)"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {[puppy.gender, puppy.breed].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {litterLabel(puppy)} · {ageLabel(puppy.date_of_birth)}
-                    </p>
-                  </div>
-                  {puppy.status && puppy.status !== "Available" && (
-                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      {puppy.status}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {photos.map((url, i) => (
-                    <EditablePuppyPhoto
-                      key={url}
-                      puppyId={puppy.id}
-                      url={url}
-                      isPrimary={i === 0}
-                      onUpdated={applyUpdate}
-                    />
-                  ))}
-                  {/* Trailing "add photo" slot */}
-                  <EditablePuppyPhoto
-                    puppyId={puppy.id}
-                    url={null}
-                    onUpdated={applyUpdate}
-                  />
-                </div>
-              </Card>
-            );
-          })}
+        <div className="space-y-3">
+          {visible.map((puppy) => (
+            <PuppyMediaManagerCard
+              key={puppy.id}
+              puppy={puppy}
+              expanded={expanded.has(puppy.id)}
+              onToggle={() => toggleExpanded(puppy.id)}
+              subtitle={[
+                [puppy.gender, puppy.breed].filter(Boolean).join(" · "),
+                litterLabel(puppy),
+                ageLabel(puppy.date_of_birth),
+                puppy.status && puppy.status !== "Available" ? puppy.status : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          ))}
         </div>
       )}
 

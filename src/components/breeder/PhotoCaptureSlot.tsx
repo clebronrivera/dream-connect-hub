@@ -11,7 +11,11 @@
 import { useRef, useState } from "react";
 import { Camera, Loader2, RotateCcw } from "lucide-react";
 import { compressPhoto } from "@/lib/breeder/compressImage";
-import { uploadBreederPhoto } from "@/lib/breeder/api";
+import {
+  uploadBreederPhoto,
+  type PuppyMediaKind,
+  type PuppyMediaRow,
+} from "@/lib/breeder/api";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 
 export interface PhotoCaptureSlotProps {
@@ -19,8 +23,24 @@ export interface PhotoCaptureSlotProps {
   kind: "puppy" | "parent";
   subjectId: string;
   value?: string | null; // current publicUrl, if any
-  onUploaded: (result: { path: string; publicUrl: string }) => void;
+  onUploaded: (result: {
+    path: string;
+    publicUrl: string;
+    media?: PuppyMediaRow;
+  }) => void;
   disabled?: boolean;
+  /**
+   * Create a puppy_media row of this kind as part of the upload.
+   *
+   * Only pass `recordMedia` when the slot is EMPTY. When the slot already has
+   * a media row the parent replaces that row instead, so recording here would
+   * leave two rows of the same kind and the photo would show twice on the
+   * public site.
+   */
+  recordMedia?: boolean;
+  mediaKind?: Exclude<PuppyMediaKind, "video">;
+  /** Only meaningful with recordMedia. Defaults to staging. */
+  isPublic?: boolean;
 }
 
 export function PhotoCaptureSlot({
@@ -30,6 +50,9 @@ export function PhotoCaptureSlot({
   value,
   onUploaded,
   disabled,
+  recordMedia,
+  mediaKind,
+  isPublic,
 }: PhotoCaptureSlotProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { session } = useBreederAuth();
@@ -53,6 +76,9 @@ export function PhotoCaptureSlot({
         file: compressed,
         kind,
         subjectId,
+        record: recordMedia,
+        mediaKind,
+        isPublic,
       });
       if (!res.ok) {
         setError(res.error);

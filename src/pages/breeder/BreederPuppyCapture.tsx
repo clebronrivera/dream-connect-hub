@@ -50,11 +50,17 @@ import { PhotoCaptureSlot } from "@/components/breeder/PhotoCaptureSlot";
 import { VideoCaptureSlot } from "@/components/breeder/VideoCaptureSlot";
 import { useBreederAuth } from "@/hooks/use-breeder-auth";
 import {
+  deletePuppyMedia,
   listAllBreederPuppies,
   listLitterPuppies,
+  listPuppyMedia,
+  replacePuppyMedia,
+  setPuppyMediaPrimary,
   updatePuppy,
   type BreederPuppyRow,
+  type PuppyMediaRow,
 } from "@/lib/breeder/api";
+import { selectSlotMedia, selectVideoMedia, type PhotoSlot } from "@/lib/breeder/mediaSlots";
 import { getSuggestedPuppyName } from "@/lib/puppy-name-generator";
 import {
   getStepForPuppy,
@@ -65,10 +71,10 @@ import {
 const PUPPIES_QK = (litterId: string) => ["breeder", "litterPuppies", litterId] as const;
 const PUPPY_QK = (id: string) => ["breeder", "puppy", id] as const;
 const HOME_QK = ["breeder", "home"] as const;
+const MEDIA_QK = (puppyId: string) => ["breeder", "puppyMedia", puppyId] as const;
 
 type Step = "name" | "face" | "back" | "top" | "paw" | "video" | "price" | "notes" | "status" | "done";
 const STEPS: Step[] = ["name", "face", "back", "top", "paw", "video", "price", "notes", "status", "done"];
-const PHOTO_STEPS: Step[] = ["face", "back", "top", "paw"];
 
 const STEP_LABELS: Record<Step, string> = {
   name: "Name",
@@ -93,11 +99,8 @@ function isStep(s: string | null): s is Step {
   return s !== null && (STEPS as string[]).includes(s);
 }
 
-interface PhotosState {
-  face?: string;
-  back?: string;
-  top?: string;
-  paw?: string;
+function isPhotoSlot(s: Step): s is PhotoSlot {
+  return s === "face" || s === "back" || s === "top" || s === "paw";
 }
 
 export default function BreederPuppyCapture() {
@@ -206,6 +209,7 @@ export default function BreederPuppyCapture() {
         queryClient.invalidateQueries({ queryKey: ["breeder", "allPuppies"] });
         queryClient.invalidateQueries({ queryKey: HOME_QK });
         queryClient.invalidateQueries({ queryKey: PUPPY_QK(puppyId) });
+        queryClient.invalidateQueries({ queryKey: MEDIA_QK(puppyId) });
       }}
     />
   );
@@ -259,20 +263,22 @@ function CaptureForm({
     if (litterId) setLastPuppyForLitter(litterId, puppyId);
   }, [stepIdx, puppyId, litterId]);
 
-  // Derive photo state from the row. We pre-fill slot URLs in order the
-  // first time, then track local capture results as the user replaces.
-  const initialPhotos: PhotosState = useMemo(() => {
-    const arr = puppy.photos ?? [];
-    return {
-      face: puppy.primary_photo ?? arr[0],
-      back: arr[1],
-      top: arr[2],
-      paw: arr[3],
-    };
-  }, [puppy.photos, puppy.primary_photo]);
+  // Photo slots come from puppy_media.kind, not from array position. The old
+  // positional convention (photos[0] is the face shot) silently broke on any
+  // puppy that gained a fifth photo, and several live puppies were already in
+  // that state.
+  const { data: media = [] } = useQuery({
+    queryKey: MEDIA_QK(puppyId),
+    enabled: !!session,
+    queryFn: async () => {
+      if (!session) throw new Error("No breeder session");
+      const res = await listPuppyMedia(session.token, puppyId);
+      if (!res.ok) throw new Error(res.error);
+      return res.data.media;
+    },
+  });
 
-  const [photos, setPhotos] = useState<PhotosState>(initialPhotos);
-  const [videoUrl, setVideoUrl] = useState<string | null>(puppy.video_path);
+  const videoMedia = useMemo(() => selectVideoMedia(media), [media]);
 
   const patchMut = useMutation({
     mutationFn: async (fields: Parameters<typeof updatePuppy>[2]) => {
@@ -285,11 +291,17 @@ function CaptureForm({
     onError: (err: Error) => toast.error(err.message),
   });
 
-  function buildPhotosArray(next: PhotosState): string[] {
-    return [next.face, next.back, next.top, next.paw].filter(
-      (u): u is string => typeof u === "string" && u.length > 0,
-    );
-  }
+  // Post-upload media bookkeeping. Kept separate from patchMut because it
+  // never touches the puppies row directly — the DB projects the arrays.
+  const mediaMut = useMutation({
+    mutationFn: async (run: (token: string) => Promise<{ ok: boolean; error?: string }>) => {
+      if (!session) throw new Error("No session");
+      const res = await run(session.token);
+      if (!res.ok) throw new Error(res.error ?? "Failed to update media");
+    },
+    onSuccess: () => onPersist(),
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   function suggestName() {
     setName(getSuggestedPuppyName(puppy.gender, otherNames));
@@ -349,24 +361,43 @@ function CaptureForm({
     }
   }
 
-  function onVideoUploaded(result: { path: string; publicUrl: string } | null) {
-    const next = result?.publicUrl ?? null;
-    setVideoUrl(next);
-    patchMut.mutate({ video_path: next });
+  function onVideoUploaded(
+    result: { path: string; publicUrl: string; media?: PuppyMediaRow } | null,
+  ) {
+    // Cleared: drop the row (and its file). The projection empties video_path.
+    if (result === null) {
+      if (videoMedia) mediaMut.mutate((token) => deletePuppyMedia(token, videoMedia.id));
+      return;
+    }
+    // Retake over an existing video: repoint the row rather than adding a
+    // second one, since only one video projects to the puppy.
+    if (videoMedia) {
+      mediaMut.mutate((token) => replacePuppyMedia(token, videoMedia.id, result.publicUrl));
+      return;
+    }
+    // Fresh upload already recorded its row server-side.
+    onPersist();
   }
 
-  function onPhotoUploaded(slot: keyof PhotosState, publicUrl: string) {
-    setPhotos((prev) => {
-      const next = { ...prev, [slot]: publicUrl };
-      const photosArr = buildPhotosArray(next);
-      const patch: Parameters<typeof updatePuppy>[2] = { photos: photosArr };
-      if (slot === "face") patch.primary_photo = publicUrl;
-      // Visibility no longer flips on first photo upload — the operator
-      // controls it explicitly on the "status" step at the end so a
-      // half-finished puppy doesn't land on the public site.
-      patchMut.mutate(patch);
-      return next;
-    });
+  function onPhotoUploaded(
+    slot: PhotoSlot,
+    existing: PuppyMediaRow | null,
+    result: { publicUrl: string; media?: PuppyMediaRow },
+  ) {
+    // Retake: repoint the existing row so the slot keeps its kind, order, and
+    // primary flag, and the old file is retired.
+    if (existing) {
+      mediaMut.mutate((token) => replacePuppyMedia(token, existing.id, result.publicUrl));
+      return;
+    }
+    // First shot for this slot — the row was created by the upload itself.
+    // The face shot additionally becomes the puppy's main photo, preserving
+    // the old behaviour where capturing the face set primary_photo.
+    if (slot === "face" && result.media) {
+      mediaMut.mutate((token) => setPuppyMediaPrimary(token, result.media!.id));
+      return;
+    }
+    onPersist();
   }
 
   async function goToStep(nextIdx: number) {
@@ -399,6 +430,7 @@ function CaptureForm({
   }
 
   const step = STEPS[stepIdx]!;
+  const slotMedia = isPhotoSlot(step) ? selectSlotMedia(media, step) : null;
 
   return (
     <div className="mx-auto max-w-screen-sm px-4 py-6">
@@ -444,15 +476,18 @@ function CaptureForm({
           </>
         )}
 
-        {PHOTO_STEPS.includes(step) && (
+        {isPhotoSlot(step) && (
           <PhotoCaptureSlot
             label={STEP_LABELS[step]}
             kind="puppy"
             subjectId={puppyId}
-            value={photos[step as keyof PhotosState] ?? null}
-            onUploaded={({ publicUrl }) =>
-              onPhotoUploaded(step as keyof PhotosState, publicUrl)
-            }
+            value={slotMedia?.url ?? null}
+            // Record a new row only when the slot is empty; a retake replaces
+            // the existing row instead, so the kind never duplicates.
+            recordMedia={!slotMedia}
+            mediaKind={step}
+            isPublic
+            onUploaded={(result) => onPhotoUploaded(step, slotMedia, result)}
           />
         )}
 
@@ -460,7 +495,9 @@ function CaptureForm({
           <VideoCaptureSlot
             label="Short video"
             subjectId={puppyId}
-            value={videoUrl}
+            value={videoMedia?.url ?? null}
+            recordMedia={!videoMedia}
+            isPublic
             onUploaded={onVideoUploaded}
           />
         )}

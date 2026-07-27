@@ -62,9 +62,35 @@ async function callBreederWrite<T>(
   op: string,
   payload?: unknown,
 ): Promise<BreederWriteResult<T>> {
+  return callBreederFn<T>("breeder-write", token, op, payload);
+}
+
+/**
+ * puppy_media ops live on their own edge function rather than on the
+ * breeder-write switchboard.
+ *
+ * breeder-write is load-bearing for every breeder screen (home, roster, puppy
+ * create/update, parents). Media is a newer, self-contained concern, so it
+ * gets its own deployable — a bad media deploy can't take the rest of the
+ * portal down with it. Identical auth and envelope, different function name.
+ */
+async function callBreederMedia<T>(
+  token: string,
+  op: string,
+  payload?: unknown,
+): Promise<BreederWriteResult<T>> {
+  return callBreederFn<T>("breeder-media", token, op, payload);
+}
+
+async function callBreederFn<T>(
+  fnName: "breeder-write" | "breeder-media",
+  token: string,
+  op: string,
+  payload?: unknown,
+): Promise<BreederWriteResult<T>> {
   const { data, error } = await supabase.functions.invoke<
     { ok: true; data: T } | { ok: false; error: string }
-  >("breeder-write", {
+  >(fnName, {
     body: { op, payload },
     headers: { "x-breeder-token": token },
   });
@@ -261,28 +287,129 @@ export function updatePuppy(
   return callBreederWrite<BreederPuppyRow>(token, "updatePuppy", { puppyId, fields });
 }
 
-/**
- * Atomically swap one photo on a puppy. The breeder-write `replacePuppyPhoto`
- * op updates the photos array + primary_photo and retires the old storage
- * object (unless it's still referenced elsewhere). Pass `oldUrl: null` to add
- * a new photo without replacing one.
- */
-export function replacePuppyPhoto(
+// The legacy `replacePuppyPhoto` wrapper was removed here: it wrote
+// puppies.photos directly, which puppy_media now owns. Its only consumer was
+// EditablePuppyPhoto, superseded by MediaTile. The breeder-write op itself is
+// left deployed and untouched so any stale client bundle keeps working — the
+// arrays->media trigger reconciles whatever it writes.
+
+// ---------------------------------------------------------------------------
+// puppy_media
+//
+// One row per photo/video. This is the source of truth; puppies.photos /
+// primary_photo / video_path are a projection of the `is_public` rows,
+// maintained by a DB trigger. That's why every mutating op below hands back
+// BOTH the media list and the refreshed puppy row — writing media rewrites the
+// puppy's arrays, and the caller usually holds both in its query cache.
+// ---------------------------------------------------------------------------
+
+export type PuppyMediaKind = "face" | "back" | "top" | "paw" | "candid" | "video";
+
+export interface PuppyMediaRow {
+  id: string;
+  puppy_id: string;
+  media_type: "photo" | "video";
+  kind: PuppyMediaKind;
+  url: string;
+  storage_bucket: string | null;
+  storage_path: string | null;
+  /** false = staging (breeder portal only); true = live on the public site. */
+  is_public: boolean;
+  is_primary: boolean;
+  sort_order: number;
+  /** Set on AI-edited variants; points at the untouched original. */
+  derived_from_media_id: string | null;
+  edit_ops: unknown | null;
+  width: number | null;
+  height: number | null;
+  captured_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Shape returned by every mutating media op. */
+export interface PuppyMediaMutation {
+  media: PuppyMediaRow | PuppyMediaRow[];
+  puppy: BreederPuppyRow | null;
+}
+
+export function listPuppyMedia(
   token: string,
-  args: { puppyId: string; oldUrl: string | null; newUrl: string },
-): Promise<BreederWriteResult<BreederPuppyRow>> {
-  return callBreederWrite<BreederPuppyRow>(token, "replacePuppyPhoto", args);
+  puppyId: string,
+): Promise<BreederWriteResult<{ media: PuppyMediaRow[] }>> {
+  return callBreederMedia(token, "listPuppyMedia", { puppyId });
+}
+
+/** Change a photo's label, staging state, or position. To move the primary use
+ *  setPuppyMediaPrimary — this op rejects `is_primary` so the partial unique
+ *  index is never raced. Hiding the current primary demotes it automatically. */
+export function updatePuppyMedia(
+  token: string,
+  mediaId: string,
+  patch: Partial<{ kind: PuppyMediaKind; is_public: boolean; sort_order: number }>,
+): Promise<BreederWriteResult<{ media: PuppyMediaRow; puppy: BreederPuppyRow | null }>> {
+  return callBreederMedia(token, "updatePuppyMedia", { mediaId, patch });
+}
+
+/** Promote one photo to the puppy's main image. Publishes it as a side effect —
+ *  the primary has to be visible for the public site to use it. */
+export function setPuppyMediaPrimary(
+  token: string,
+  mediaId: string,
+): Promise<BreederWriteResult<{ media: PuppyMediaRow[]; puppy: BreederPuppyRow | null }>> {
+  return callBreederMedia(token, "setPuppyMediaPrimary", { mediaId });
+}
+
+/** Rewrite sort_order to match `orderedIds` exactly. Pass the full list. */
+export function reorderPuppyMedia(
+  token: string,
+  puppyId: string,
+  orderedIds: string[],
+): Promise<BreederWriteResult<{ media: PuppyMediaRow[]; puppy: BreederPuppyRow | null }>> {
+  return callBreederMedia(token, "reorderPuppyMedia", { puppyId, orderedIds });
+}
+
+/** Bulk publish/unpublish — the "publish these 3 staged photos" action. */
+export function setPuppyMediaVisibility(
+  token: string,
+  args: { puppyId: string; mediaIds: string[]; isPublic: boolean },
+): Promise<BreederWriteResult<{ media: PuppyMediaRow[]; puppy: BreederPuppyRow | null }>> {
+  return callBreederMedia(token, "setPuppyMediaVisibility", args);
+}
+
+/** Point an existing media row at a freshly-uploaded file, keeping its kind,
+ *  order, and flags. Retires the old storage object. */
+export function replacePuppyMedia(
+  token: string,
+  mediaId: string,
+  newUrl: string,
+): Promise<BreederWriteResult<{ media: PuppyMediaRow; puppy: BreederPuppyRow | null }>> {
+  return callBreederMedia(token, "replacePuppyMedia", { mediaId, newUrl });
+}
+
+export function deletePuppyMedia(
+  token: string,
+  mediaId: string,
+): Promise<
+  BreederWriteResult<{ id: string; media: PuppyMediaRow[]; puppy: BreederPuppyRow | null }>
+> {
+  return callBreederMedia(token, "deletePuppyMedia", { mediaId });
 }
 
 export interface UploadVideoResult {
   path: string;
   publicUrl: string;
+  /** Present only when `record` was requested. */
+  media?: PuppyMediaRow;
 }
 
 export async function uploadBreederVideo(args: {
   token: string;
   file: File;
   subjectId: string;
+  /** Also create the puppy_media row server-side. See uploadBreederPhoto. */
+  record?: boolean;
+  isPublic?: boolean;
 }): Promise<
   | { ok: true; data: UploadVideoResult }
   | { ok: false; error: string; status?: number }
@@ -290,6 +417,10 @@ export async function uploadBreederVideo(args: {
   const form = new FormData();
   form.append("file", args.file);
   form.append("subjectId", args.subjectId);
+  if (args.record) {
+    form.append("record", "1");
+    form.append("isPublic", args.isPublic ? "true" : "false");
+  }
 
   const url = `${appEnv.supabaseUrl}/functions/v1/breeder-upload-video`;
   const anonKey = appEnv.supabaseAnonKey ?? "";
@@ -305,7 +436,13 @@ export async function uploadBreederVideo(args: {
     return { ok: false, error: e instanceof Error ? e.message : "Network error" };
   }
 
-  let body: { ok: boolean; path?: string; publicUrl?: string; error?: string };
+  let body: {
+    ok: boolean;
+    path?: string;
+    publicUrl?: string;
+    media?: PuppyMediaRow;
+    error?: string;
+  };
   try {
     body = await res.json();
   } catch {
@@ -318,7 +455,10 @@ export async function uploadBreederVideo(args: {
       status: res.status,
     };
   }
-  return { ok: true, data: { path: body.path, publicUrl: body.publicUrl } };
+  return {
+    ok: true,
+    data: { path: body.path, publicUrl: body.publicUrl, media: body.media },
+  };
 }
 
 export interface BreederParentRow {
@@ -401,6 +541,8 @@ export function createUpcomingLitter(
 export interface UploadPhotoResult {
   path: string;
   publicUrl: string;
+  /** Present only when `record` was requested. */
+  media?: PuppyMediaRow;
 }
 
 export async function uploadBreederPhoto(args: {
@@ -408,6 +550,18 @@ export async function uploadBreederPhoto(args: {
   file: File;
   kind: "puppy" | "parent";
   subjectId: string;
+  /**
+   * Also create the puppy_media row server-side, in the same request. Prefer
+   * this over uploading and then patching separately: it can't half-fail into
+   * a file with no row pointing at it. Puppy subjects only.
+   */
+  record?: boolean;
+  mediaKind?: Exclude<PuppyMediaKind, "video">;
+  /** Defaults to false — new photos land in staging, not on the public site. */
+  isPublic?: boolean;
+  /** Set when saving an AI-edited variant, to preserve lineage. */
+  derivedFrom?: string;
+  editOps?: unknown;
 }): Promise<
   | { ok: true; data: UploadPhotoResult }
   | { ok: false; error: string; status?: number }
@@ -416,6 +570,13 @@ export async function uploadBreederPhoto(args: {
   form.append("file", args.file);
   form.append("kind", args.kind);
   form.append("subjectId", args.subjectId);
+  if (args.record) {
+    form.append("record", "1");
+    form.append("mediaKind", args.mediaKind ?? "candid");
+    form.append("isPublic", args.isPublic ? "true" : "false");
+    if (args.derivedFrom) form.append("derivedFrom", args.derivedFrom);
+    if (args.editOps !== undefined) form.append("editOps", JSON.stringify(args.editOps));
+  }
 
   // supabase.functions.invoke wraps the body to JSON by default and can't
   // be coerced to multipart cleanly. Build the request manually so the
@@ -438,7 +599,13 @@ export async function uploadBreederPhoto(args: {
     return { ok: false, error: e instanceof Error ? e.message : "Network error" };
   }
 
-  let body: { ok: boolean; path?: string; publicUrl?: string; error?: string };
+  let body: {
+    ok: boolean;
+    path?: string;
+    publicUrl?: string;
+    media?: PuppyMediaRow;
+    error?: string;
+  };
   try {
     body = await res.json();
   } catch {
@@ -456,7 +623,10 @@ export async function uploadBreederPhoto(args: {
       status: res.status,
     };
   }
-  return { ok: true, data: { path: body.path, publicUrl: body.publicUrl } };
+  return {
+    ok: true,
+    data: { path: body.path, publicUrl: body.publicUrl, media: body.media },
+  };
 }
 
 export async function setBreederPasscode(

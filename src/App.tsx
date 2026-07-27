@@ -62,6 +62,9 @@ const ForgotPassword = lazyWithRetry(() => import("./pages/admin/ForgotPassword"
 const ResetPassword = lazyWithRetry(() => import("./pages/admin/ResetPassword"));
 const HeroV3Mockup = lazyWithRetry(() => import("./pages/dev/HeroV3Mockup"));
 const UpcomingLittersV2Mockup = lazyWithRetry(() => import("./pages/dev/UpcomingLittersV2Mockup"));
+const BreederMediaManagerMockup = lazyWithRetry(
+  () => import("./pages/dev/BreederMediaManagerMockup"),
+);
 const BreederPasscodeSettings = lazyWithRetry(() => import("./pages/admin/settings/BreederPasscodeSettings"));
 const BreederLogin = lazyWithRetry(() => import("./pages/breeder/BreederLogin"));
 const BreederHome = lazyWithRetry(() => import("./pages/breeder/BreederHome"));
@@ -137,6 +140,7 @@ export function AppRoutes() {
           <>
             <Route path="/__mockup/hero-v3" element={<HeroV3Mockup />} />
             <Route path="/__mockup/upcoming-v2" element={<UpcomingLittersV2Mockup />} />
+            <Route path="/__mockup/breeder-media-manager" element={<BreederMediaManagerMockup />} />
           </>
         )}
 
