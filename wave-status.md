@@ -85,3 +85,36 @@ and **Smoke-tested** columns as each step lands in production.
 3. Confirm `PUBLIC_SITE_URL` Edge Function secret is set to `https://puppyheavenllc.com`.
 4. Confirm `RESEND_API_KEY`, `NOTIFY_EMAIL`, `RESEND_FROM` secrets are current.
 5. Run the full smoke test per `docs/ops/reservation-flow-smoke-test.md` on staging before promoting to production.
+
+---
+
+## Puppy media library + admin close-out (2026-07-26)
+
+Shipped and live. Migrations applied to production and edge functions deployed
+at merge time, so nothing here is waiting on an operator step.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `puppy_media` table | ✅ Applied + deployed | `20260726000000`. One row per photo/video with `kind`, `sort_order`, `is_public`, `is_primary`, `derived_from_media_id`. Admin-only RLS. |
+| Two-way sync with `puppies.photos` | ✅ Applied + deployed | `20260726000001`. `puppies.photos` / `primary_photo` / `video_path` are now a projection of the public media rows. Triggers scoped `OF photos, primary_photo, video_path`, so status churn and litter bulk edits never fire sync. |
+| Backfill | ✅ Applied | `20260726000002`. Self-verifying — refuses to commit unless every puppy's rendered photo list is byte-identical. Result: 0 mismatches across 45 puppies, 131 media rows. |
+| `breeder-media` edge function | ✅ Deployed (v1) | New, standalone. Media ops deliberately NOT added to `breeder-write`, which is load-bearing for every breeder screen. |
+| `breeder-upload-photo` / `-video` | ✅ Deployed (v4) | Optional `record=1` also creates the `puppy_media` row server-side. Absent `record`, behaviour is unchanged. |
+| `breeder-write` | ⬜ Not redeployed — intentional | Left exactly as-is. The legacy `replacePuppyPhoto` op stays live so stale client bundles keep working; the arrays→media trigger reconciles whatever they write. |
+| Breeder media manager (`/breeder/photos`) | ✅ Merged + deployed | Two lanes (On the site / Staging), multi-select from the phone library, bulk publish. Now has its own nav tab — the route previously had none. |
+| In-browser edit sheet | ✅ Merged + deployed | Crop/rotate, enhance, on-device background removal. Saves as a new *staged* row with `derived_from_media_id`; originals are never overwritten. |
+| Inline puppy status + visibility | ✅ Merged + deployed | `/admin/puppies`. Picking a non-Available status also pulls the puppy off the site in one write (via `puppies_enforce_visibility`). |
+| Sold-puppy close-out queue | ✅ Applied + deployed | `20260726000003` adds a 4th `get_aging_action_items()` kind. Surfaced 22 real items on day one (38–153 days stale) — every sold puppy was missing its `sale_price`. |
+
+### Still open, needs a human decision
+
+| PR | Why it isn't merged |
+|----|--------------------|
+| #85 Security audit remediation (Phases 1–3) | **Conflicting** with `main`, last touched 2026-05-26. +535/−164 across 22 files. Needs conflict resolution and a re-review; overlaps the RLS/CORS work that has since landed. |
+| #55 Galactic public-page redesign | **Conflicting**, last touched 2026-05-05. +2372/−1253 across 36 files. Changes the public site's appearance — wants an explicit design sign-off, not an autonomous merge. |
+| #31 react-router-dom 6 → 7 | Major version, breaking changes. Also the only remaining source of the 2 moderate `npm audit` findings. |
+| #37, #36, #30, #29, #27, #33 | Conflicting dependabot bumps (react-hook-form, react-dom, lucide-react, autoprefixer, sonner, vite). Several are majors — `lucide-react` 0.462 → 1.x and `sonner` 1.x → 2.x both need an icon/API sweep. |
+| #102, #97 | GitHub Actions bumps (`setup-node`, `checkout` v6 → v7). CI-only, low risk, but untested here. |
+
+`npm audit` went from 5 findings (2 high) to 3 (0 high) — `brace-expansion`,
+`sucrase`, and `postcss` patched via #107 and #106.
