@@ -19,9 +19,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { setBreederPasscode } from "@/lib/breeder/api";
 import { supabase } from "@/lib/supabase";
-import type { BreederSessionRow } from "@/types/breeder";
+import type { BreederPinRow, BreederSessionRow } from "@/types/breeder";
 
 const SESSIONS_QK = ["breeder", "sessions"] as const;
+const PINS_QK = ["breeder", "pins"] as const;
 
 async function fetchSessions(): Promise<BreederSessionRow[]> {
   const { data, error } = await supabase
@@ -30,6 +31,20 @@ async function fetchSessions(): Promise<BreederSessionRow[]> {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as BreederSessionRow[];
+}
+
+async function fetchPins(): Promise<BreederPinRow[]> {
+  const { data, error } = await supabase
+    .from("breeder_pins")
+    .select("id, label, updated_at")
+    .order("label", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as BreederPinRow[];
+}
+
+async function deletePin(id: string): Promise<void> {
+  const { error } = await supabase.from("breeder_pins").delete().eq("id", id);
+  if (error) throw error;
 }
 
 async function revokeSession(sessionId: string): Promise<void> {
@@ -71,6 +86,7 @@ function sessionStatus(
 export default function BreederPasscodeSettings() {
   const queryClient = useQueryClient();
 
+  const [label, setLabel] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [showSavedState, setShowSavedState] = useState(false);
@@ -92,8 +108,14 @@ export default function BreederPasscodeSettings() {
     queryFn: fetchSessions,
   });
 
+  const { data: pins = [], isLoading: pinsLoading } = useQuery({
+    queryKey: PINS_QK,
+    queryFn: fetchPins,
+  });
+
   const saveMut = useMutation({
-    mutationFn: (newPin: string) => setBreederPasscode(newPin),
+    mutationFn: ({ newPin, newLabel }: { newPin: string; newLabel: string }) =>
+      setBreederPasscode(newPin, newLabel),
     onSuccess: (res) => {
       if (!res.ok) {
         toast.error(res.error);
@@ -103,6 +125,7 @@ export default function BreederPasscodeSettings() {
       setShowSavedState(true);
       setPin("");
       setConfirmPin("");
+      queryClient.invalidateQueries({ queryKey: PINS_QK });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -116,7 +139,20 @@ export default function BreederPasscodeSettings() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deletePinMut = useMutation({
+    mutationFn: deletePin,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PINS_QK });
+      toast.success("Pin removed");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   function handleSave() {
+    if (!label.trim()) {
+      toast.error("Give this pin a name (e.g. Yolanda)");
+      return;
+    }
     if (!pinIsValid(pin)) {
       toast.error("Pin must be 4 digits");
       return;
@@ -125,7 +161,7 @@ export default function BreederPasscodeSettings() {
       toast.error("Pins don't match");
       return;
     }
-    saveMut.mutate(pin);
+    saveMut.mutate({ newPin: pin, newLabel: label.trim() });
   }
 
   async function copyUrl() {
@@ -149,20 +185,32 @@ export default function BreederPasscodeSettings() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold">Breeder passcode</h1>
+        <h1 className="text-2xl font-bold">Breeder passcodes</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set the 4-digit pin Yolanda uses at <code>/breeder/login</code> on her
-          phone. Pins are PBKDF2-hashed server-side before storage. Rotating
-          the pin does not revoke existing sessions — they expire naturally
-          at 30 days.
+          Set the 4-digit pins used at <code>/breeder/login</code>. Any named
+          pin below grants the same full access to the breeder portal — this
+          is just so you can tell who logged in, not a permissions system.
+          Pins are hashed server-side before storage. Rotating a pin does not
+          revoke existing sessions — they expire naturally at 30 days.
         </p>
       </header>
 
       <Card>
         <CardContent className="space-y-4 pt-6">
+          <div>
+            <Label htmlFor="label">Name</Label>
+            <Input
+              id="label"
+              placeholder="e.g. Yolanda"
+              maxLength={40}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className="mt-1"
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="pin">New 4-digit pin</Label>
+              <Label htmlFor="pin">4-digit pin</Label>
               <Input
                 id="pin"
                 type="password"
@@ -194,10 +242,52 @@ export default function BreederPasscodeSettings() {
           </div>
           <Button
             onClick={handleSave}
-            disabled={!pinIsValid(pin) || pin !== confirmPin || saveMut.isPending}
+            disabled={
+              !label.trim() || !pinIsValid(pin) || pin !== confirmPin || saveMut.isPending
+            }
           >
             {saveMut.isPending ? "Saving…" : "Save passcode"}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-3 pt-6">
+          <h2 className="text-lg font-semibold">Existing pins</h2>
+          {pinsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : pins.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pins set yet.</p>
+          ) : (
+            <ul className="divide-y">
+              {pins.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 py-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium">{p.label}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      updated{" "}
+                      {new Date(p.updated_at).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setLabel(p.label)}>
+                    Rotate
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deletePinMut.mutate(p.id)}
+                    disabled={deletePinMut.isPending}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
@@ -255,6 +345,7 @@ export default function BreederPasscodeSettings() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
+                          {s.pin_label ? `${s.pin_label} — ` : ""}
                           {s.device_label || "Unnamed device"}
                         </span>
                         <Badge

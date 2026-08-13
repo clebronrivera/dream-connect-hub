@@ -631,11 +631,12 @@ export async function uploadBreederPhoto(args: {
 
 export async function setBreederPasscode(
   pin: string,
+  label: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data, error } = await supabase.functions.invoke<
     { ok: true } | { ok: false; error: string }
   >("breeder-set-passcode", {
-    body: { pin },
+    body: { pin, label },
   });
 
   if (error) {

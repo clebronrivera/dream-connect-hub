@@ -11,6 +11,15 @@ export interface BreederSessionRow {
   expires_at: string;
   last_used_at: string;
   revoked_at: string | null;
+  /** Which named breeder_pins entry was used to log in (e.g. "Yolanda"). */
+  pin_label: string | null;
+}
+
+// Row shape from breeder_pins, minus passcode_hash — never sent to the client.
+export interface BreederPinRow {
+  id: string;
+  label: string;
+  updated_at: string;
 }
 
 // Row shape from the `breeder_litter_summary` Postgres view.
