@@ -4,11 +4,12 @@
 // and on success returns { ok, token, expiresAt }. Used by /breeder/login
 // to mint a session token the client then persists in localStorage.
 //
-// Auth model: the only secret is a 4-digit pin (10,000 possibilities).
-// Brute-force is the obvious threat. We rate-limit at 5 failed attempts
-// per IP per 15-minute window via breeder_login_attempts, AND we never
-// expose the bcrypt hash to the client. On success, the session token
-// is what gets stored — the pin itself is never persisted browser-side.
+// Auth model: any of the named pins in breeder_pins grants the same
+// access (10,000 possibilities each). Brute-force is the obvious threat.
+// We rate-limit at 5 failed attempts per IP per 15-minute window via
+// breeder_login_attempts, AND we never expose the pin hashes to the
+// client. On success, the session token is what gets stored — the pin
+// itself is never persisted browser-side.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -95,21 +96,19 @@ export async function handler(
     });
   }
 
-  // Load the bcrypt hash from breeder_config.
-  const { data: config, error: configErr } = await supabase
-    .from("breeder_config")
-    .select("passcode_hash")
-    .eq("id", 1)
-    .maybeSingle();
+  // Load every configured pin — any of them grants the same breeder access.
+  const { data: pins, error: pinsErr } = await supabase
+    .from("breeder_pins")
+    .select("label, passcode_hash");
 
-  if (configErr) {
+  if (pinsErr) {
     return json(500, {
       ok: false,
       error: "Failed to read breeder config",
-      details: configErr.message,
+      details: pinsErr.message,
     });
   }
-  if (!config) {
+  if (!pins || pins.length === 0) {
     // Don't reveal whether the pin would have been right; just say the tool isn't set up.
     return json(503, {
       ok: false,
@@ -117,9 +116,15 @@ export async function handler(
     });
   }
 
-  const matches = await verifyPin(body.pin, config.passcode_hash);
+  let matchedLabel: string | null = null;
+  for (const p of pins) {
+    if (await verifyPin(body.pin, p.passcode_hash)) {
+      matchedLabel = p.label;
+      break;
+    }
+  }
 
-  if (!matches) {
+  if (!matchedLabel) {
     await supabase
       .from("breeder_login_attempts")
       .insert({ ip_address: ip, succeeded: false });
@@ -138,6 +143,7 @@ export async function handler(
       token,
       expires_at: expiresAt,
       device_label: deviceLabel,
+      pin_label: matchedLabel,
     })
     .select("token, expires_at")
     .single();
